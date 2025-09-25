@@ -1,0 +1,64 @@
+--- Progress adjustment record for tracking manual adjustments to downtime project progress
+--- Records manual progress changes made by directors or players with reasoning
+--- @class DTProgressAdjustment
+--- @field amount number Progress points to add (negative to subtract)
+--- @field reason string Required. The reason for the adjustment
+--- @field timestamp string|osdate When the adjustment was created
+--- @field createdBy string User ID of the user who made the adjustment
+DTProgressAdjustment = RegisterGameType("DTProgressAdjustment")
+DTProgressAdjustment.__index = DTProgressAdjustment
+
+--- Creates a new progress adjustment instance
+--- @param amount number Progress points to add (negative to subtract)
+--- @param reason string The reason for the adjustment
+--- @return DTProgressAdjustment instance The new progress adjustment instance
+function DTProgressAdjustment:new(amount, reason)
+    local instance = setmetatable({}, self)
+
+    instance.amount = math.floor(amount or 0)
+    instance.reason = reason or ""
+    instance.timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    instance.createdBy = dmhub.userid
+
+    return instance
+end
+
+--- Gets the adjustment amount
+--- @return number amount Progress points to add (negative to subtract)
+function DTProgressAdjustment:GetAmount()
+    return self.amount or 0
+end
+
+--- Sets the adjustment amount
+--- @param amount number Progress points to add (negative to subtract)
+--- @return DTProgressAdjustment self For chaining
+function DTProgressAdjustment:SetAmount(amount)
+    self.amount = math.floor(amount or 0)
+    return self
+end
+
+--- Gets the reason for the adjustment
+--- @return string reason The reason for the adjustment
+function DTProgressAdjustment:GetReason()
+    return self.reason or ""
+end
+
+--- Sets the reason for the adjustment
+--- @param reason string The reason for the adjustment
+--- @return DTProgressAdjustment self For chaining
+function DTProgressAdjustment:SetReason(reason)
+    self.reason = reason or ""
+    return self
+end
+
+--- Gets when this adjustment was created
+--- @return string|osdate timestamp ISO 8601 UTC timestamp
+function DTProgressAdjustment:GetTimestamp()
+    return self.timestamp
+end
+
+--- Gets who created this adjustment
+--- @return string createdBy The Codex player ID of the adjustment creator
+function DTProgressAdjustment:GetCreatedBy()
+    return self.createdBy
+end
