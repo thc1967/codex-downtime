@@ -23,5 +23,6 @@ DTConstants.CHARACTERISTICS = {
 DTConstants.STATUS = {
     ACTIVE = "Active",
     PAUSED = "Paused",
+    MILESTONE = "Milestone",
     COMPLETE = "Complete"
 }

@@ -254,6 +254,27 @@ function DTDowntimeProject:GetCreatedBy()
     return self.createdBy
 end
 
+--- Calculates the current progress of this project
+--- Sums all project roll results and progress adjustments
+--- @return number progress The total progress points earned on this project
+function DTDowntimeProject:GetProgress()
+    local progress = 0
+
+    -- Add all roll results
+    local rolls = self:GetProjectRolls()
+    for _, roll in ipairs(rolls) do
+        progress = progress + roll:GetModifiedRoll()
+    end
+
+    -- Add all progress adjustments
+    local adjustments = self:GetProgressAdjustments()
+    for _, adjustment in ipairs(adjustments) do
+        progress = progress + adjustment:GetAmount()
+    end
+
+    return progress
+end
+
 --- Validates if the given status is valid for projects
 --- @param status string The status to validate
 --- @return boolean valid True if the status is valid
