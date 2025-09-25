@@ -54,10 +54,10 @@ function DTGrantRollsDialog:ShowDialog()
         children = {
             -- Title
             gui.Label{
-                text = "Grant Rolls to Characters",
+                text = "Grant Downtime Rolls to Characters",
                 width = "100%",
                 height = 30,
-                fontSize = "24",
+                fontSize = 24,
                 classes = {"DTLabel", "DTBase"},
                 textAlignment = "center",
                 halign = "center"
@@ -122,16 +122,18 @@ function DTGrantRollsDialog:_buildNumberOfRollsField()
     local dialog = self
 
     return gui.Panel{
-        width = "100%",
+        width = "50%",
         height = 60,
         vmargin = 10,
+        halign = "left",
         flow = "vertical",
         children = {
             gui.Label{
                 text = "Number of Rolls",
                 classes = {"DTLabel", "DTBase"},
                 width = "100%",
-                height = 20
+                height = 20,
+                vmargin = 10,
             },
             gui.Panel{
                 width = "100%",
@@ -228,11 +230,19 @@ function DTGrantRollsDialog:_createCharacterSelector()
         return result
     end
 
-    -- Function to update selection state
+    -- Function to track selection without validation (for auto-selection during init)
+    local function TrackSelection()
+        dialog.selectedTokens = GetSelectedTokenIds()
+    end
+
+    -- Function to update selection state with validation (for user interactions)
     local function UpdateSelection()
         dialog.selectedTokens = GetSelectedTokenIds()
         dialog:_validateForm()
     end
+
+    -- Track initially selected tokens for auto-selection
+    local startingSelection = {}
 
     -- Create token panels
     for i, token in ipairs(candidateTokens) do
@@ -253,6 +263,14 @@ function DTGrantRollsDialog:_createCharacterSelector()
                 UpdateSelection()
             end,
         }
+
+        -- Check if this token was selected on the map
+        for _, selectedTok in ipairs(selectedTokens) do
+            if selectedTok == token then
+                startingSelection[#startingSelection + 1] = tokenPanels[#tokenPanels]
+                break
+            end
+        end
     end
 
     -- Token grid container
@@ -262,7 +280,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
         cornerRadius = 8,
         border = 2,
         borderColor = '#888888',
-        width = 210,
+        width = "96%",
         height = 210,
         pad = 4,
         vscroll = true,
@@ -330,11 +348,21 @@ function DTGrantRollsDialog:_createCharacterSelector()
             gui.Label{
                 classes = {'token-pool-shortcut'},
                 text = 'All',
+                create = function(element)
+                    -- Auto-select map-selected tokens when dialog opens
+                    element:FireEvent("selectStarting")
+                end,
                 click = function(element)
                     for i, tokenPanel in ipairs(tokenPanels) do
                         tokenPanel:SetClass('selected', true)
                     end
                     UpdateSelection()
+                end,
+                selectStarting = function(element)
+                    for i, tokenPanel in ipairs(startingSelection) do
+                        tokenPanel:SetClass('selected', true)
+                    end
+                    TrackSelection() -- Don't validate during initialization
                 end,
             },
             gui.Panel{
@@ -405,7 +433,8 @@ end
 
 --- Validates the form and enables/disables the Confirm button
 function DTGrantRollsDialog:_validateForm()
-    if self.confirmButton then
+    -- Only validate if confirm button exists (may not exist during dialog initialization)
+    if self.confirmButton ~= nil then
         local isValid = self:_isFormValid()
         self.confirmButton:SetClass("invalid", not isValid)
         -- Future: self.confirmButton.disabled = not isValid (when supported)
