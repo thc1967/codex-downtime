@@ -76,6 +76,19 @@ function DTSettings:SetPauseRollsReason(reason)
     end
 end
 
+--- Sets both pause rolls and reason in a single transaction
+--- @param pause boolean Whether to pause rolls
+--- @param reason string The reason why rolls are paused
+function DTSettings:SetData(pause, reason)
+    local doc = self:_safeDoc()
+    if doc then
+        doc:BeginChange()
+        doc.data.pauseRolls = pause or false
+        doc.data.pauseRollsReason = reason or ""
+        doc:CompleteChange("Update downtime settings", {undoable = false})
+    end
+end
+
 --- Initializes the settings document with default structure if it's not already set
 --- @return table doc The document
 function DTSettings:_ensureDocInitialized()
@@ -108,5 +121,5 @@ end
 --- Gets the path for document monitoring in UI
 --- @return string path The document path for monitoring
 function DTSettings:GetDocumentPath()
-    return monitorDoc.path
+    return self.mod:GetDocumentSnapshot(self.documentName).path
 end
