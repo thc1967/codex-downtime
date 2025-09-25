@@ -32,9 +32,9 @@ function DTGrantRollsDialog:ShowDialog()
     local dialogStyles = DTUIUtils.GetDialogStyles()
     dialogStyles[#dialogStyles + 1] = gui.Style{
         selectors = {'DTButton', 'DTBase', 'invalid'},
-        bgcolor = '#440000',     -- Dark red background
-        borderColor = '#880000', -- Red border
-        borderWidth = 2
+        bgcolor = '#222222',
+        borderColor = '#444444',
+        -- borderWidth = 2
     }
 
     local grantRollsDialog = gui.Panel{
@@ -433,10 +433,10 @@ end
 
 --- Validates the form and enables/disables the Confirm button
 function DTGrantRollsDialog:_validateForm()
-    -- Only validate if confirm button exists (may not exist during dialog initialization)
     if self.confirmButton ~= nil then
         local isValid = self:_isFormValid()
         self.confirmButton:SetClass("invalid", not isValid)
+        self.confirmButton.interactable = isValid
         -- Future: self.confirmButton.disabled = not isValid (when supported)
     end
 end
@@ -445,19 +445,14 @@ end
 function DTGrantRollsDialog:_onConfirm()
     if not self:_isFormValid() then return end
 
-    -- TODO: Implement roll granting logic
-    -- Iterate through self.selectedTokens and grant self.numberOfRolls to each character
-
     print("THC:: Grant " .. self.numberOfRolls .. " rolls to " .. #self.selectedTokens .. " characters:")
-    for i, tokenId in ipairs(self.selectedTokens) do
+    for _, tokenId in ipairs(self.selectedTokens) do
         local token = dmhub.GetCharacterById(tokenId)
         if token and token.properties then
-            print("THC::", token.name, token, json(token))
 
             token:ModifyProperties{
                 description = "Grant Downtime Rolls",
                 execute = function ()
-                    print("THC:: EXECUTING::")
                     local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
                     if type(downtimeInfo) ~= "table" then downtimeInfo = DTDowntimeInfo:new() end
                     downtimeInfo:AddAvailableRolls(self.numberOfRolls)
