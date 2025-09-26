@@ -80,3 +80,17 @@ function DTDowntimeInfo:RemoveDowntimeProject(projectId)
     end
     return self
 end
+
+--- Gets the total number of staged rolls across all non-completed projects
+--- @return number stagedRolls The total count of staged rolls for active projects
+function DTDowntimeInfo:GetStagedRollsCount()
+    local totalStagedRolls = 0
+
+    for _, project in pairs(self:GetDowntimeProjects()) do
+        if project:GetStatus() ~= DTConstants.STATUS.COMPLETE then
+            totalStagedRolls = totalStagedRolls + project:GetPendingRolls()
+        end
+    end
+
+    return totalStagedRolls
+end

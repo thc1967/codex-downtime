@@ -150,6 +150,9 @@ end
 function DTDowntimeProject:SetStatus(status)
     if self:_isValidStatus(status) then
         self.status = status
+        if status == DTConstants.STATUS.COMPLETE then
+            self:SetPendingRolls(0)
+        end
     end
     return self
 end
