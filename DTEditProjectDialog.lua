@@ -9,6 +9,13 @@
 DTEditProjectDialog = RegisterGameType("DTEditProjectDialog")
 DTEditProjectDialog.__index = DTEditProjectDialog
 
+--- In-place project editor for character sheet integration
+--- Provides real-time editing of project fields within the character sheet
+--- @class DTProjectEditor
+--- @field project DTDowntimeProject The project being edited
+DTProjectEditor = RegisterGameType("DTProjectEditor")
+DTProjectEditor.__index = DTProjectEditor
+
 --- Tab styling following QuestManagerWindow patterns
 DTEditProjectDialog.TabsStyles = {
     gui.Style{
@@ -361,7 +368,6 @@ function DTEditProjectDialog:_buildProjectForm()
     -- Dropdown options
     local languagePenaltyOptions = DTUIUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY)
     local characteristicOptions = DTUIUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS)
-    print("THC:: CHAROPTS::", json(characteristicOptions))
     local statusOptions = DTUIUtils.ListToDropdownOptions(DTConstants.STATUS)
 
     return gui.Panel{
@@ -805,4 +811,458 @@ function DTEditProjectDialog:_onConfirm()
     end
 
     gui.CloseModal()
+end
+
+--- Creates a new DTProjectEditor instance
+--- @param project DTDowntimeProject The project to edit
+--- @return DTProjectEditor instance The new editor instance
+function DTProjectEditor:new(project)
+    local instance = setmetatable({}, self)
+    instance.project = project
+    return instance
+end
+
+--- Creates an inline editor panel for real-time project editing
+--- @return table panel The editor panel with input fields
+function DTProjectEditor:CreateEditorPanel()
+    local editor = self
+    local isDM = dmhub.isDM
+
+    return gui.Panel {
+        width = "95%",
+        height = "auto",
+        flow = "vertical",
+        hmargin = 5,
+        vmargin = 5,
+        children = {
+            -- Title input field
+            gui.Panel {
+                width = "100%",
+                height = 35,
+                flow = "horizontal",
+                halign = "left",
+                valign = "center",
+                children = {
+                    gui.Input {
+                        width = "100%",
+                        height = 30,
+                        classes = {"DTInput", "DTBase"},
+                        fontSize = 18,
+                        placeholderText = "Enter project title...",
+                        editlag = 0.25,
+                        refreshToken = function(element, info)
+                            element.text = editor.project:GetTitle() or ""
+                        end,
+                        edit = function(element)
+                            element:FireEvent("change")
+                        end,
+                        change = function(element)
+                            editor.project:SetTitle(element.text)
+                        end
+                    }
+                }
+            },
+
+            -- First row: Progress display, Status dropdown, Goal input
+            gui.Panel {
+                width = "100%",
+                height = 30,
+                flow = "horizontal",
+                halign = "left",
+                valign = "center",
+                children = {
+                    -- Progress display (read-only)
+                    gui.Panel {
+                        width = "25%",
+                        height = 30,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Label {
+                                text = "Progress:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                bold = false,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            gui.Label {
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center",
+                                refreshToken = function(element, info)
+                                    local progress = editor.project:GetProgress()
+                                    local goal = editor.project:GetProjectGoal()
+                                    element.text = string.format("%d/%d", progress, goal)
+                                end
+                            }
+                        }
+                    },
+
+                    -- Status dropdown (DM only) or display
+                    gui.Panel {
+                        width = "35%",
+                        height = 30,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Label {
+                                text = "Status:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                bold = false,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            isDM and gui.Dropdown {
+                                width = "auto",
+                                height = 25,
+                                classes = {"DTDropdown", "DTBase"},
+                                options = DTUIUtils.ListToDropdownOptions(DTConstants.STATUS),
+                                refreshToken = function(element, info)
+                                    element.idChosen = DTConstants.GetDisplayText(DTConstants.STATUS, editor.project:GetStatus())
+                                end,
+                                change = function(element)
+                                    -- Find the constant that matches the display text
+                                    for _, constant in ipairs(DTConstants.STATUS) do
+                                        if constant.displayText == element.idChosen then
+                                            editor.project:SetStatus(constant.key)
+                                            break
+                                        end
+                                    end
+                                end
+                            } or gui.Label {
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 25,
+                                fontSize = 14,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center",
+                                refreshToken = function(element, info)
+                                    element.text = DTConstants.GetDisplayText(DTConstants.STATUS, editor.project:GetStatus())
+                                end
+                            }
+                        }
+                    },
+
+                    -- Goal input
+                    gui.Panel {
+                        width = "40%",
+                        height = 30,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Label {
+                                text = "Goal:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                bold = false,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            gui.Input {
+                                width = 60,
+                                height = 25,
+                                classes = {"DTInput", "DTBase"},
+                                textAlignment = "center",
+                                editlag = 0.25,
+                                refreshToken = function(element, info)
+                                    element.text = tostring(editor.project:GetProjectGoal())
+                                end,
+                                edit = function(element)
+                                    element:FireEvent("change")
+                                end,
+                                change = function(element)
+                                    local value = tonumber(element.text) or 1
+                                    editor.project:SetProjectGoal(math.max(1, math.floor(value)))
+                                end
+                            }
+                        }
+                    }
+                }
+            },
+
+            -- Second row: Characteristic, Language Penalty, Pending Rolls
+            gui.Panel {
+                width = "100%",
+                height = 30,
+                flow = "horizontal",
+                halign = "left",
+                valign = "center",
+                children = {
+                    -- Characteristic dropdown
+                    gui.Panel {
+                        width = "33%",
+                        height = 30,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Label {
+                                text = "Char:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                bold = false,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            gui.Dropdown {
+                                width = "auto",
+                                height = 25,
+                                classes = {"DTDropdown", "DTBase"},
+                                options = DTUIUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
+                                refreshToken = function(element, info)
+                                    element.idChosen = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, editor.project:GetTestCharacteristic())
+                                end,
+                                change = function(element)
+                                    for _, constant in ipairs(DTConstants.CHARACTERISTICS) do
+                                        if constant.displayText == element.idChosen then
+                                            editor.project:SetTestCharacteristic(constant.key)
+                                            break
+                                        end
+                                    end
+                                end
+                            }
+                        }
+                    },
+
+                    -- Language Penalty dropdown
+                    gui.Panel {
+                        width = "34%",
+                        height = 30,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Label {
+                                text = "Lang:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                bold = false,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            gui.Dropdown {
+                                width = "auto",
+                                height = 25,
+                                classes = {"DTDropdown", "DTBase"},
+                                options = DTUIUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY),
+                                refreshToken = function(element, info)
+                                    element.idChosen = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, editor.project:GetProjectSourceLanguagePenalty())
+                                end,
+                                change = function(element)
+                                    for _, constant in ipairs(DTConstants.LANGUAGE_PENALTY) do
+                                        if constant.displayText == element.idChosen then
+                                            editor.project:SetProjectSourceLanguagePenalty(constant.key)
+                                            break
+                                        end
+                                    end
+                                end
+                            }
+                        }
+                    },
+
+                    -- Pending Rolls with +/- buttons
+                    gui.Panel {
+                        width = "33%",
+                        height = 30,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Label {
+                                text = "Pending:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = 30,
+                                fontSize = 14,
+                                bold = false,
+                                hmargin = 2,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            gui.Button{
+                                text = "-",
+                                width = 25,
+                                height = 25,
+                                classes = {"DTButton", "DTBase"},
+                                click = function(element)
+                                    local current = editor.project:GetPendingRolls()
+                                    if current > 0 then
+                                        editor.project:SetPendingRolls(current - 1)
+                                    end
+                                end
+                            },
+                            gui.Label {
+                                classes = {"DTLabel", "DTBase"},
+                                width = 30,
+                                height = 25,
+                                fontSize = 14,
+                                textAlignment = "center",
+                                halign = "center",
+                                valign = "center",
+                                refreshToken = function(element, info)
+                                    element.text = tostring(editor.project:GetPendingRolls())
+                                end
+                            },
+                            gui.Button{
+                                text = "+",
+                                width = 25,
+                                height = 25,
+                                classes = {"DTButton", "DTBase"},
+                                click = function(element)
+                                    local current = editor.project:GetPendingRolls()
+                                    editor.project:SetPendingRolls(current + 1)
+                                end
+                            }
+                        }
+                    }
+                }
+            },
+
+            -- Third row: Prerequisite input
+            gui.Panel {
+                width = "100%",
+                height = 30,
+                flow = "horizontal",
+                halign = "left",
+                valign = "center",
+                children = {
+                    gui.Label {
+                        text = "Prerequisites:",
+                        classes = {"DTLabel", "DTBase"},
+                        width = 100,
+                        height = 30,
+                        fontSize = 14,
+                        bold = false,
+                        hmargin = 2,
+                        halign = "left",
+                        valign = "center"
+                    },
+                    gui.Input {
+                        width = "100%-100",
+                        height = 25,
+                        classes = {"DTInput", "DTBase"},
+                        placeholderText = "Required items or prerequisites...",
+                        editlag = 0.25,
+                        refreshToken = function(element, info)
+                            element.text = editor.project:GetItemPrerequisite() or ""
+                        end,
+                        edit = function(element)
+                            element:FireEvent("change")
+                        end,
+                        change = function(element)
+                            editor.project:SetItemPrerequisite(element.text)
+                        end
+                    }
+                }
+            },
+
+            -- Fourth row: Source input
+            gui.Panel {
+                width = "100%",
+                height = 30,
+                flow = "horizontal",
+                halign = "left",
+                valign = "center",
+                children = {
+                    gui.Label {
+                        text = "Source:",
+                        classes = {"DTLabel", "DTBase"},
+                        width = 100,
+                        height = 30,
+                        fontSize = 14,
+                        bold = false,
+                        hmargin = 2,
+                        halign = "left",
+                        valign = "center"
+                    },
+                    gui.Input {
+                        width = "100%-100",
+                        height = 25,
+                        classes = {"DTInput", "DTBase"},
+                        placeholderText = "Book, tutor, or source of project knowledge...",
+                        editlag = 0.25,
+                        refreshToken = function(element, info)
+                            element.text = editor.project:GetProjectSource() or ""
+                        end,
+                        edit = function(element)
+                            element:FireEvent("change")
+                        end,
+                        change = function(element)
+                            editor.project:SetProjectSource(element.text)
+                        end
+                    }
+                }
+            },
+
+            -- Fifth row: Milestone threshold (DM only)
+            isDM and gui.Panel {
+                width = "100%",
+                height = 30,
+                flow = "horizontal",
+                halign = "left",
+                valign = "center",
+                children = {
+                    gui.Label {
+                        text = "Milestone:",
+                        classes = {"DTLabel", "DTBase"},
+                        width = 100,
+                        height = 30,
+                        fontSize = 14,
+                        bold = false,
+                        hmargin = 2,
+                        halign = "left",
+                        valign = "center"
+                    },
+                    gui.Input {
+                        width = 60,
+                        height = 25,
+                        classes = {"DTInput", "DTBase"},
+                        textAlignment = "center",
+                        placeholderText = "0",
+                        editlag = 0.25,
+                        refreshToken = function(element, info)
+                            local threshold = editor.project:GetMilestoneThreshold()
+                            element.text = threshold and tostring(threshold) or ""
+                        end,
+                        edit = function(element)
+                            element:FireEvent("change")
+                        end,
+                        change = function(element)
+                            if element.text == "" then
+                                editor.project:SetMilestoneThreshold(nil)
+                            else
+                                local value = tonumber(element.text) or 0
+                                editor.project:SetMilestoneThreshold(math.max(0, math.floor(value)))
+                            end
+                        end
+                    }
+                }
+            } or gui.Panel{height = 1}
+        }
+    }
 end

@@ -181,16 +181,9 @@ function DTCharSheetTab._createHeaderPanel()
                             if token and token.properties and token.properties:IsHero() then
                                 local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
                                 if downtimeInfo then
-                                    local project = downtimeInfo:AddDowntimeProject()
-                                    local dialog = DTEditProjectDialog:new(project)
-                                    if dialog then
-                                        dialog:ShowDialog(
-                                            function(savedProject) -- onSave callback
-                                                DTSettings.Touch()
-                                                CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
-                                            end
-                                        )
-                                    end
+                                    downtimeInfo:AddDowntimeProject()
+                                    DTSettings.Touch()
+                                    CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
                                 end
                             end
                         end
@@ -299,7 +292,7 @@ function DTCharSheetTab._refreshProjectsList(element)
         isFirstItem = false
 
         -- Project item
-        projectEntries[#projectEntries + 1] = DTCharSheetTab._createProjectEntry(project)
+        projectEntries[#projectEntries + 1] = DTProjectEditor:new(project):CreateEditorPanel()
     end
 
     element.children = projectEntries
