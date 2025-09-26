@@ -59,30 +59,64 @@ function DTCharSheetTab._createHeaderPanel()
                 halign = "left",
                 valign = "center",
                 children = {
-                    gui.Label {
-                        text = "Calculating roll status...",
-                        classes = {"DTLabel", "DTBase"},
+                    gui.Panel {
                         width = "100%",
                         height = "100%",
+                        flow = "horizontal",
                         halign = "left",
                         valign = "center",
                         hmargin = "20",
-                        fontSize = 20,
-                        refreshToken = function(element, info)
-                            local fmt = "Rolling status is %s. %s"
-                            local status = "UNKNOWN"
-                            local reason = "(Unable to retrieve settings!)"
-                            local settings = DTSettings:new()
-                            if settings then
-                                status = settings:GetPauseRolls() and "PAUSED" or "AVAILABLE"
-                                if settings:GetPauseRolls() then
-                                    reason = settings:GetPauseRollsReason()
-                                else
-                                    reason = ""
+                        children = {
+                            gui.Label {
+                                text = "Rolling status is ",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = "100%",
+                                hmargin = 2,
+                                fontSize = 20,
+                                halign = "left",
+                                valign = "center"
+                            },
+                            gui.Label {
+                                text = "CALCULATING...",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                hmargin = 2,
+                                height = "100%",
+                                fontSize = 20,
+                                halign = "left",
+                                valign = "center",
+                                refreshToken = function(element, info)
+                                    local status = "UNKNOWN"
+                                    local settings = DTSettings:new()
+                                    if settings then
+                                        status = settings:GetPauseRolls() and "PAUSED" or "AVAILABLE"
+                                    end
+                                    element.text = status
+                                    element.classes = {"DTLabel", "DTBase", status == "AVAILABLE" and "DTStatusAvailable" or "DTStatusPaused"}
                                 end
-                            end
-                            element.text = string.format(fmt, status, reason)
-                        end,
+                            },
+                            gui.Label {
+                                text = "",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "auto",
+                                height = "100%",
+                                fontSize = 20,
+                                halign = "left",
+                                valign = "center",
+                                bold = false,
+                                refreshToken = function(element, info)
+                                    local reason = ""
+                                    local settings = DTSettings:new()
+                                    if settings then
+                                        if settings:GetPauseRolls() then
+                                            reason = "(" .. settings:GetPauseRollsReason() .. ")"
+                                        end
+                                    end
+                                    element.text = reason
+                                end
+                            }
+                        }
                     }
                 }
             },
@@ -279,12 +313,224 @@ function DTCharSheetTab._createProjectEntry(project)
     local progress = project:GetProgress()
     local goal = project:GetProjectGoal()
     local status = project:GetStatus()
+    local statusReason = project:GetStatusReason()
     local pendingRolls = project:GetPendingRolls()
+    local characteristic = project:GetTestCharacteristic()
+    local languagePenalty = project:GetProjectSourceLanguagePenalty()
+    local prerequisite = project:GetItemPrerequisite()
+    local source = project:GetProjectSource()
 
     local statusColor = status == DTConstants.STATUS.COMPLETE and "#4CAF50" or
                        status == DTConstants.STATUS.PAUSED and "#FF9800" or
                        status == DTConstants.STATUS.MILESTONE and "#2196F3" or
                        "#FFFFFF"
+
+    -- Build title label
+    local titleLabel = gui.Label {
+        text = project:GetTitle() ~= "" and project:GetTitle() or "Untitled Project",
+        classes = {"DTLabel", "DTBase"},
+        width = "auto",
+        height = 25,
+        hmargin = 2,
+        halign = "left",
+        valign = "center"
+    }
+
+    -- Build progress label (uncolored)
+    local progressPanel = gui.Panel {
+        width = "auto",
+        height = 20,
+        flow = "horizontal",
+        hmargin = 2,
+        halign = "left",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Progress:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+                bold = false,
+            },
+            gui.Label {
+                text = string.format("%d/%d", progress, goal),
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+            },
+        },
+    }
+
+    -- Build status reason label (conditional, uncolored)
+    local statusReasonLabel = (status == DTConstants.STATUS.PAUSED and statusReason and statusReason ~= "") and gui.Label {
+        text = string.format(" (%s)", statusReason),
+        classes = {"DTLabel", "DTBase"},
+        width = "auto",
+        height = 20,
+        halign = "left",
+        valign = "center",
+        bold = false
+    } or nil
+
+    -- Build status panel (label + colored value + conditional reason)
+    local statusPanel = gui.Panel {
+        width = "auto",
+        height = 20,
+        flow = "horizontal",
+        hmargin = 2,
+        halign = "left",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Status:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                halign = "left",
+                valign = "center",
+                hmargin = 2,
+                bold = false
+            },
+            gui.Label {
+                text = status,
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+                color = statusColor
+            },
+            statusReasonLabel
+        }
+    }
+
+    -- Build detail labels (all non-bold, conditional display)
+    local characteristicLabel = (characteristic and characteristic ~= "") and gui.Panel {
+        width = "auto",
+        height = 20,
+        flow = "horizontal",
+        hmargin = 2,
+        halign = "left",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Characteristic:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+                bold = false
+            },
+            gui.Label {
+                text = characteristic,
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+            }
+        }
+    } or nil
+
+    local languagePenaltyLabel = languagePenalty and gui.Panel {
+        width = "auto",
+        height = 20,
+        flow = "horizontal",
+        hmargin = 2,
+        halign = "left",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Language Penalty:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+                bold = false
+            },
+            gui.Label {
+                text = languagePenalty,
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+            }
+        }
+    } or nil
+
+    local prerequisiteLabel = (prerequisite and prerequisite ~= "") and gui.Panel {
+        width = "auto",
+        height = 20,
+        flow = "horizontal",
+        hmargin = 2,
+        halign = "left",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Prerequisites:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+                bold = false
+            },
+            gui.Label {
+                text = prerequisite,
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+            }
+        }
+    } or nil
+
+    local sourceLabel = (source and source ~= "") and gui.Panel {
+        width = "auto",
+        height = 20,
+        flow = "horizontal",
+        hmargin = 2,
+        halign = "left",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Project Source:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+                bold = false
+            },
+            gui.Label {
+                text = source,
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = 20,
+                hmargin = 2,
+                halign = "left",
+                valign = "center",
+            }
+        }
+    } or nil
 
     return gui.Panel {
         width = "95%",
@@ -304,24 +550,81 @@ function DTCharSheetTab._createProjectEntry(project)
                 valign = "center",
                 hpad = 10,
                 children = {
-                    gui.Label {
-                        text = project:GetTitle() ~= "" and project:GetTitle() or "Untitled Project",
-                        classes = {"DTLabel", "DTBase"},
+                    -- Title line with progress/status
+                    gui.Panel {
                         width = "100%",
                         height = 25,
-                        -- fontSize = 16,
-                        halign = "left",
-                        valign = "center"
-                    },
-                    gui.Label {
-                        text = string.format("Progress: %d/%d | Status: %s", progress, goal, status),
-                        classes = {"DTLabel", "DTBase"},
-                        width = "100%",
-                        height = 20,
-                        -- fontSize = 12,
+                        flow = "horizontal",
                         halign = "left",
                         valign = "center",
-                        color = statusColor
+                        children = {
+                            gui.Panel {
+                                width = "50%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    titleLabel,
+                                }
+                            },
+                            gui.Panel {
+                                width = "25%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    progressPanel,
+                                }
+                            },
+                            gui.Panel {
+                                width = "25%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    statusPanel
+                                }
+                            }
+                        }
+                    },
+                    -- Detail line with project specifics
+                    gui.Panel {
+                        width = "100%",
+                        height = 20,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            gui.Panel {
+                                width = "25%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    characteristicLabel,
+                                }
+                            },
+                            gui.Panel {
+                                width = "25%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    languagePenaltyLabel,
+                                }
+                            },
+                            gui.Panel {
+                                width = "25%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    prerequisiteLabel,
+                                }
+                            },
+                            gui.Panel {
+                                width = "25%",
+                                halign = "left",
+                                valign = "center",
+                                children = {
+                                    sourceLabel
+                                }
+                            },
+                        }
                     }
                 }
             },
@@ -335,6 +638,25 @@ function DTCharSheetTab._createProjectEntry(project)
                 valign = "center",
                 hpad = 10,
                 children = {
+                    gui.SettingsButton {
+                        width = 20,
+                        height = 20,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        vmargin = 5,
+                        click = function()
+                            local dialog = DTEditProjectDialog:new(project)
+                            if dialog then
+                                dialog:ShowDialog(
+                                    function(savedProject) -- onSave callback
+                                        DTSettings.Touch()
+                                        CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
+                                    end
+                                )
+                            end
+                        end,
+                    },
                     gui.DeleteItemButton {
                         width = 20,
                         height = 20,

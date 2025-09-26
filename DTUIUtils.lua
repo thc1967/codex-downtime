@@ -197,6 +197,16 @@ function DTUIUtils.GetDialogStyles()
             height = 20
         },
 
+        -- Rolling status color classes
+        gui.Style{
+            selectors = {"DTStatusAvailable"},
+            color = "#4CAF50"  -- Green for available/enabled
+        },
+        gui.Style{
+            selectors = {"DTStatusPaused"},
+            color = "#FF9800"  -- Orange for paused
+        },
+
         -- Objective drag handle styles
         gui.Style{
             selectors = {"objective-drag-handle"},
@@ -243,14 +253,41 @@ function DTUIUtils.GetPlayerDisplayName(userId)
     return "{unknown}"
 end
 
---- Transforms a list of strings into a list of id, text pairs for dropdown lists
---- @param sourceList table The table to convert
---- @return table destList The transformed table
+--- Transforms a list of strings, records, or DTConstant instances into a list of id, text pairs for dropdown lists
+--- @param sourceList table The table to convert (strings, records, or DTConstant instances)
+--- @return table destList The transformed table, sorted by sortOrder if available
 function DTUIUtils.ListToDropdownOptions(sourceList)
     local destList = {}
     if sourceList and type(sourceList) == "table" then
-        for _, item in pairs(sourceList) do
-            destList[#destList+1] = { id = item, text = item}
+        -- Check if this contains DTConstant instances
+        if #sourceList > 0 and getmetatable(sourceList[1]) == DTConstant then
+            -- DTConstant format: sort by sortOrder and use displayText
+            local sortedList = {}
+            for _, constant in ipairs(sourceList) do
+                sortedList[#sortedList + 1] = constant
+            end
+            table.sort(sortedList, function(a, b) return a.sortOrder < b.sortOrder end)
+
+            for _, constant in ipairs(sortedList) do
+                destList[#destList+1] = { id = constant.displayText, text = constant.displayText}
+            end
+        -- Check if this is the old record-based format
+        elseif #sourceList > 0 and sourceList[1].sortOrder then
+            -- Old record format: sort by sortOrder and use displayText
+            local sortedList = {}
+            for _, record in ipairs(sourceList) do
+                sortedList[#sortedList + 1] = record
+            end
+            table.sort(sortedList, function(a, b) return a.sortOrder < b.sortOrder end)
+
+            for _, record in ipairs(sortedList) do
+                destList[#destList+1] = { id = record.displayText, text = record.displayText}
+            end
+        else
+            -- Legacy format: iterate through pairs
+            for _, item in pairs(sourceList) do
+                destList[#destList+1] = { id = item, text = item}
+            end
         end
     end
     return destList

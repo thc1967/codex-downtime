@@ -108,7 +108,7 @@ function DTDirectorPanel:_buildHeaderPanel()
     local isPaused = self.downtimeSettings:GetPauseRolls()
     local pauseReason = self.downtimeSettings:GetPauseRollsReason()
 
-    local statusText = string.format("Rolling: %s", isPaused and "Paused" or "Active")
+    local statusText = string.format("Rolling: %s", isPaused and "Paused" or "Enabled")
 
     return gui.Panel {
         width = "100%",

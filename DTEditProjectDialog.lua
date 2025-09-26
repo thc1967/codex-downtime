@@ -164,8 +164,9 @@ function DTEditProjectDialog:ShowDialog(onSave, onCancel)
                         height = 40,
                         hmargin = 20,
                         classes = {"DTButton", "DTBase"},
+                        escapePriority = EscapePriority.EXIT_DIALOG,
                         click = function(element)
-                            if dialog.onCancelCallback then
+                            if dialog:try_get("onCancelCallback") then
                                 dialog.onCancelCallback()
                             end
                             gui.CloseModal()
@@ -190,12 +191,12 @@ function DTEditProjectDialog:ShowDialog(onSave, onCancel)
             }
         },
 
-        escape = function(element)
-            if dialog.onCancelCallback then
-                dialog.onCancelCallback()
-            end
-            gui.CloseModal()
-        end
+        -- escape = function(element)
+        --     if dialog:try_get("onCancelCallback") then
+        --         dialog.onCancelCallback()
+        --     end
+        --     gui.CloseModal()
+        -- end
     }
 
     dialog.dialogElement = editProjectDialog
@@ -360,6 +361,7 @@ function DTEditProjectDialog:_buildProjectForm()
     -- Dropdown options
     local languagePenaltyOptions = DTUIUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY)
     local characteristicOptions = DTUIUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS)
+    print("THC:: CHAROPTS::", json(characteristicOptions))
     local statusOptions = DTUIUtils.ListToDropdownOptions(DTConstants.STATUS)
 
     return gui.Panel{
