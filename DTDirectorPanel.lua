@@ -245,12 +245,36 @@ end
 --- Shows the settings edit dialog for downtime configuration
 --- Allows editing pause rolls setting and reason
 function DTDirectorPanel:ShowSettingsEditDialog()
+    local dialog = self
     local isPaused = self.downtimeSettings:GetPauseRolls()
     local pauseReason = self.downtimeSettings:GetPauseRollsReason()
 
     -- Local variables to track form state
     local newPauseState = isPaused
     local newPauseReason = pauseReason
+    local confirmButton = nil
+
+    -- Validation functions
+    local function isFormValid()
+        -- Enable if pause is OFF OR pause reason has non-whitespace text
+        return not newPauseState or (newPauseReason and newPauseReason:trim() ~= "")
+    end
+
+    local function validateForm()
+        if confirmButton ~= nil then
+            local isValid = isFormValid()
+            confirmButton:SetClass("invalid", not isValid)
+            confirmButton.interactable = isValid
+        end
+    end
+
+    -- Build styles array with invalid button styling
+    local dialogStyles = DTUIUtils.GetDialogStyles()
+    dialogStyles[#dialogStyles + 1] = gui.Style{
+        selectors = {'DTButton', 'DTBase', 'invalid'},
+        bgcolor = '#222222',
+        borderColor = '#444444',
+    }
 
     local settingsDialog = gui.Panel{
         width = 500,
@@ -264,7 +288,7 @@ function DTDirectorPanel:ShowSettingsEditDialog()
         flow = "vertical",
         hpad = 20,
         vpad = 20,
-        styles = DTUIUtils.GetDialogStyles(),
+        styles = dialogStyles,
 
         children = {
             -- Title
@@ -284,6 +308,7 @@ function DTDirectorPanel:ShowSettingsEditDialog()
                 value = isPaused,
                 change = function(element)
                     newPauseState = element.value
+                    validateForm()
                 end
             }, {
                 width = "100%",
@@ -299,6 +324,7 @@ function DTDirectorPanel:ShowSettingsEditDialog()
                 editlag = 0.25,
                 edit = function(element)
                     newPauseReason = element.text or ""
+                    validateForm()
                 end
             }, {
                 width = "100%",
@@ -327,12 +353,17 @@ function DTDirectorPanel:ShowSettingsEditDialog()
                     },
                     -- Confirm button
                     gui.Button{
-                        text = "Save",
+                        text = "Confirm",
                         width = 120,
                         height = 40,
                         hmargin = 20,
                         classes = {"DTButton", "DTBase"},
+                        create = function(element)
+                            confirmButton = element
+                            validateForm()
+                        end,
                         click = function(element)
+                            if not isFormValid() then return end
                             -- Use SetData to minimize server round-trips
                             self.downtimeSettings:SetData(newPauseState, newPauseReason)
                             gui.CloseModal()
