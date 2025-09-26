@@ -192,8 +192,8 @@ function DTDirectorPanel:_buildHeaderPanel()
                         end,
                     },
                     gui.Button {
-                        text = "CAT",
-                        width = 60,
+                        text = "C",
+                        width = 30,
                         height = 30,
                         halign = "right",
                         valign = "center",
@@ -206,21 +206,36 @@ function DTDirectorPanel:_buildHeaderPanel()
                             self:_debugCategorization()
                         end
                     },
-                    -- gui.Button{
-                    --     text = "INIT",
-                    --     width = 60,
-                    --     height = 30,
-                    --     halign = "right",
-                    --     valign = "center",
-                    --     hmargin = 5,
-                    --     classes = {"DTButton", "DTBase"},
-                    --     linger = function(element)
-                    --         gui.Tooltip("Clear all data.")(element)
-                    --     end,
-                    --     click = function(element)
-                    --         self.downtimeSettings:InitializeDocument()
-                    --     end
-                    -- },
+                    gui.Button{
+                        text = "I",
+                        width = 30,
+                        height = 30,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        classes = {"DTButton", "DTBase"},
+                        linger = function(element)
+                            gui.Tooltip("Clear all data.")(element)
+                        end,
+                        click = function(element)
+                            self.downtimeSettings:InitializeDocument()
+                        end
+                    },
+                    gui.Button{
+                        text = "D",
+                        width = 30,
+                        height = 30,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        classes = {"DTButton", "DTBase"},
+                        linger = function(element)
+                            gui.Tooltip("Clear all data.")(element)
+                        end,
+                        click = function(element)
+                            self:_debugDocument()
+                        end
+                    },
                 }
             },
         }
@@ -431,12 +446,6 @@ function DTDirectorPanel:_categorizeDowntimeProjects(characters)
     return categorized
 end
 
---- Debug method to print the raw document contents from persistence
-function DTDirectorPanel:_debugDocument()
-    local doc = self.downtimeSettings.mod:GetDocumentSnapshot(self.downtimeSettings.documentName)
-    print("THC:: PERSISTED::", json(doc.data))
-end
-
 --- Debug method to test the categorization functionality
 function DTDirectorPanel:_debugCategorization()
     print("THC:: Testing categorization...")
@@ -636,4 +645,10 @@ function DTDirectorPanel:_refreshPanelContent(element)
     local headerPanel = self:_buildHeaderPanel()
     local contentPanel = self:_buildContentPanel()
     element.children = {headerPanel, contentPanel}
+end
+
+--- Debug method to print the raw document contents from persistence
+function DTDirectorPanel:_debugDocument()
+    local doc = self.downtimeSettings.mod:GetDocumentSnapshot(self.downtimeSettings.documentName)
+    print("THC:: PERSISTED::", json(doc.data))
 end

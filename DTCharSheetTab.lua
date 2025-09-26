@@ -143,7 +143,6 @@ function DTCharSheetTab._createHeaderPanel()
                             gui.Tooltip("Add a new downtime project")(element)
                         end,
                         click = function(element)
-                            print("THC:: ADDCLICK::")
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
                                 local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
@@ -151,16 +150,14 @@ function DTCharSheetTab._createHeaderPanel()
                                     local project = downtimeInfo:AddDowntimeProject()
                                     local dialog = DTEditProjectDialog:new(project)
                                     if dialog then
-                                        print("THC:: OPENDLG::")
-                                        dialog:ShowDialog()
-                                    else
-                                        print("THC:: DOIALOG::")
+                                        dialog:ShowDialog(
+                                            function(savedProject) -- onSave callback
+                                                DTSettings.Touch()
+                                                CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
+                                            end
+                                        )
                                     end
-                                else
-                                    print("THC:: NODTINFO::")
                                 end
-                            else
-                                print("THC:: NOTOON::")
                             end
                         end
                     }
@@ -180,17 +177,34 @@ function DTCharSheetTab._createBodyPanel()
         halign = "center",
         valign = "top",
         vmargin = 10,
+        refreshDowntimeProjectList = function(element)
+            local scrollArea = element:Get("projectsScrollArea")
+            if scrollArea then
+                DTCharSheetTab._refreshProjectsList(scrollArea)
+            end
+        end,
         children = {
-            -- Projects list container
-            gui.Panel {
+            -- Scrollable projects area
+            gui.Panel{
                 width = "100%",
                 height = "100%",
-                flow = "vertical",
-                halign = "center",
                 valign = "top",
-                refreshToken = function(element, info)
-                    DTCharSheetTab._refreshProjectsList(element)
-                end
+                vscroll = true,
+                styles = DTUIUtils.GetDialogStyles(),
+                children = {
+                    -- Inner auto-height container that pins content to top
+                    gui.Panel{
+                        id = "projectsScrollArea",
+                        width = "100%",
+                        height = "auto",
+                        flow = "vertical",
+                        halign = "center",
+                        valign = "top",
+                        refreshToken = function(element, info)
+                            DTCharSheetTab._refreshProjectsList(element)
+                        end
+                    }
+                }
             }
         }
     }
@@ -242,7 +256,15 @@ function DTCharSheetTab._refreshProjectsList(element)
 
     -- Create project entries
     local projectEntries = {}
+    local isFirstItem = true
     for projectId, project in pairs(projects) do
+        -- Add divider before project (except first one)
+        if not isFirstItem then
+            projectEntries[#projectEntries + 1] = gui.Divider { width = "90%", vmargin = 2 }
+        end
+        isFirstItem = false
+
+        -- Project item
         projectEntries[#projectEntries + 1] = DTCharSheetTab._createProjectEntry(project)
     end
 
@@ -253,6 +275,7 @@ end
 --- @param project DTDowntimeProject The project to display
 --- @return table panel The project entry panel
 function DTCharSheetTab._createProjectEntry(project)
+    local title = project:GetTitle() or "Untitled Project"
     local progress = project:GetProgress()
     local goal = project:GetProjectGoal()
     local status = project:GetStatus()
@@ -270,10 +293,7 @@ function DTCharSheetTab._createProjectEntry(project)
         halign = "center",
         valign = "center",
         vmargin = 5,
-        bgcolor = "#222222aa",
-        bgimage = "panels/square.png",
-        borderWidth = 1,
-        borderColor = "#444444",
+        styles = DTUIUtils.GetDialogStyles(),
         children = {
             -- Project info section
             gui.Panel {
@@ -289,7 +309,7 @@ function DTCharSheetTab._createProjectEntry(project)
                         classes = {"DTLabel", "DTBase"},
                         width = "100%",
                         height = 25,
-                        fontSize = 16,
+                        -- fontSize = 16,
                         halign = "left",
                         valign = "center"
                     },
@@ -298,7 +318,7 @@ function DTCharSheetTab._createProjectEntry(project)
                         classes = {"DTLabel", "DTBase"},
                         width = "100%",
                         height = 20,
-                        fontSize = 12,
+                        -- fontSize = 12,
                         halign = "left",
                         valign = "center",
                         color = statusColor
@@ -306,7 +326,7 @@ function DTCharSheetTab._createProjectEntry(project)
                 }
             },
 
-            -- Pending rolls section
+            -- Actions section
             gui.Panel {
                 width = "30%",
                 height = "100%",
@@ -315,25 +335,47 @@ function DTCharSheetTab._createProjectEntry(project)
                 valign = "center",
                 hpad = 10,
                 children = {
-                    gui.Label {
-                        text = "Staged:",
-                        classes = {"DTLabel", "DTBase"},
-                        width = "auto",
-                        height = "auto",
-                        fontSize = 12,
+                    gui.DeleteItemButton {
+                        width = 20,
+                        height = 20,
                         halign = "right",
                         valign = "center",
-                        hmargin = 5
+                        hmargin = 5,
+                        vmargin = 5,
+                        click = function()
+                            DTUIUtils.ShowDeleteConfirmation("Project", title, function()
+                                print("THC:: DELETE::", title)
+                            local token = CharacterSheet.instance.data.info.token
+                                if token and token.properties and token.properties:IsHero() then
+                                    local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+                                    if downtimeInfo then
+                                        downtimeInfo:RemoveDowntimeProject(project:GetID())
+                                        DTSettings.Touch()
+                                        CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
+                                    end
+                                end
+                            end)
+                        end
                     },
-                    gui.Label {
-                        text = tostring(pendingRolls),
-                        classes = {"DTLabel", "DTBase"},
-                        width = "auto",
-                        height = "auto",
-                        fontSize = 14,
-                        halign = "right",
-                        valign = "center"
-                    }
+                    -- gui.Label {
+                    --     text = "Staged:",
+                    --     classes = {"DTLabel", "DTBase"},
+                    --     width = "auto",
+                    --     height = "auto",
+                    --     -- fontSize = 12,
+                    --     halign = "right",
+                    --     valign = "center",
+                    --     hmargin = 5
+                    -- },
+                    -- gui.Label {
+                    --     text = tostring(pendingRolls),
+                    --     classes = {"DTLabel", "DTBase"},
+                    --     width = "auto",
+                    --     height = "auto",
+                    --     -- fontSize = 14,
+                    --     halign = "right",
+                    --     valign = "center"
+                    -- }
                 }
             }
         }

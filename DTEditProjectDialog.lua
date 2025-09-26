@@ -99,8 +99,14 @@ function DTEditProjectDialog:new(project)
 end
 
 --- Shows the edit project dialog modal
-function DTEditProjectDialog:ShowDialog()
+--- @param onSave function Callback function called with project when user saves
+--- @param onCancel function|nil Optional callback function called when user cancels
+function DTEditProjectDialog:ShowDialog(onSave, onCancel)
     local dialog = self
+
+    -- Store callbacks
+    dialog.onSaveCallback = onSave
+    dialog.onCancelCallback = onCancel
 
     -- Build styles array with invalid button styling
     local dialogStyles = DTUIUtils.GetDialogStyles()
@@ -159,6 +165,9 @@ function DTEditProjectDialog:ShowDialog()
                         hmargin = 20,
                         classes = {"DTButton", "DTBase"},
                         click = function(element)
+                            if dialog.onCancelCallback then
+                                dialog.onCancelCallback()
+                            end
                             gui.CloseModal()
                         end
                     },
@@ -182,6 +191,9 @@ function DTEditProjectDialog:ShowDialog()
         },
 
         escape = function(element)
+            if dialog.onCancelCallback then
+                dialog.onCancelCallback()
+            end
             gui.CloseModal()
         end
     }
@@ -770,6 +782,7 @@ end
 
 --- Handles the confirm button click - saves changes and closes dialog
 function DTEditProjectDialog:_onConfirm()
+    print("THC:: DLGONCONFIRM::")
     if not self:_isFormValid() then return end
 
     -- Apply form data to project
@@ -783,6 +796,11 @@ function DTEditProjectDialog:_onConfirm()
     self.project:SetStatusReason(self.formData.statusReason)
     self.project:SetMilestoneThreshold(self.formData.milestoneThreshold)
     self.project:SetPendingRolls(self.formData.pendingRolls)
+
+    -- Call onSave callback with the modified project
+    if self.onSaveCallback then
+        self.onSaveCallback(self.project)
+    end
 
     gui.CloseModal()
 end

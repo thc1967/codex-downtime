@@ -9,7 +9,6 @@ DTSettings.__index = DTSettings
 -- Module-level document monitor for persistence (timing-critical)
 local mod = dmhub.GetModLoading()
 local documentName = "DTSettings"
-local monitorDoc = mod:GetDocumentSnapshot(documentName)
 
 --- Creates a new settings manager instance
 --- @return DTSettings instance The new settings manager instance
@@ -28,10 +27,28 @@ function DTSettings:InitializeDocument()
     doc:BeginChange()
     doc.data = {
         pauseRolls = false,
-        pauseRollsReason = ""
+        pauseRollsReason = "",
+        modifiedAt = dmhub.serverTime,
     }
     doc:CompleteChange("Initialize downtime settings", {undoable = true})
     return doc
+end
+
+--- Touches the document to trigger network refresh
+function DTSettings:TouchDoc()
+    local doc = self:_safeDoc()
+    if doc then
+        doc:BeginChange()
+        doc.data.modifiedAt = dmhub.serverTime
+        doc:CompleteChange("touch timestamp", {undoable = false})
+    end
+end
+
+--- Static method to touch the settings document without requiring callers to manage instances
+--- Triggers network refresh by updating the modifiedAt timestamp
+function DTSettings.Touch()
+    local instance = DTSettings:new()
+    instance:TouchDoc()
 end
 
 --- Gets the pause rolls setting
@@ -51,6 +68,7 @@ function DTSettings:SetPauseRolls(pause)
     if doc then
         doc:BeginChange()
         doc.data.pauseRolls = pause or false
+        doc.data.modifiedAt = dmhub.serverTime
         doc:CompleteChange("Update pause rolls setting", {undoable = false})
     end
 end
@@ -72,6 +90,7 @@ function DTSettings:SetPauseRollsReason(reason)
     if doc then
         doc:BeginChange()
         doc.data.pauseRollsReason = reason or ""
+        doc.data.modifiedAt = dmhub.serverTime
         doc:CompleteChange("Update pause rolls reason", {undoable = false})
     end
 end
@@ -85,6 +104,7 @@ function DTSettings:SetData(pause, reason)
         doc:BeginChange()
         doc.data.pauseRolls = pause or false
         doc.data.pauseRollsReason = reason or ""
+        doc.data.modifiedAt = dmhub.serverTime
         doc:CompleteChange("Update downtime settings", {undoable = false})
     end
 end
