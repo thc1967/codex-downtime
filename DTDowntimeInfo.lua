@@ -63,10 +63,12 @@ function DTDowntimeInfo:GetDowntimeProject(projectId)
 end
 
 --- Adds a new downtime project to this character
---- @param title? string Optional title for the new project
+--- @param project? DTDowntimeProject The project to add or nil if we're creating a new one
 --- @return DTDowntimeProject project The newly created project
-function DTDowntimeInfo:AddDowntimeProject(title)
-    local project = DTDowntimeProject:new(title)
+function DTDowntimeInfo:AddDowntimeProject(project)
+    if project == nil or type(project) ~= table then
+        project = DTDowntimeProject:new()
+    end
     self.downtimeProjects[project:GetID()] = project
     return project
 end

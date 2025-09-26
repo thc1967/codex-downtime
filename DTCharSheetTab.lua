@@ -144,6 +144,24 @@ function DTCharSheetTab._createHeaderPanel()
                         end,
                         click = function(element)
                             print("THC:: ADDCLICK::")
+                            local token = CharacterSheet.instance.data.info.token
+                            if token and token.properties and token.properties:IsHero() then
+                                local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+                                if downtimeInfo then
+                                    local project = downtimeInfo:AddDowntimeProject()
+                                    local dialog = DTEditProjectDialog:new(project)
+                                    if dialog then
+                                        print("THC:: OPENDLG::")
+                                        dialog:ShowDialog()
+                                    else
+                                        print("THC:: DOIALOG::")
+                                    end
+                                else
+                                    print("THC:: NODTINFO::")
+                                end
+                            else
+                                print("THC:: NOTOON::")
+                            end
                         end
                     }
                 }

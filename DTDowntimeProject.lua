@@ -34,7 +34,7 @@ function DTDowntimeProject:new()
     instance.projectGoal = 1
     instance.status = DTConstants.STATUS.PAUSED
     instance.statusReason = "New Project"
-    instance.milestoneThreshold = nil
+    instance.milestoneThreshold = 0
     instance.earnedBreakthroughs = 0
     instance.pendingRolls = 0
     instance.projectRolls = {}
@@ -184,7 +184,7 @@ function DTDowntimeProject:SetMilestoneThreshold(threshold)
     if threshold ~= nil then
         self.milestoneThreshold = math.max(0, math.floor(threshold))
     else
-        self.milestoneThreshold = nil
+        self.milestoneThreshold = 0
     end
     return self
 end
