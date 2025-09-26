@@ -617,7 +617,7 @@ function DTEditProjectDialog:_buildProjectForm()
                                     dialog.formData.status = element.idChosen
                                 end
                             } or gui.Label{
-                                text = dialog.formData.status,
+                                text = DTConstants.GetDisplayText(DTConstants.STATUS, dialog.formData.status),
                                 classes = {"DTLabel", "DTBase"},
                                 width = "90%",
                                 height = 25,

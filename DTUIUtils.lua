@@ -253,41 +253,22 @@ function DTUIUtils.GetPlayerDisplayName(userId)
     return "{unknown}"
 end
 
---- Transforms a list of strings, records, or DTConstant instances into a list of id, text pairs for dropdown lists
---- @param sourceList table The table to convert (strings, records, or DTConstant instances)
---- @return table destList The transformed table, sorted by sortOrder if available
+--- Transforms a list of DTConstant instances into a list of id, text pairs for dropdown lists
+--- @param sourceList table The table containing DTConstant instances
+--- @return table destList The transformed table, sorted by sortOrder
 function DTUIUtils.ListToDropdownOptions(sourceList)
     local destList = {}
-    if sourceList and type(sourceList) == "table" then
-        -- Check if this contains DTConstant instances
-        if #sourceList > 0 and getmetatable(sourceList[1]) == DTConstant then
-            -- DTConstant format: sort by sortOrder and use displayText
-            local sortedList = {}
-            for _, constant in ipairs(sourceList) do
-                sortedList[#sortedList + 1] = constant
-            end
-            table.sort(sortedList, function(a, b) return a.sortOrder < b.sortOrder end)
+    if sourceList and type(sourceList) == "table" and #sourceList > 0 then
+        -- Sort DTConstant instances by sortOrder
+        local sortedList = {}
+        for _, constant in ipairs(sourceList) do
+            sortedList[#sortedList + 1] = constant
+        end
+        table.sort(sortedList, function(a, b) return a.sortOrder < b.sortOrder end)
 
-            for _, constant in ipairs(sortedList) do
-                destList[#destList+1] = { id = constant.displayText, text = constant.displayText}
-            end
-        -- Check if this is the old record-based format
-        elseif #sourceList > 0 and sourceList[1].sortOrder then
-            -- Old record format: sort by sortOrder and use displayText
-            local sortedList = {}
-            for _, record in ipairs(sourceList) do
-                sortedList[#sortedList + 1] = record
-            end
-            table.sort(sortedList, function(a, b) return a.sortOrder < b.sortOrder end)
-
-            for _, record in ipairs(sortedList) do
-                destList[#destList+1] = { id = record.displayText, text = record.displayText}
-            end
-        else
-            -- Legacy format: iterate through pairs
-            for _, item in pairs(sourceList) do
-                destList[#destList+1] = { id = item, text = item}
-            end
+        -- Create dropdown options using displayText
+        for _, constant in ipairs(sortedList) do
+            destList[#destList+1] = { id = constant.displayText, text = constant.displayText}
         end
     end
     return destList

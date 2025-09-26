@@ -398,7 +398,7 @@ function DTCharSheetTab._createProjectEntry(project)
                 bold = false
             },
             gui.Label {
-                text = status,
+                text = DTConstants.GetDisplayText(DTConstants.STATUS, status),
                 classes = {"DTLabel", "DTBase"},
                 width = "auto",
                 height = 20,
@@ -431,7 +431,7 @@ function DTCharSheetTab._createProjectEntry(project)
                 bold = false
             },
             gui.Label {
-                text = characteristic,
+                text = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, characteristic),
                 classes = {"DTLabel", "DTBase"},
                 width = "auto",
                 height = 20,
@@ -461,7 +461,7 @@ function DTCharSheetTab._createProjectEntry(project)
                 bold = false
             },
             gui.Label {
-                text = languagePenalty,
+                text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, languagePenalty),
                 classes = {"DTLabel", "DTBase"},
                 width = "auto",
                 height = 20,

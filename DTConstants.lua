@@ -42,3 +42,32 @@ DTConstants.STATUS.ACTIVE = DTConstants.STATUS[1]
 DTConstants.STATUS.PAUSED = DTConstants.STATUS[2]
 DTConstants.STATUS.MILESTONE = DTConstants.STATUS[3]
 DTConstants.STATUS.COMPLETE = DTConstants.STATUS[4]
+
+--- Helper function to get display text for enum keys
+--- Looks up the DTConstant in the enum table and returns displayText
+--- Falls back to title-case formatting if key not found
+--- @param enumTable table The enum table containing DTConstant instances
+--- @param key string The key to look up
+--- @return string displayText The display text or formatted key
+function DTConstants.GetDisplayText(enumTable, key)
+    -- First try to find the DTConstant record
+    if enumTable and type(enumTable) == "table" then
+        for _, constant in ipairs(enumTable) do
+            if constant.key == key then
+                return constant.displayText
+            end
+        end
+    end
+
+    -- Fallback: convert key to title case
+    if key and type(key) == "string" then
+        -- Handle both underscores and spaces, convert to title case
+        return key:gsub("[_%s]+", " ")  -- Replace underscores and multiple spaces with single space
+                  :gsub("(%a)([%w]*)", function(first, rest)  -- Title case each word
+                      return first:upper() .. rest:lower()
+                  end)
+                  :gsub("^%s+", ""):gsub("%s+$", "")  -- Trim leading/trailing spaces
+    end
+
+    return key or ""
+end
