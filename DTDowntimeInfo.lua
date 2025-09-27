@@ -107,7 +107,7 @@ function DTDowntimeInfo:GetStagedRollsCount()
     local totalStagedRolls = 0
 
     for _, project in pairs(self:GetDowntimeProjects()) do
-        if project:GetStatus() ~= DTConstants.STATUS.COMPLETE then
+        if project:GetStatus() ~= DTConstants.STATUS.COMPLETE.key then
             totalStagedRolls = totalStagedRolls + project:GetPendingRolls()
         end
     end

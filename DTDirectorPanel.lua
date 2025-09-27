@@ -33,24 +33,25 @@ DTDirectorPanel.TabsStyles = {
         bgimage = "panels/square.png",
         borderColor = Styles.textColor,
         border = { y1 = 0, y2 = 0, x1 = 0, x2 = 0 },
-        color = "#666666",  -- Dim gray for unselected
+        color = "#666666",
         textAlignment = "center",
         fontSize = 12,
         transitionTime = 0.2,
     },
     gui.Style{
         selectors = {"dtTab", "hover"},
-        color = "#aaaaaa",  -- Medium gray on hover
+        color = "#aaaaaa",
         borderColor = "#aaaaaa",
         border = { y1 = 1, y2 = 0, x1 = 0, x2 = 0 },
         transitionTime = 0.2,
     },
     gui.Style{
         selectors = {"dtTab", "selected"},
-        color = Styles.textColor,  -- Bright white for selected
-        bold = true,
+        color = "#ffffff",
         border = { y1 = 1, y2 = 0, x1 = 0, x2 = 0 },
-        fontSize = 13,  -- Slightly larger when selected
+        borderColor = "#ffffff",
+        bold = true,
+        fontSize = 12,
         transitionTime = 0.2,
     },
 }
@@ -382,9 +383,9 @@ function DTDirectorPanel:ShowSettingsEditDialog()
 end
 
 --- Gets all hero characters in the game that have downtime projects
---- @return table characters Array of hero character tokens with downtime projects
+--- @return table characterInfo Array of {id, name} objects for characters with downtime projects
 function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
-    local allCharacters = {}
+    local characterInfo = {}
 
     -- Local validation function to check if character meets criteria
     local function isHeroWithDowntime(character)
@@ -401,7 +402,10 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         for _, characterId in ipairs(characterIds) do
             local character = dmhub.GetCharacterById(characterId)
             if isHeroWithDowntime(character) then
-                allCharacters[#allCharacters + 1] = character
+                characterInfo[#characterInfo + 1] = {
+                    id = character.id,
+                    name = character.name or "Unknown Character"
+                }
             end
         end
     end
@@ -411,7 +415,10 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     for _, token in ipairs(unaffiliatedTokens) do
         local character = dmhub.GetCharacterById(token.charid)
         if isHeroWithDowntime(character) then
-            allCharacters[#allCharacters + 1] = character
+            characterInfo[#characterInfo + 1] = {
+                id = character.id,
+                name = character.name or "Unknown Character"
+            }
         end
     end
 
@@ -420,17 +427,21 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     for _, token in ipairs(despawnedTokens) do
         local character = dmhub.GetCharacterById(token.charid)
         if isHeroWithDowntime(character) then
-            allCharacters[#allCharacters + 1] = character
+            characterInfo[#characterInfo + 1] = {
+                id = character.id,
+                name = character.name or "Unknown Character"
+            }
         end
     end
 
-    return allCharacters
+    return characterInfo
 end
 
---- Categorizes downtime projects from characters into 4 status-based buckets for tab display
---- @param characters table Array of character objects with downtime projects
+--- Categorizes downtime projects into 4 status-based buckets for tab display
 --- @return table categorizedProjects Object with attention, milestones, active, completed arrays
-function DTDirectorPanel:_categorizeDowntimeProjects(characters)
+function DTDirectorPanel:_categorizeDowntimeProjects()
+    local characterInfoList = self:_getAllCharactersWithDowntimeProjects()
+
     local categorized = {
         attention = {},   -- PAUSED projects
         milestones = {},  -- MILESTONE projects
@@ -438,35 +449,36 @@ function DTDirectorPanel:_categorizeDowntimeProjects(characters)
         completed = {}    -- COMPLETE projects
     }
 
-    for _, character in ipairs(characters) do
+    for _, characterInfo in ipairs(characterInfoList) do
+        local character = dmhub.GetCharacterById(characterInfo.id)
         if character and character.properties then
-            local characterId = character.id
-            local characterName = character.description or "Unknown Character"
+            local characterId = characterInfo.id
+            local characterName = characterInfo.name
 
             local downtimeInfo = character.properties:try_get("downtime_info")
             if downtimeInfo then
                 local projects = downtimeInfo:GetDowntimeProjects()
 
-                for projectId, project in pairs(projects) do
+                for _, project in pairs(projects) do
                     local projectEntry = {
                         characterId = characterId,
                         characterName = characterName,
-                        projectId = projectId,
+                        projectId = project:GetID(),
                         projectTitle = project:GetTitle(),
                         progress = project:GetProgress(),
                         goal = project:GetProjectGoal(),
-                        milestoneThreshold = project:GetMilestoneThreshold()
+                        milestoneThreshold = project:GetMilestoneThreshold(),
+                        pauseRollsReason = project:GetStatusReason(),
                     }
 
                     local status = project:GetStatus()
-                    if status == DTConstants.STATUS.PAUSED then
+                    if status == DTConstants.STATUS.PAUSED.key then
                         categorized.attention[#categorized.attention + 1] = projectEntry
-                    elseif status == DTConstants.STATUS.MILESTONE then
+                    elseif status == DTConstants.STATUS.MILESTONE.key then
                         categorized.milestones[#categorized.milestones + 1] = projectEntry
-                    elseif status == DTConstants.STATUS.COMPLETE then
+                    elseif status == DTConstants.STATUS.COMPLETE.key then
                         categorized.completed[#categorized.completed + 1] = projectEntry
-                    else
-                        -- ACTIVE or any other status goes to active
+                    else -- ACTIVE or any other status goes to active
                         categorized.active[#categorized.active + 1] = projectEntry
                     end
                 end
@@ -479,33 +491,8 @@ end
 
 --- Debug method to test the categorization functionality
 function DTDirectorPanel:_debugCategorization()
-    print("THC:: Testing categorization...")
-    local characters = self:_getAllCharactersWithDowntimeProjects()
-    print("THC:: Found " .. #characters .. " characters with downtime projects")
-
-    local categorized = self:_categorizeDowntimeProjects(characters)
-    print("THC:: Attention projects: " .. #categorized.attention)
-    print("THC:: Milestones projects: " .. #categorized.milestones)
-    print("THC:: Active projects: " .. #categorized.active)
-    print("THC:: Completed projects: " .. #categorized.completed)
-
-    -- Print details for first project in each category
-    if #categorized.attention > 0 then
-        local p = categorized.attention[1]
-        print("THC:: Sample attention project: " .. p.characterName .. " - " .. p.projectTitle .. " (" .. p.progress .. "/" .. p.goal .. ")")
-    end
-    if #categorized.milestones > 0 then
-        local p = categorized.milestones[1]
-        print("THC:: Sample milestone project: " .. p.characterName .. " - " .. p.projectTitle .. " (" .. p.progress .. "/" .. p.goal .. ")")
-    end
-    if #categorized.active > 0 then
-        local p = categorized.active[1]
-        print("THC:: Sample active project: " .. p.characterName .. " - " .. p.projectTitle .. " (" .. p.progress .. "/" .. p.goal .. ")")
-    end
-    if #categorized.completed > 0 then
-        local p = categorized.completed[1]
-        print("THC:: Sample completed project: " .. p.characterName .. " - " .. p.projectTitle .. " (" .. p.progress .. "/" .. p.goal .. ")")
-    end
+    local c = self:_categorizeDowntimeProjects()
+    print("THC:: CAT::", json(c))
 end
 
 --- Builds the main content panel with tabs
@@ -626,6 +613,9 @@ function DTDirectorPanel:_buildContentPanel()
         end
     end
 
+    -- Get categorized data for counts
+    local categorized = directorPanel:_categorizeDowntimeProjects()
+
     -- Create tabs panel
     tabsPanel = gui.Panel{
         classes = {"dtTabContainer"},
@@ -633,25 +623,25 @@ function DTDirectorPanel:_buildContentPanel()
         children = {
             gui.Label{
                 classes = {"dtTab", "selected"},
-                text = "Attention",
+                text = string.format("Attention (%d)", #categorized.attention),
                 data = {tabName = "Attention"},
                 press = function() selectTab("Attention") end,
             },
             gui.Label{
                 classes = {"dtTab"},
-                text = "Milestones",
+                text = string.format("Milestones (%d)", #categorized.milestones),
                 data = {tabName = "Milestones"},
                 press = function() selectTab("Milestones") end,
             },
             gui.Label{
                 classes = {"dtTab"},
-                text = "Active",
+                text = string.format("Active (%d)", #categorized.active),
                 data = {tabName = "Active"},
                 press = function() selectTab("Active") end,
             },
             gui.Label{
                 classes = {"dtTab"},
-                text = "Completed",
+                text = string.format("Completed (%d)", #categorized.completed),
                 data = {tabName = "Completed"},
                 press = function() selectTab("Completed") end,
             }
