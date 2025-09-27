@@ -2,6 +2,7 @@
 --- Represents a complete downtime project with status tracking, rolls, and adjustments
 --- @class DTDowntimeProject
 --- @field id string GUID identifier for this project
+--- @field sortOrder number The sort order for this objective
 --- @field title string The name of the project
 --- @field itemPrerequisite string Any special items required to start/continue the project
 --- @field projectSource string The lore source (book, tutor, etc.) enabling this project
@@ -21,18 +22,20 @@ DTDowntimeProject.__index = DTDowntimeProject
 
 
 --- Creates a new downtime project instance
+--- @param sortOrder number The sort order for this project
 --- @return DTDowntimeProject instance The new project instance
-function DTDowntimeProject:new()
+function DTDowntimeProject:new(sortOrder)
     local instance = setmetatable({}, self)
 
     instance.id = dmhub.GenerateGuid()
+    instance.sortOrder = sortOrder or 1
     instance.title = ""
     instance.itemPrerequisite = ""
     instance.projectSource = ""
-    instance.projectSourceLanguagePenalty = DTConstants.LANGUAGE_PENALTY.NONE
-    instance.testCharacteristic = DTConstants.CHARACTERISTICS.MIGHT
+    instance.projectSourceLanguagePenalty = DTConstants.LANGUAGE_PENALTY.NONE.key
+    instance.testCharacteristic = DTConstants.CHARACTERISTICS.REASON.key
     instance.projectGoal = 1
-    instance.status = DTConstants.STATUS.PAUSED
+    instance.status = DTConstants.STATUS.PAUSED.key
     instance.statusReason = "New Project"
     instance.milestoneThreshold = 0
     instance.earnedBreakthroughs = 0
@@ -95,7 +98,7 @@ end
 --- Gets the project source language penalty
 --- @return string languagePenalty One of DTConstants.LANGUAGE_PENALTY values
 function DTDowntimeProject:GetProjectSourceLanguagePenalty()
-    return self.projectSourceLanguagePenalty or DTConstants.LANGUAGE_PENALTY.NONE
+    return self.projectSourceLanguagePenalty or DTConstants.LANGUAGE_PENALTY.NONE.key
 end
 
 --- Sets the project source language penalty
@@ -111,7 +114,7 @@ end
 --- Gets the test characteristic
 --- @return string characteristic One of DTConstants.CHARACTERISTICS values
 function DTDowntimeProject:GetTestCharacteristic()
-    return self.testCharacteristic or DTConstants.CHARACTERISTICS.MIGHT
+    return self.testCharacteristic or DTConstants.CHARACTERISTICS.REASON.key
 end
 
 --- Sets the test characteristic
@@ -141,7 +144,7 @@ end
 --- Gets the status of this project
 --- @return string status One of DTConstants.STATUS values
 function DTDowntimeProject:GetStatus()
-    return self.status or DTConstants.STATUS.ACTIVE
+    return self.status or DTConstants.STATUS.ACTIVE.key
 end
 
 --- Sets the status of this project
@@ -150,7 +153,7 @@ end
 function DTDowntimeProject:SetStatus(status)
     if self:_isValidStatus(status) then
         self.status = status
-        if status == DTConstants.STATUS.COMPLETE then
+        if status == DTConstants.STATUS.COMPLETE.key then
             self:SetPendingRolls(0)
         end
     end
@@ -257,6 +260,20 @@ function DTDowntimeProject:GetCreatedBy()
     return self.createdBy
 end
 
+--- Gets the sort order of this project
+--- @return number sortOrder The sort order position
+function DTDowntimeProject:GetSortOrder()
+    return self.sortOrder or 1
+end
+
+--- Sets the sort order of this project
+--- @param sortOrder number The new sort order position
+--- @return DTDowntimeProject self For chaining
+function DTDowntimeProject:SetSortOrder(sortOrder)
+    self.sortOrder = sortOrder or 1
+    return self
+end
+
 --- Calculates the current progress of this project
 --- Sums all project roll results and progress adjustments
 --- @return number progress The total progress points earned on this project
@@ -283,7 +300,7 @@ end
 --- @return boolean valid True if the status is valid
 function DTDowntimeProject:_isValidStatus(status)
     for _, validStatus in pairs(DTConstants.STATUS) do
-        if status == validStatus then
+        if status == validStatus.key then
             return true
         end
     end
@@ -295,7 +312,7 @@ end
 --- @return boolean valid True if the penalty is valid
 function DTDowntimeProject:_isValidLanguagePenalty(penalty)
     for _, validPenalty in pairs(DTConstants.LANGUAGE_PENALTY) do
-        if penalty == validPenalty then
+        if penalty == validPenalty.key then
             return true
         end
     end
@@ -307,7 +324,7 @@ end
 --- @return boolean valid True if the characteristic is valid
 function DTDowntimeProject:_isValidTestCharacteristic(characteristic)
     for _, validCharacteristic in pairs(DTConstants.CHARACTERISTICS) do
-        if characteristic == validCharacteristic then
+        if characteristic == validCharacteristic.key then
             return true
         end
     end

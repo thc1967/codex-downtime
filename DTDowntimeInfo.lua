@@ -50,9 +50,26 @@ function DTDowntimeInfo:UseAvailableRolls(rolls)
 end
 
 --- Gets all downtime projects for this character
---- @return table downtimeProjects Array of DTDowntimeProject instances
+--- @return table downtimeProjects Hash table of DTDowntimeProject instances keyed by GUID
 function DTDowntimeInfo:GetDowntimeProjects()
     return self.downtimeProjects or {}
+end
+
+--- Gets all downtime projects sorted by sort order
+--- @return table projectsArray Array of DTDowntimeProject instances sorted by sortOrder
+function DTDowntimeInfo:GetSortedProjects()
+    -- Convert hash table to array
+    local projectsArray = {}
+    for _, project in pairs(self.downtimeProjects or {}) do
+        projectsArray[#projectsArray + 1] = project
+    end
+
+    -- Sort the array
+    table.sort(projectsArray, function(a, b)
+        return a:GetSortOrder() < b:GetSortOrder()
+    end)
+
+    return projectsArray
 end
 
 --- Returns the project matching the key or nil if not found
@@ -67,7 +84,8 @@ end
 --- @return DTDowntimeProject project The newly created project
 function DTDowntimeInfo:AddDowntimeProject(project)
     if project == nil or type(project) ~= table then
-        project = DTDowntimeProject:new()
+        local nextOrder = self:_maxProjectOrder() + 1
+        project = DTDowntimeProject:new(nextOrder)
     end
     self.downtimeProjects[project:GetID()] = project
     return project
@@ -95,4 +113,20 @@ function DTDowntimeInfo:GetStagedRollsCount()
     end
 
     return totalStagedRolls
+end
+
+--- Gets the highest sort order number among all projects for this character
+--- @return number maxOrder The highest sort order number, or 0 if no projects exist
+--- @private
+function DTDowntimeInfo:_maxProjectOrder()
+    local maxOrder = 0
+
+    for _, project in pairs(self.downtimeProjects or {}) do
+        local order = project:GetSortOrder()
+        if order > maxOrder then
+            maxOrder = order
+        end
+    end
+
+    return maxOrder
 end

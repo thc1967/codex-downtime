@@ -183,7 +183,10 @@ function DTCharSheetTab._createHeaderPanel()
                                 if downtimeInfo then
                                     downtimeInfo:AddDowntimeProject()
                                     DTSettings.Touch()
-                                    CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
+                                    local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
+                                    if scrollArea then
+                                        scrollArea:FireEventTree("refreshToken")
+                                    end
                                 end
                             end
                         end
@@ -205,7 +208,7 @@ function DTCharSheetTab._createBodyPanel()
         valign = "top",
         vmargin = 10,
         refreshDowntimeProjectList = function(element)
-            local scrollArea = element:Get("projectsScrollArea")
+            local scrollArea = element:Get("projectScrollArea")
             if scrollArea then
                 DTCharSheetTab._refreshProjectsList(scrollArea)
             end
@@ -221,7 +224,7 @@ function DTCharSheetTab._createBodyPanel()
                 children = {
                     -- Inner auto-height container that pins content to top
                     gui.Panel{
-                        id = "projectsScrollArea",
+                        id = "projectScrollArea",
                         width = "100%",
                         height = "auto",
                         flow = "vertical",
@@ -243,7 +246,7 @@ function DTCharSheetTab._refreshProjectsList(element)
     element.children = {}
 
     local character = CharacterSheet.instance.data.info.token
-    if not character or not character.properties then
+    if not character or not character.properties or not character.properties:IsHero() then
         return
     end
 
@@ -264,8 +267,8 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    local projects = downtimeInfo:GetDowntimeProjects()
-    if not projects or not next(projects) then
+    local projects = downtimeInfo:GetSortedProjects()
+    if not projects or #projects == 0 then
         -- Show "no projects" message
         element.children = {
             gui.Label {
@@ -284,7 +287,7 @@ function DTCharSheetTab._refreshProjectsList(element)
     -- Create project entries
     local projectEntries = {}
     local isFirstItem = true
-    for projectId, project in pairs(projects) do
+    for _, project in ipairs(projects) do
         -- Add divider before project (except first one)
         if not isFirstItem then
             projectEntries[#projectEntries + 1] = gui.Divider { width = "90%", vmargin = 2 }
@@ -301,401 +304,402 @@ end
 --- Creates a single project entry display
 --- @param project DTDowntimeProject The project to display
 --- @return table panel The project entry panel
-function DTCharSheetTab._createProjectEntry(project)
-    local title = project:GetTitle() or "Untitled Project"
-    local progress = project:GetProgress()
-    local goal = project:GetProjectGoal()
-    local status = project:GetStatus()
-    local statusReason = project:GetStatusReason()
-    local pendingRolls = project:GetPendingRolls()
-    local characteristic = project:GetTestCharacteristic()
-    local languagePenalty = project:GetProjectSourceLanguagePenalty()
-    local prerequisite = project:GetItemPrerequisite()
-    local source = project:GetProjectSource()
+-- function DTCharSheetTab._createProjectEntry(project)
+--     print("THC:: CREATEPROJECTENTRY::", json(project))
+--     local title = project:GetTitle() or "Untitled Project"
+--     local progress = project:GetProgress()
+--     local goal = project:GetProjectGoal()
+--     local status = project:GetStatus()
+--     local statusReason = project:GetStatusReason()
+--     local pendingRolls = project:GetPendingRolls()
+--     local characteristic = project:GetTestCharacteristic()
+--     local languagePenalty = project:GetProjectSourceLanguagePenalty()
+--     local prerequisite = project:GetItemPrerequisite()
+--     local source = project:GetProjectSource()
 
-    local statusColor = status == DTConstants.STATUS.COMPLETE and "#4CAF50" or
-                       status == DTConstants.STATUS.PAUSED and "#FF9800" or
-                       status == DTConstants.STATUS.MILESTONE and "#2196F3" or
-                       "#FFFFFF"
+--     local statusColor = status == DTConstants.STATUS.COMPLETE and "#4CAF50" or
+--                        status == DTConstants.STATUS.PAUSED and "#FF9800" or
+--                        status == DTConstants.STATUS.MILESTONE and "#2196F3" or
+--                        "#FFFFFF"
 
-    -- Build title label
-    local titleLabel = gui.Label {
-        text = project:GetTitle() ~= "" and project:GetTitle() or "Untitled Project",
-        classes = {"DTLabel", "DTBase"},
-        width = "auto",
-        height = 25,
-        hmargin = 2,
-        halign = "left",
-        valign = "center"
-    }
+--     -- Build title label
+--     local titleLabel = gui.Label {
+--         text = title,
+--         classes = {"DTLabel", "DTBase"},
+--         width = "auto",
+--         height = 25,
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center"
+--     }
 
-    -- Build progress label (uncolored)
-    local progressPanel = gui.Panel {
-        width = "auto",
-        height = 20,
-        flow = "horizontal",
-        hmargin = 2,
-        halign = "left",
-        valign = "center",
-        children = {
-            gui.Label {
-                text = "Progress:",
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-                bold = false,
-            },
-            gui.Label {
-                text = string.format("%d/%d", progress, goal),
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-            },
-        },
-    }
+--     -- Build progress label (uncolored)
+--     local progressPanel = gui.Panel {
+--         width = "auto",
+--         height = 20,
+--         flow = "horizontal",
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center",
+--         children = {
+--             gui.Label {
+--                 text = "Progress:",
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--                 bold = false,
+--             },
+--             gui.Label {
+--                 text = string.format("%d/%d", progress, goal),
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--             },
+--         },
+--     }
 
-    -- Build status reason label (conditional, uncolored)
-    local statusReasonLabel = (status == DTConstants.STATUS.PAUSED and statusReason and statusReason ~= "") and gui.Label {
-        text = string.format(" (%s)", statusReason),
-        classes = {"DTLabel", "DTBase"},
-        width = "auto",
-        height = 20,
-        halign = "left",
-        valign = "center",
-        bold = false
-    } or nil
+--     -- Build status reason label (conditional, uncolored)
+--     local statusReasonLabel = (status == DTConstants.STATUS.PAUSED and statusReason and statusReason ~= "") and gui.Label {
+--         text = string.format(" (%s)", statusReason),
+--         classes = {"DTLabel", "DTBase"},
+--         width = "auto",
+--         height = 20,
+--         halign = "left",
+--         valign = "center",
+--         bold = false
+--     } or nil
 
-    -- Build status panel (label + colored value + conditional reason)
-    local statusPanel = gui.Panel {
-        width = "auto",
-        height = 20,
-        flow = "horizontal",
-        hmargin = 2,
-        halign = "left",
-        valign = "center",
-        children = {
-            gui.Label {
-                text = "Status:",
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                halign = "left",
-                valign = "center",
-                hmargin = 2,
-                bold = false
-            },
-            gui.Label {
-                text = DTConstants.GetDisplayText(DTConstants.STATUS, status),
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-                color = statusColor
-            },
-            statusReasonLabel
-        }
-    }
+--     -- Build status panel (label + colored value + conditional reason)
+--     local statusPanel = gui.Panel {
+--         width = "auto",
+--         height = 20,
+--         flow = "horizontal",
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center",
+--         children = {
+--             gui.Label {
+--                 text = "Status:",
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 halign = "left",
+--                 valign = "center",
+--                 hmargin = 2,
+--                 bold = false
+--             },
+--             gui.Label {
+--                 text = DTConstants.GetDisplayText(DTConstants.STATUS, status),
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--                 color = statusColor
+--             },
+--             statusReasonLabel
+--         }
+--     }
 
-    -- Build detail labels (all non-bold, conditional display)
-    local characteristicLabel = (characteristic and characteristic ~= "") and gui.Panel {
-        width = "auto",
-        height = 20,
-        flow = "horizontal",
-        hmargin = 2,
-        halign = "left",
-        valign = "center",
-        children = {
-            gui.Label {
-                text = "Characteristic:",
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-                bold = false
-            },
-            gui.Label {
-                text = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, characteristic),
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-            }
-        }
-    } or nil
+--     -- Build detail labels (all non-bold, conditional display)
+--     local characteristicLabel = (characteristic and characteristic ~= "") and gui.Panel {
+--         width = "auto",
+--         height = 20,
+--         flow = "horizontal",
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center",
+--         children = {
+--             gui.Label {
+--                 text = "Characteristic:",
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--                 bold = false
+--             },
+--             gui.Label {
+--                 text = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, characteristic),
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--             }
+--         }
+--     } or nil
 
-    local languagePenaltyLabel = languagePenalty and gui.Panel {
-        width = "auto",
-        height = 20,
-        flow = "horizontal",
-        hmargin = 2,
-        halign = "left",
-        valign = "center",
-        children = {
-            gui.Label {
-                text = "Language Penalty:",
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-                bold = false
-            },
-            gui.Label {
-                text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, languagePenalty),
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-            }
-        }
-    } or nil
+--     local languagePenaltyLabel = languagePenalty and gui.Panel {
+--         width = "auto",
+--         height = 20,
+--         flow = "horizontal",
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center",
+--         children = {
+--             gui.Label {
+--                 text = "Language Penalty:",
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--                 bold = false
+--             },
+--             gui.Label {
+--                 text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, languagePenalty),
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--             }
+--         }
+--     } or nil
 
-    local prerequisiteLabel = (prerequisite and prerequisite ~= "") and gui.Panel {
-        width = "auto",
-        height = 20,
-        flow = "horizontal",
-        hmargin = 2,
-        halign = "left",
-        valign = "center",
-        children = {
-            gui.Label {
-                text = "Prerequisites:",
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-                bold = false
-            },
-            gui.Label {
-                text = prerequisite,
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-            }
-        }
-    } or nil
+--     local prerequisiteLabel = (prerequisite and prerequisite ~= "") and gui.Panel {
+--         width = "auto",
+--         height = 20,
+--         flow = "horizontal",
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center",
+--         children = {
+--             gui.Label {
+--                 text = "Prerequisites:",
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--                 bold = false
+--             },
+--             gui.Label {
+--                 text = prerequisite,
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--             }
+--         }
+--     } or nil
 
-    local sourceLabel = (source and source ~= "") and gui.Panel {
-        width = "auto",
-        height = 20,
-        flow = "horizontal",
-        hmargin = 2,
-        halign = "left",
-        valign = "center",
-        children = {
-            gui.Label {
-                text = "Project Source:",
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-                bold = false
-            },
-            gui.Label {
-                text = source,
-                classes = {"DTLabel", "DTBase"},
-                width = "auto",
-                height = 20,
-                hmargin = 2,
-                halign = "left",
-                valign = "center",
-            }
-        }
-    } or nil
+--     local sourceLabel = (source and source ~= "") and gui.Panel {
+--         width = "auto",
+--         height = 20,
+--         flow = "horizontal",
+--         hmargin = 2,
+--         halign = "left",
+--         valign = "center",
+--         children = {
+--             gui.Label {
+--                 text = "Project Source:",
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--                 bold = false
+--             },
+--             gui.Label {
+--                 text = source,
+--                 classes = {"DTLabel", "DTBase"},
+--                 width = "auto",
+--                 height = 20,
+--                 hmargin = 2,
+--                 halign = "left",
+--                 valign = "center",
+--             }
+--         }
+--     } or nil
 
-    return gui.Panel {
-        width = "95%",
-        height = 60,
-        flow = "horizontal",
-        halign = "center",
-        valign = "center",
-        vmargin = 5,
-        styles = DTUIUtils.GetDialogStyles(),
-        children = {
-            -- Project info section
-            gui.Panel {
-                width = "70%",
-                height = "100%",
-                flow = "vertical",
-                halign = "left",
-                valign = "center",
-                hpad = 10,
-                children = {
-                    -- Title line with progress/status
-                    gui.Panel {
-                        width = "100%",
-                        height = 25,
-                        flow = "horizontal",
-                        halign = "left",
-                        valign = "center",
-                        children = {
-                            gui.Panel {
-                                width = "50%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    titleLabel,
-                                }
-                            },
-                            gui.Panel {
-                                width = "25%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    progressPanel,
-                                }
-                            },
-                            gui.Panel {
-                                width = "25%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    statusPanel
-                                }
-                            }
-                        }
-                    },
-                    -- Detail line with project specifics
-                    gui.Panel {
-                        width = "100%",
-                        height = 20,
-                        flow = "horizontal",
-                        halign = "left",
-                        valign = "center",
-                        children = {
-                            gui.Panel {
-                                width = "25%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    characteristicLabel,
-                                }
-                            },
-                            gui.Panel {
-                                width = "25%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    languagePenaltyLabel,
-                                }
-                            },
-                            gui.Panel {
-                                width = "25%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    prerequisiteLabel,
-                                }
-                            },
-                            gui.Panel {
-                                width = "25%",
-                                halign = "left",
-                                valign = "center",
-                                children = {
-                                    sourceLabel
-                                }
-                            },
-                        }
-                    }
-                }
-            },
+--     return gui.Panel {
+--         width = "95%",
+--         height = 60,
+--         flow = "horizontal",
+--         halign = "center",
+--         valign = "center",
+--         vmargin = 5,
+--         styles = DTUIUtils.GetDialogStyles(),
+--         children = {
+--             -- Project info section
+--             gui.Panel {
+--                 width = "70%",
+--                 height = "100%",
+--                 flow = "vertical",
+--                 halign = "left",
+--                 valign = "center",
+--                 hpad = 10,
+--                 children = {
+--                     -- Title line with progress/status
+--                     gui.Panel {
+--                         width = "100%",
+--                         height = 25,
+--                         flow = "horizontal",
+--                         halign = "left",
+--                         valign = "center",
+--                         children = {
+--                             gui.Panel {
+--                                 width = "50%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     titleLabel,
+--                                 }
+--                             },
+--                             gui.Panel {
+--                                 width = "25%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     progressPanel,
+--                                 }
+--                             },
+--                             gui.Panel {
+--                                 width = "25%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     statusPanel
+--                                 }
+--                             }
+--                         }
+--                     },
+--                     -- Detail line with project specifics
+--                     gui.Panel {
+--                         width = "100%",
+--                         height = 20,
+--                         flow = "horizontal",
+--                         halign = "left",
+--                         valign = "center",
+--                         children = {
+--                             gui.Panel {
+--                                 width = "25%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     characteristicLabel,
+--                                 }
+--                             },
+--                             gui.Panel {
+--                                 width = "25%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     languagePenaltyLabel,
+--                                 }
+--                             },
+--                             gui.Panel {
+--                                 width = "25%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     prerequisiteLabel,
+--                                 }
+--                             },
+--                             gui.Panel {
+--                                 width = "25%",
+--                                 halign = "left",
+--                                 valign = "center",
+--                                 children = {
+--                                     sourceLabel
+--                                 }
+--                             },
+--                         }
+--                     }
+--                 }
+--             },
 
-            -- Actions section
-            gui.Panel {
-                width = "30%",
-                height = "100%",
-                flow = "horizontal",
-                halign = "right",
-                valign = "center",
-                hpad = 10,
-                children = {
-                    gui.SettingsButton {
-                        width = 20,
-                        height = 20,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        vmargin = 5,
-                        click = function()
-                            local dialog = DTEditProjectDialog:new(project)
-                            if dialog then
-                                dialog:ShowDialog(
-                                    function(savedProject) -- onSave callback
-                                        DTSettings.Touch()
-                                        CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
-                                    end
-                                )
-                            end
-                        end,
-                    },
-                    gui.DeleteItemButton {
-                        width = 20,
-                        height = 20,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        vmargin = 5,
-                        click = function()
-                            DTUIUtils.ShowDeleteConfirmation("Project", title, function()
-                                print("THC:: DELETE::", title)
-                            local token = CharacterSheet.instance.data.info.token
-                                if token and token.properties and token.properties:IsHero() then
-                                    local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
-                                    if downtimeInfo then
-                                        downtimeInfo:RemoveDowntimeProject(project:GetID())
-                                        DTSettings.Touch()
-                                        CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
-                                    end
-                                end
-                            end)
-                        end
-                    },
-                    -- gui.Label {
-                    --     text = "Staged:",
-                    --     classes = {"DTLabel", "DTBase"},
-                    --     width = "auto",
-                    --     height = "auto",
-                    --     -- fontSize = 12,
-                    --     halign = "right",
-                    --     valign = "center",
-                    --     hmargin = 5
-                    -- },
-                    -- gui.Label {
-                    --     text = tostring(pendingRolls),
-                    --     classes = {"DTLabel", "DTBase"},
-                    --     width = "auto",
-                    --     height = "auto",
-                    --     -- fontSize = 14,
-                    --     halign = "right",
-                    --     valign = "center"
-                    -- }
-                }
-            }
-        }
-    }
-end
+--             -- Actions section
+--             gui.Panel {
+--                 width = "30%",
+--                 height = "100%",
+--                 flow = "horizontal",
+--                 halign = "right",
+--                 valign = "center",
+--                 hpad = 10,
+--                 children = {
+--                     gui.SettingsButton {
+--                         width = 20,
+--                         height = 20,
+--                         halign = "right",
+--                         valign = "center",
+--                         hmargin = 5,
+--                         vmargin = 5,
+--                         click = function()
+--                             local dialog = DTEditProjectDialog:new(project)
+--                             if dialog then
+--                                 dialog:ShowDialog(
+--                                     function(savedProject) -- onSave callback
+--                                         DTSettings.Touch()
+--                                         CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
+--                                     end
+--                                 )
+--                             end
+--                         end,
+--                     },
+--                     gui.DeleteItemButton {
+--                         width = 20,
+--                         height = 20,
+--                         halign = "right",
+--                         valign = "center",
+--                         hmargin = 5,
+--                         vmargin = 5,
+--                         click = function()
+--                             DTUIUtils.ShowDeleteConfirmation("Project", title, function()
+--                                 print("THC:: DELETE::", title)
+--                             local token = CharacterSheet.instance.data.info.token
+--                                 if token and token.properties and token.properties:IsHero() then
+--                                     local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+--                                     if downtimeInfo then
+--                                         downtimeInfo:RemoveDowntimeProject(project:GetID())
+--                                         DTSettings.Touch()
+--                                         CharacterSheet.instance:FireEventTree("refreshDowntimeProjectList")
+--                                     end
+--                                 end
+--                             end)
+--                         end
+--                     },
+--                     -- gui.Label {
+--                     --     text = "Staged:",
+--                     --     classes = {"DTLabel", "DTBase"},
+--                     --     width = "auto",
+--                     --     height = "auto",
+--                     --     -- fontSize = 12,
+--                     --     halign = "right",
+--                     --     valign = "center",
+--                     --     hmargin = 5
+--                     -- },
+--                     -- gui.Label {
+--                     --     text = tostring(pendingRolls),
+--                     --     classes = {"DTLabel", "DTBase"},
+--                     --     width = "auto",
+--                     --     height = "auto",
+--                     --     -- fontSize = 14,
+--                     --     halign = "right",
+--                     --     valign = "center"
+--                     -- }
+--                 }
+--             }
+--         }
+--     }
+-- end
 
 -- Register the Downtime tab at the top level of the character sheet
 CharSheet.RegisterTab {
