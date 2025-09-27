@@ -163,7 +163,7 @@ function DTDirectorPanel:_buildHeaderPanel()
                         hmargin = 5,
                         classes = {"downtime-edit-button"},
                         linger = function(element)
-                            gui.Tooltip("Edit dowmtime settings")(element)
+                            gui.Tooltip("Edit downtime settings")(element)
                         end,
                         press = function()
                             self:ShowSettingsEditDialog()
@@ -220,51 +220,51 @@ function DTDirectorPanel:_buildHeaderPanel()
                             DTGrantRollsDialog:new():ShowDialog()
                         end,
                     },
-                    gui.Button {
-                        text = "C",
-                        width = 30,
-                        height = 30,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        classes = {"DTButton", "DTBase"},
-                        linger = function(element)
-                            gui.Tooltip("Test categorization")(element)
-                        end,
-                        click = function(element)
-                            self:_debugCategorization()
-                        end
-                    },
-                    gui.Button{
-                        text = "I",
-                        width = 30,
-                        height = 30,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        classes = {"DTButton", "DTBase"},
-                        linger = function(element)
-                            gui.Tooltip("Clear all data.")(element)
-                        end,
-                        click = function(element)
-                            self.downtimeSettings:InitializeDocument()
-                        end
-                    },
-                    gui.Button{
-                        text = "D",
-                        width = 30,
-                        height = 30,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        classes = {"DTButton", "DTBase"},
-                        linger = function(element)
-                            gui.Tooltip("Clear all data.")(element)
-                        end,
-                        click = function(element)
-                            self:_debugDocument()
-                        end
-                    },
+                    -- gui.Button {
+                    --     text = "C",
+                    --     width = 30,
+                    --     height = 30,
+                    --     halign = "right",
+                    --     valign = "center",
+                    --     hmargin = 5,
+                    --     classes = {"DTButton", "DTBase"},
+                    --     linger = function(element)
+                    --         gui.Tooltip("Test categorization")(element)
+                    --     end,
+                    --     click = function(element)
+                    --         self:_debugCategorization()
+                    --     end
+                    -- },
+                    -- gui.Button{
+                    --     text = "I",
+                    --     width = 30,
+                    --     height = 30,
+                    --     halign = "right",
+                    --     valign = "center",
+                    --     hmargin = 5,
+                    --     classes = {"DTButton", "DTBase"},
+                    --     linger = function(element)
+                    --         gui.Tooltip("Clear all data.")(element)
+                    --     end,
+                    --     click = function(element)
+                    --         self.downtimeSettings:InitializeDocument()
+                    --     end
+                    -- },
+                    -- gui.Button{
+                    --     text = "D",
+                    --     width = 30,
+                    --     height = 30,
+                    --     halign = "right",
+                    --     valign = "center",
+                    --     hmargin = 5,
+                    --     classes = {"DTButton", "DTBase"},
+                    --     linger = function(element)
+                    --         gui.Tooltip("Clear all data.")(element)
+                    --     end,
+                    --     click = function(element)
+                    --         self:_debugDocument()
+                    --     end
+                    -- },
                 }
             },
         }
@@ -655,7 +655,7 @@ function DTDirectorPanel:_buildProjectDetail(projectEntry, tabType)
     local projectTitle = (projectEntry.projectTitle and #projectEntry.projectTitle > 0) and projectEntry.projectTitle or "Untitled Project"
     local progress = projectEntry.progress or 0
     local goal = projectEntry.goal or 1
-    local progressText = string.format("%d/%d", progress, goal)
+    local progressText = string.format("%d / %d", progress, goal)
 
     -- Build detail parts array
     local detailParts = {projectTitle, progressText}
@@ -664,7 +664,7 @@ function DTDirectorPanel:_buildProjectDetail(projectEntry, tabType)
     if tabType == "attention" and projectEntry.pauseRollsReason and projectEntry.pauseRollsReason ~= "" then
         detailParts[#detailParts + 1] = projectEntry.pauseRollsReason
     elseif tabType == "milestones" and projectEntry.milestoneThreshold and projectEntry.milestoneThreshold > 0 then
-        detailParts[#detailParts + 1] = "Milestone: " .. projectEntry.milestoneThreshold
+        detailParts[#detailParts + 1] = string.format("Milestone: %d", projectEntry.milestoneThreshold)
     end
 
     -- Join with pipes, making title bold
