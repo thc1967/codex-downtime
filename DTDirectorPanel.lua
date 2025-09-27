@@ -1,6 +1,34 @@
 local mod = dmhub.GetModLoading()
 local DEBUG_MODE = false
 
+-- Triangle icon styles for character expand/collapse (based on QuestTrackerPanel pattern)
+local characterTriangleStyles = {
+    gui.Style{
+        selectors = {"character-triangle"},
+        bgimage = "panels/triangle.png",
+        bgcolor = "white",
+        hmargin = 4,
+        halign = "left",
+        valign = "center",
+        height = 12,
+        width = 12,
+        rotate = 90,
+    },
+    gui.Style{
+        selectors = {"character-triangle", "expanded"},
+        rotate = 0,
+        transitionTime = 0.2,
+    },
+    gui.Style{
+        selectors = {"character-triangle", "hover"},
+        bgcolor = "yellow",
+    },
+    gui.Style{
+        selectors = {"character-triangle", "press"},
+        bgcolor = "gray",
+    },
+}
+
 --- Downtime Director Panel - Main dockable panel for downtime project management
 --- Provides the primary interface for directors to manage downtime projects and settings
 --- @class DTDirectorPanel
@@ -382,6 +410,37 @@ function DTDirectorPanel:ShowSettingsEditDialog()
     gui.ShowModal(settingsDialog)
 end
 
+--- Gets the first available token for a character ID
+--- @param characterId string The character ID to find a token for
+--- @return table|nil token The first token found for this character, or nil if none found
+function DTDirectorPanel:_getTokenFromCharacterId(characterId)
+    -- Check spawned tokens first
+    local allTokens = dmhub.GetTokens{}
+    for _, token in ipairs(allTokens) do
+        if token.charid == characterId then
+            return token
+        end
+    end
+
+    -- Check unaffiliated tokens
+    local unaffiliatedTokens = dmhub.GetTokens{ unaffiliated = true }
+    for _, token in ipairs(unaffiliatedTokens) do
+        if token.charid == characterId then
+            return token
+        end
+    end
+
+    -- Check despawned tokens
+    local despawnedTokens = dmhub.despawnedTokens or {}
+    for _, token in ipairs(despawnedTokens) do
+        if token.charid == characterId then
+            return token
+        end
+    end
+
+    return nil
+end
+
 --- Gets all hero characters in the game that have downtime projects
 --- @return table characterInfo Array of {id, name} objects for characters with downtime projects
 function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
@@ -489,6 +548,265 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
     return categorized
 end
 
+--- Builds a character header with token, names, triangle, and settings button
+--- @param characterInfo table Object with {id, name} for the character
+--- @param contentPanel table The content panel this header will toggle
+--- @param tabType string The tab type for preference key
+--- @return table panel The character header panel
+function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabType)
+    local characterId = characterInfo.id
+    local characterName = characterInfo.name
+    local prefKey = string.format("dt_char_expanded:%s:%s:%s", tabType, characterId, dmhub.gameid or "default")
+    local isExpanded = dmhub.GetPref(prefKey) or false
+
+    -- Get token for display
+    local token = self:_getTokenFromCharacterId(characterId)
+
+    -- Build player name with color if available
+    local playerDisplay = ""
+    if token and token.playerNameOrNil then
+        local color = token.playerColor.tostring
+        playerDisplay = string.format(" (<color=%s>%s</color>)", color, token.playerNameOrNil)
+    end
+
+    local triangle = gui.Panel{
+        classes = {"character-triangle", isExpanded and "expanded" or nil},
+        styles = characterTriangleStyles,
+        click = function(element)
+            local isExpanded = not element:HasClass("expanded")
+            element:SetClass("expanded", isExpanded)
+            if contentPanel then
+                contentPanel:SetClass("collapsed", not isExpanded)
+            end
+            dmhub.SetPref(prefKey, isExpanded)
+        end
+    }
+
+    return gui.Panel{
+        width = "98%",
+        height = 30,
+        flow = "horizontal",
+        classes = {"character-header"},
+        children = {
+            triangle,
+            -- Character token
+            gui.Panel {
+                width = 20,
+                height = 20,
+                valign = "center",
+                hmargin = 4,
+                borderWidth = 1,
+                borderColor = Styles.textColor,
+                children = token and {
+                    gui.CreateTokenImage(token, {
+                        width = 24,
+                        height = 24,
+                        halign = "center",
+                        valign = "center"
+                    })
+                } or {}
+            },
+            -- Character name + player name
+            gui.Label{
+                text = characterName .. playerDisplay,
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                height = "100%",
+                valign = "center",
+                hmargin = 4,
+                fontSize = 14
+            },
+            -- Settings button (right-aligned)
+            gui.Panel{
+                width = "100%-150",
+                height = "100%",
+                flow = "horizontal",
+                halign = "right",
+                valign = "center",
+                children = {
+                    gui.SettingsButton {
+                        width = 20,
+                        height = 20,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        classes = {"character-edit-button"},
+                        linger = function(element)
+                            gui.Tooltip("Open character sheet")(element)
+                        end,
+                        press = function()
+                            local character = dmhub.GetCharacterById(characterId)
+                            if character then
+                                character:ShowSheet()
+                            end
+                        end
+                    }
+                }
+            }
+        }
+    }
+end
+
+--- Builds a project detail display with tab-specific fields
+--- @param projectEntry table The project entry from categorized data
+--- @param tabType string The tab type ("attention", "milestones", etc.)
+--- @return table panel The project detail panel
+function DTDirectorPanel:_buildProjectDetail(projectEntry, tabType)
+    local projectTitle = (projectEntry.projectTitle and #projectEntry.projectTitle > 0) and projectEntry.projectTitle or "Untitled Project"
+    local progress = projectEntry.progress or 0
+    local goal = projectEntry.goal or 1
+    local progressText = string.format("%d/%d", progress, goal)
+
+    -- Build detail parts array
+    local detailParts = {projectTitle, progressText}
+
+    -- Add tab-specific field
+    if tabType == "attention" and projectEntry.pauseRollsReason and projectEntry.pauseRollsReason ~= "" then
+        detailParts[#detailParts + 1] = projectEntry.pauseRollsReason
+    elseif tabType == "milestones" and projectEntry.milestoneThreshold and projectEntry.milestoneThreshold > 0 then
+        detailParts[#detailParts + 1] = "Milestone: " .. projectEntry.milestoneThreshold
+    end
+
+    -- Join with pipes, making title bold
+    local displayText = ""
+    for i, part in ipairs(detailParts) do
+        if i == 1 then
+            displayText = string.format("<b>%s</b>", part)
+        else
+            displayText = displayText .. " | " .. part
+        end
+    end
+
+    return gui.Panel{
+        width = "100%",
+        height = 25,
+        flow = "horizontal",
+        classes = {"project-detail"},
+        children = {
+            gui.Label{
+                text = displayText,
+                classes = {"DTLabel", "DTBase"},
+                width = "100%",
+                height = "100%",
+                valign = "center",
+                hmargin = 20,
+                fontSize = 12,
+                wrap = true
+            }
+        }
+    }
+end
+
+--- Builds a complete character section with expand/collapse
+--- @param characterInfo table Object with {id, name} for the character
+--- @param characterProjects table Array of project entries for this character
+--- @param tabType string The tab type ("attention", "milestones", etc.)
+--- @return table panel The complete character section
+function DTDirectorPanel:_buildCharacterSection(characterInfo, characterProjects, tabType)
+    -- Build project children
+    local projectChildren = {}
+    for i, projectEntry in ipairs(characterProjects) do
+        -- Add divider before project (except first one)
+        if i > 1 then
+            projectChildren[#projectChildren + 1] = gui.Divider { width = "90%" }
+        end
+        projectChildren[#projectChildren + 1] = self:_buildProjectDetail(projectEntry, tabType)
+    end
+
+    -- Check collapse state from preferences
+    local characterId = characterInfo.id
+    local prefKey = string.format("dt_char_expanded:%s:%s:%s", tabType, characterId, dmhub.gameid or "default")
+    local isExpanded = dmhub.GetPref(prefKey) or false
+
+    -- Build content panel with conditional collapsed class
+    local classes = {"character-content"}
+    if not isExpanded then
+        table.insert(classes, "collapsed")
+    end
+
+    local contentPanel = gui.Panel{
+        width = "100%",
+        height = "auto",
+        flow = "vertical",
+        classes = classes,
+        children = projectChildren
+    }
+
+    -- Build header with reference to content panel
+    local headerPanel = self:_buildCharacterHeader(characterInfo, contentPanel, tabType)
+
+    return gui.Panel{
+        width = "100%",
+        height = "auto",
+        flow = "vertical",
+        classes = {"character-section"},
+        children = {
+            headerPanel,
+            contentPanel
+        }
+    }
+end
+
+--- Builds tab content that groups projects by character
+--- @param categorizedProjects table Array of project entries for this tab
+--- @param tabType string The tab type ("attention", "milestones", etc.)
+--- @return table panel The tab content panel
+function DTDirectorPanel:_buildTabContent(categorizedProjects, tabType)
+    local tabChildren = {}
+
+    if #categorizedProjects == 0 then
+        tabChildren[#tabChildren + 1] = gui.Label {
+            text = "No projects in this category.",
+            classes = {"DTLabel", "DTBase"},
+            width = "100%",
+            height = "100%",
+            halign = "center",
+            valign = "center",
+            textAlignment = "center",
+            fontSize = 14
+        }
+    else
+        -- Group projects by character
+        local projectsByCharacter = {}
+        for _, projectEntry in ipairs(categorizedProjects) do
+            local charId = projectEntry.characterId
+            if not projectsByCharacter[charId] then
+                projectsByCharacter[charId] = {
+                    characterInfo = {
+                        id = charId,
+                        name = projectEntry.characterName
+                    },
+                    projects = {}
+                }
+            end
+            table.insert(projectsByCharacter[charId].projects, projectEntry)
+        end
+
+        -- Build character sections
+        local hasCharacters = false
+        for characterId, characterData in pairs(projectsByCharacter) do
+            if hasCharacters then
+                -- Add spacing between characters
+                tabChildren[#tabChildren + 1] = gui.Divider { width = "95%" }
+            end
+            tabChildren[#tabChildren + 1] = self:_buildCharacterSection(
+                characterData.characterInfo,
+                characterData.projects,
+                tabType
+            )
+            hasCharacters = true
+        end
+    end
+
+    return gui.Panel {
+        width = "100%",
+        height = "auto",
+        flow = "vertical",
+        styles = self:_getTabContentStyles(),
+        children = tabChildren
+    }
+end
+
 --- Debug method to test the categorization functionality
 function DTDirectorPanel:_debugCategorization()
     local c = self:_categorizeDowntimeProjects()
@@ -500,90 +818,30 @@ end
 function DTDirectorPanel:_buildContentPanel()
     local directorPanel = self
 
-    -- Create placeholder content panels for each tab
-    local attentionPanel = gui.Panel {
-        width = "100%",
-        height = "auto",
-        flow = "vertical",
-        children = {
-            gui.Label {
-                text = "Attention Tab\n\nPlaceholder content.",
-                width = "100%",
-                height = "100%",
-                halign = "center",
-                valign = "center",
-                textAlignment = "center",
-                classes = {"DTLabel", "DTBase"},
-                wrap = true
-            }
-        }
-    }
+    -- Get categorized data for tab content
+    local categorized = directorPanel:_categorizeDowntimeProjects()
 
-    local milestonesPanel = gui.Panel {
-        width = "100%",
-        height = "auto",
-        flow = "vertical",
-        classes = {"hidden"},
-        children = {
-            gui.Label {
-                text = "Milestones Tab\n\nPlaceholder content.",
-                width = "100%",
-                height = "100%",
-                halign = "center",
-                valign = "center",
-                textAlignment = "center",
-                classes = {"DTLabel", "DTBase"},
-                wrap = true
-            }
-        }
-    }
+    -- Create content panels for each tab
+    local attentionPanel = directorPanel:_buildTabContent(categorized.attention, "attention")
 
-    local activePanel = gui.Panel {
-        width = "100%",
-        height = "auto",
-        flow = "vertical",
-        classes = {"hidden"},
-        children = {
-            gui.Label {
-                text = "Active Tab\n\nPlaceholder content.",
-                width = "100%",
-                height = "100%",
-                halign = "center",
-                valign = "center",
-                textAlignment = "center",
-                classes = {"DTLabel", "DTBase"},
-                wrap = true
-            }
-        }
-    }
+    local milestonesPanel = directorPanel:_buildTabContent(categorized.milestones, "milestones")
+    milestonesPanel:SetClass("hidden", true)
 
-    local completedPanel = gui.Panel {
-        width = "100%",
-        height = "auto",
-        flow = "vertical",
-        classes = {"hidden"},
-        children = {
-            gui.Label {
-                text = "Completed Tab\n\nPlaceholder content.",
-                width = "100%",
-                height = "100%",
-                halign = "center",
-                valign = "center",
-                textAlignment = "center",
-                classes = {"DTLabel", "DTBase"},
-                wrap = true
-            }
-        }
-    }
+    local activePanel = directorPanel:_buildTabContent(categorized.active, "active")
+    activePanel:SetClass("hidden", true)
+
+    local completedPanel = directorPanel:_buildTabContent(categorized.completed, "completed")
+    completedPanel:SetClass("hidden", true)
 
     local tabPanels = {attentionPanel, milestonesPanel, activePanel, completedPanel}
 
     -- Content panel that holds all tab panels
     local contentPanel = gui.Panel{
         width = "100%",
-        height = "100%-70",
+        height = "100%-75",
         flow = "none",
         valign = "top",
+        vmargin = 5,
         children = tabPanels,
 
         showTab = function(element, tabIndex)
@@ -613,8 +871,7 @@ function DTDirectorPanel:_buildContentPanel()
         end
     end
 
-    -- Get categorized data for counts
-    local categorized = directorPanel:_categorizeDowntimeProjects()
+    -- Use the same categorized data for counts (already calculated above)
 
     -- Create tabs panel
     tabsPanel = gui.Panel{
@@ -666,6 +923,59 @@ function DTDirectorPanel:_refreshPanelContent(element)
     local headerPanel = self:_buildHeaderPanel()
     local contentPanel = self:_buildContentPanel()
     element.children = {headerPanel, contentPanel}
+end
+
+--- Gets styling for tab content elements
+--- @return table styles Array of GUI styles for tab content
+function DTDirectorPanel:_getTabContentStyles()
+    return {
+        -- Character section styling
+        gui.Style {
+            selectors = {"character-section"},
+            width = "100%",
+            margin = 2
+        },
+        gui.Style {
+            selectors = {"character-header"},
+            bgcolor = Styles.backgroundColor,
+            borderWidth = 1,
+            borderColor = Styles.textColor,
+            height = 30,
+            margin = 1
+        },
+        gui.Style {
+            selectors = {"character-header", "hover"},
+            bgcolor = Styles.textColor,
+            color = Styles.backgroundColor,
+            brightness = 0.9
+        },
+        -- Character content styling
+        gui.Style {
+            selectors = {"character-content"},
+            width = "98%",
+            halign = "right",
+            transitionTime = 0.2
+        },
+        gui.Style {
+            selectors = {"character-content", "collapsed"},
+            height = 0,
+            hidden = 1
+        },
+        -- Project detail styling
+        gui.Style {
+            selectors = {"project-detail"},
+            bgcolor = Styles.backgroundColor,
+            borderWidth = 1,
+            borderColor = Styles.textColor,
+            margin = 1
+        },
+        gui.Style {
+            selectors = {"project-detail", "hover"},
+            bgcolor = Styles.textColor,
+            color = Styles.backgroundColor,
+            brightness = 0.9
+        }
+    }
 end
 
 --- Debug method to print the raw document contents from persistence
