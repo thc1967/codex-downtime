@@ -56,7 +56,9 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
     confirmButtonText = (confirmButtonText and confirmButtonText ~= "") and confirmButtonText or "Confirm"
     cancelButtonText = (cancelButtonText and cancelButtonText ~= "") and cancelButtonText or "Cancel"
 
-    return gui.Panel{
+    local resultPanel = nil
+    resultPanel = gui.Panel {
+        classes = {"confirmDialogController", "DTPanel", "DTBase"},
         width = 400,
         height = 200,
         halign = "center",
@@ -69,6 +71,23 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
         hpad = 20,
         vpad = 20,
         styles = DTUtils.GetDialogStyles(),
+        floating = true,
+        escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
+        captureEscape = true,
+        data = {
+            close = function()
+                resultPanel:DestroySelf()
+            end,
+        },
+
+        close = function(element)
+            element.data.close()
+        end,
+
+        escape = function(element)
+            cancelHandler()
+            element:FireEvent("close")
+        end,
 
         children = {
             -- Header
@@ -96,36 +115,48 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
 
             -- Button panel
             gui.Panel{
+                classes = {"DTPanel", "DTBase"},
                 width = "100%",
                 height = 40,
-                flow = "horizontal",
+                -- flow = "horizontal",
                 halign = "center",
                 valign = "center",
+                borderColor = "yellow",
                 children = {
                     -- Cancel button (first)
                     gui.Button{
                         text = cancelButtonText,
                         width = 120,
-                        height = 40,
-                        hmargin = 10,
+                        -- height = 40,
+                        -- hmargin = 10,
                         classes = {"DTButton", "DTBase"},
-                        click = cancelHandler
+                        click = function(element)
+                            local controller = element:FindParentWithClass("confirmDialogController")
+                            if controller then
+                                controller:FireEvent("escape")
+                            end
+                        end
                     },
                     -- Confirm button (second)
                     gui.Button{
                         text = confirmButtonText,
                         width = 120,
-                        height = 40,
-                        hmargin = 10,
+                        halign = "right",
+                        -- height = 40,
+                        -- hmargin = 10,
                         classes = {"DTButton", "DTBase"},
-                        click = confirmHandler
+                        click = function(element)
+                            local controller = element:FindParentWithClass("confirmDialogController")
+                            confirmHandler()
+                            if controller then controller:FireEvent("close") end
+                        end
                     }
                 }
             }
         },
-
-        escape = cancelHandler
     }
+
+    return resultPanel
 end
 
 --- Creates a confirmation dialog panel for AddChild usage

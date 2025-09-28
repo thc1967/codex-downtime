@@ -619,20 +619,42 @@ function DTProjectEditor:CreateEditorPanel()
                 click = function()
                     local project = editor:GetProject()
                     if project then
-                        DTConfirmationDialog.ShowDeleteModal("Project", project:GetTitle(), function()
-                            local token = CharacterSheet.instance.data.info.token
-                            if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:try_get("downtimeInfo")
-                                if downtimeInfo then
-                                    downtimeInfo:RemoveDowntimeProject(editor.projectId)
-                                    DTSettings.Touch()
-                                    local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
-                                    if scrollArea then
-                                        scrollArea:FireEventTree("refreshToken")
+                        -- OLD MODAL APPROACH (commented out)
+                        -- DTConfirmationDialog.ShowDeleteModal("Project", project:GetTitle(), function()
+                        --     local token = CharacterSheet.instance.data.info.token
+                        --     if token and token.properties and token.properties:IsHero() then
+                        --         local downtimeInfo = token.properties:try_get("downtimeInfo")
+                        --         if downtimeInfo then
+                        --             downtimeInfo:RemoveDowntimeProject(editor.projectId)
+                        --             DTSettings.Touch()
+                        --             local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
+                        --             if scrollArea then
+                        --                 scrollArea:FireEventTree("refreshToken")
+                        --             end
+                        --         end
+                        --     end
+                        -- end)
+
+                        -- NEW ADDCHILD APPROACH
+                        CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
+                            confirm = function()
+                                local token = CharacterSheet.instance.data.info.token
+                                if token and token.properties and token.properties:IsHero() then
+                                    local downtimeInfo = token.properties:try_get("downtimeInfo")
+                                    if downtimeInfo then
+                                        downtimeInfo:RemoveDowntimeProject(editor.projectId)
+                                        DTSettings.Touch()
+                                        local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
+                                        if scrollArea then
+                                            scrollArea:FireEventTree("refreshToken")
+                                        end
                                     end
                                 end
+                            end,
+                            cancel = function()
+                                -- Optional cancel logic
                             end
-                        end)
+                        }))
                     end
                 end
             }
