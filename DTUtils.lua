@@ -1,7 +1,7 @@
 --- Shared UI utilities for Quest Manager including dialogs and styles
 --- Provides consistent dialog components and styling across all Quest Manager UI
---- @class DTUIUtils
-DTUIUtils = RegisterGameType("DTUIUtils")
+--- @class DTUtils
+DTUtils = RegisterGameType("DTUtils")
 
 -- Turn on the background to see lines around the downtime tab panels
 local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
@@ -10,7 +10,7 @@ local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
 --- @param checkboxOptions table Options for the checkbox (text, value, change, etc.)
 --- @param panelOptions? table Optional panel options (width, height, etc.)
 --- @return table panel The complete labeled checkbox panel
-function DTUIUtils.CreateLabeledCheckbox(checkboxOptions, panelOptions)
+function DTUtils.CreateLabeledCheckbox(checkboxOptions, panelOptions)
     -- Default panel options
     local panelDefaults = {
         classes = {"DTPanel", "DTBase"},
@@ -54,7 +54,7 @@ end
 --- @param dropdownOptions table Options for the dropdown (options, idChosen, change, etc.)
 --- @param panelOptions table Optional panel options (width, height, vmargin, etc.)
 --- @return table panel The complete labeled dropdown panel
-function DTUIUtils.CreateLabeledDropdown(labelText, dropdownOptions, panelOptions)
+function DTUtils.CreateLabeledDropdown(labelText, dropdownOptions, panelOptions)
     -- Default panel options
     local panelDefaults = {
         width = "33%",
@@ -102,7 +102,7 @@ end
 --- @param inputOptions table Options for the input field (text, placeholderText, lineType, etc.)
 --- @param panelOptions table Optional panel options (width, height, vmargin, etc.)
 --- @return table panel The complete labeled input panel
-function DTUIUtils.CreateLabeledInput(labelText, inputOptions, panelOptions)
+function DTUtils.CreateLabeledInput(labelText, inputOptions, panelOptions)
     -- Default panel options
     local panelDefaults = {
         width = "95%",
@@ -152,10 +152,55 @@ function DTUIUtils.CreateLabeledInput(labelText, inputOptions, panelOptions)
     }
 end
 
+--- Gets all the tokens in the game that are heroes
+--- @param fn? function Filter callback to apply, called on token object, added if return is true
+--- @return table heroes The list of heroes in the game
+function DTUtils.GetAllHeroTokens(fn)
+    if fn and type(fn) ~= "function" then error("arg1 must be nil or a function") end
+    local heroes = {}
+
+    local partyTable = dmhub.GetTable(Party.tableName)
+    for partyId, _ in pairs(partyTable) do
+        local characterIds = dmhub.GetCharacterIdsInParty(partyId)
+        for _, characterId in ipairs(characterIds) do
+            local character = dmhub.GetCharacterById(characterId)
+            if character and character.properties and character.properties:IsHero() then
+                if fn == nil or fn(character) then
+                    heroes[#heroes + 1] = character
+                end
+            end
+        end
+    end
+
+    -- Also get unaffiliated characters (director controlled on current map)
+    local unaffiliatedTokens = dmhub.GetTokens{ unaffiliated = true }
+    for _, token in ipairs(unaffiliatedTokens) do
+        local character = dmhub.GetCharacterById(token.charid)
+        if character and character.properties and character.properties:IsHero() then
+            if fn == nil or fn(character) then
+                heroes[#heroes + 1] = character
+            end
+        end
+    end
+
+    -- Optionally include despawned characters from graveyard
+    local despawnedTokens = dmhub.despawnedTokens or {}
+    for _, token in ipairs(despawnedTokens) do
+        local character = dmhub.GetCharacterById(token.charid)
+        if character and character.properties and character.properties:IsHero() then
+            if fn == nill or fn(character) then
+                heroes[#heroes + 1] = character
+            end
+        end
+    end
+
+    return heroes
+end
+
 --- Gets the standardized styling configuration for Quest Manager dialogs
 --- Provides consistent styling across all Quest Manager UI components
 --- @return table styles Array of GUI styles using DTBase inheritance pattern
-function DTUIUtils.GetDialogStyles()
+function DTUtils.GetDialogStyles()
     return {
         -- DTBase: Foundation style for all Quest Manager controls
         gui.Style{
@@ -164,6 +209,7 @@ function DTUIUtils.GetDialogStyles()
             fontFace = "Berling",
             color = Styles.textColor,
             height = 24,
+            cornerRadius = 4,
         },
 
         -- DT Dialog Windows
@@ -230,7 +276,6 @@ function DTUIUtils.GetDialogStyles()
         gui.Style{
             selectors = {"DTButton", "DTBase"},
             fontSize = 22,
-            cornerRadius = 4,
             textAlignment = "center",
             bold = true,
             height = 35  -- Override DTBase height for buttons
@@ -289,7 +334,7 @@ end
 --- Gets player display name with color formatting from user ID
 --- @param userId string The user ID to look up
 --- @return string coloredDisplayName The player's display name with HTML color tags, or "{unknown}" if not found
-function DTUIUtils.GetPlayerDisplayName(userId)
+function DTUtils.GetPlayerDisplayName(userId)
 
     if userId and #userId > 0 then
         local sessionInfo = dmhub.GetSessionInfo(userId)
@@ -310,7 +355,7 @@ end
 --- Transforms a list of DTConstant instances into a list of id, text pairs for dropdown lists
 --- @param sourceList table The table containing DTConstant instances
 --- @return table destList The transformed table, sorted by sortOrder
-function DTUIUtils.ListToDropdownOptions(sourceList)
+function DTUtils.ListToDropdownOptions(sourceList)
     local destList = {}
     if sourceList and type(sourceList) == "table" and #sourceList > 0 then
         -- Sort DTConstant instances by sortOrder
@@ -335,7 +380,7 @@ end
 --- @param cancelButtonText string Optional text for the cancel button (default: "Cancel")
 --- @param onConfirm function Callback function to execute if user confirms
 --- @param onCancel function|nil Optional callback function to execute if user cancels (default: just close dialog)
-function DTUIUtils.ShowConfirmationDialog(title, message, confirmButtonText, cancelButtonText, onConfirm, onCancel)
+function DTUtils.ShowConfirmationDialog(title, message, confirmButtonText, cancelButtonText, onConfirm, onCancel)
     -- Set default button text if not provided or empty
     confirmButtonText = (confirmButtonText and confirmButtonText ~= "") and confirmButtonText or "Confirm"
     cancelButtonText = (cancelButtonText and cancelButtonText ~= "") and cancelButtonText or "Cancel"
@@ -352,7 +397,7 @@ function DTUIUtils.ShowConfirmationDialog(title, message, confirmButtonText, can
         flow = "vertical",
         hpad = 20,
         vpad = 20,
-        styles = DTUIUtils.GetDialogStyles(),
+        styles = DTUtils.GetDialogStyles(),
 
         children = {
             -- Header
@@ -434,9 +479,9 @@ end
 --- @param itemTitle string The display name/title of the item being deleted
 --- @param onConfirm function Callback function to execute if user confirms deletion
 --- @param onCancel function Optional callback function to execute if user cancels (default: just close dialog)
-function DTUIUtils.ShowDeleteConfirmation(itemType, itemTitle, onConfirm, onCancel)
+function DTUtils.ShowDeleteConfirmation(itemType, itemTitle, onConfirm, onCancel)
     local title = "Delete Confirmation"
     local message = "Are you sure you want to delete " .. itemType .. " \"" .. (itemTitle or "Untitled") .. "\"?"
 
-    DTUIUtils.ShowConfirmationDialog(title, message, "Delete", "Cancel", onConfirm, onCancel)
+    DTUtils.ShowConfirmationDialog(title, message, "Delete", "Cancel", onConfirm, onCancel)
 end

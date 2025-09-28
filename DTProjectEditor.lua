@@ -214,7 +214,7 @@ function DTProjectEditor:_createProjectForm()
             gui.Dropdown {
                 width = "100%",
                 classes = {"DTDropdown", "DTBase"},
-                options = DTUIUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
+                options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
                 refreshToken = function(element, info)
                     local project = editor:GetProject()
                     if project and element.idChosen ~= project:GetTestCharacteristic() then
@@ -245,7 +245,7 @@ function DTProjectEditor:_createProjectForm()
             gui.Dropdown {
                 width = "100%",
                 classes = {"DTDropdown", "DTBase"},
-                options = DTUIUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY),
+                options = DTUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY),
                 refreshToken = function(element)
                     local project = editor:GetProject()
                     if project and element.idChosen ~= project:GetProjectSourceLanguagePenalty() then
@@ -312,7 +312,7 @@ function DTProjectEditor:_createProjectForm()
             isDM and gui.Dropdown {
                 width = "100%",
                 classes = {"DTDropdown", "DTBase"},
-                options = DTUIUtils.ListToDropdownOptions(DTConstants.STATUS),
+                options = DTUtils.ListToDropdownOptions(DTConstants.STATUS),
                 refreshToken = function(element)
                     local project = editor:GetProject()
                     if project and element.idChosen ~= project:GetStatus() then
@@ -620,7 +620,7 @@ function DTProjectEditor:CreateEditorPanel()
                 click = function()
                     local project = editor:GetProject()
                     if project then
-                        DTUIUtils.ShowDeleteConfirmation("Project", project:GetTitle(), function()
+                        DTUtils.ShowDeleteConfirmation("Project", project:GetTitle(), function()
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
                                 local downtimeInfo = token.properties:try_get("downtime_info")

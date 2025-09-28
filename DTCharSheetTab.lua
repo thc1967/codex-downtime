@@ -24,7 +24,7 @@ function DTCharSheetTab.CreateDowntimePanel()
         flow = "vertical",
         valign = "top",
         halign = "center",
-        styles = DTUIUtils.GetDialogStyles(),
+        styles = DTUtils.GetDialogStyles(),
 
         children = {
             -- Header
@@ -219,7 +219,7 @@ function DTCharSheetTab._createBodyPanel()
                 height = "100%",
                 valign = "top",
                 vscroll = true,
-                styles = DTUIUtils.GetDialogStyles(),
+                styles = DTUtils.GetDialogStyles(),
                 children = {
                     -- Inner auto-height container that pins content to top
                     gui.Panel{

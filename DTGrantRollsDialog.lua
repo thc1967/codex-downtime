@@ -17,9 +17,9 @@ function DTGrantRollsDialog:ShowDialog()
 
     local grantRollsDialog = gui.Panel{
         classes = {"dtGrantRollsController", "DTDialog"},
-        width = 520,
+        width = 450,
         height = 450,
-        styles = DTUIUtils.GetDialogStyles(),
+        styles = DTUtils.GetDialogStyles(),
 
         create = function(element)
             element:FireEvent("validateForm")
@@ -261,8 +261,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
     local tokenPanels = {}
 
     -- Get available tokens
-    -- TODO: Get all characters; not just tokens on the map
-    local candidateTokens = dmhub.GetTokens{ playerControlled = true, haveProperties = true }
+    local candidateTokens = DTUtils.GetAllHeroTokens()
     local selectedTokens = dmhub.selectedTokens
 
     -- Add selected tokens to candidates if not already present
@@ -315,7 +314,6 @@ function DTGrantRollsDialog:_createCharacterSelector()
 
     -- Token grid container
     local tokenPool = gui.Panel {
-        id = "tokenPool",
         classes = {"tokenPool"},
         bgimage = 'panels/square.png',
         bgcolor = 'black',
@@ -325,10 +323,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
         width = "96%",
         height = 130,
         pad = 4,
-        vscroll = true,
         vmargin = 8,
-        flow = 'horizontal',
-        wrap = true,
         styles = {
             {
                 classes = {'token-panel'},
@@ -351,23 +346,35 @@ function DTGrantRollsDialog:_createCharacterSelector()
                 bgcolor = '#882222',
             },
         },
-        data = {
-            selectedTokens = {}
-        },
-        create = function(element)
-            element:FireEvent("updateSelected")
-        end,
-        updateSelected = function(element)
-            element.data.selectedTokens = {}
-            for _, panel in ipairs(element.children) do
-                if panel:HasClass('selected') then
-                    element.data.selectedTokens[#element.data.selectedTokens + 1] = panel.data.token.id
-                end
-            end
-            local controller = element:FindParentWithClass("dtGrantRollsController")
-            if controller then controller:FireEvent("validateForm") end
-        end,
-        children = tokenPanels
+        children = {
+            gui.Panel {
+                id = "tokenPool",
+                width = "100%",
+                height = "96%",
+                valign = "center",
+                halign = "center",
+                flow = "horizontal",
+                vscroll = true,
+                wrap = true,
+                data = {
+                    selectedTokens = {}
+                },
+                create = function(element)
+                    element:FireEvent("updateSelected")
+                end,
+                updateSelected = function(element)
+                    element.data.selectedTokens = {}
+                    for _, panel in ipairs(element.children) do
+                        if panel:HasClass('selected') then
+                            element.data.selectedTokens[#element.data.selectedTokens + 1] = panel.data.token.id
+                        end
+                    end
+                    local controller = element:FindParentWithClass("dtGrantRollsController")
+                    if controller then controller:FireEvent("validateForm") end
+                end,
+                children = {tokenPanels}
+            }
+        }
     }
 
     -- Selection shortcuts menu

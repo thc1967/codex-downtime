@@ -145,7 +145,7 @@ function DTDirectorPanel:_buildHeaderPanel()
         flow = "horizontal",
         halign = "left",
         valign = "center",
-        styles = DTUIUtils.GetDialogStyles(),
+        styles = DTUtils.GetDialogStyles(),
         children = {
             -- Settings panel - edit button & state
             gui.Panel {
@@ -313,7 +313,7 @@ function DTDirectorPanel:_showSettingsDialog()
         classes = {"dtSettingsController", "DTDialog"},
         width = 500,
         height = 300,
-        styles = DTUIUtils.GetDialogStyles(),
+        styles = DTUtils.GetDialogStyles(),
 
         saveAndClose = function(element)
             local chkPause = element:Get("chkPauseRolls")
@@ -339,7 +339,7 @@ function DTDirectorPanel:_showSettingsDialog()
         create = function(element)
             element:FireEvent("validateForm")
         end,
-        
+
         children = {
             gui.Panel {
                 classes = {"DTPanel", "DTBase"},
@@ -384,7 +384,7 @@ function DTDirectorPanel:_showSettingsDialog()
                                 width = "98%",
                                 borderColor = "yellow",
                                 children = {
-                                    DTUIUtils.CreateLabeledCheckbox({
+                                    DTUtils.CreateLabeledCheckbox({
                                         id = "chkPauseRolls",
                                         text = "Pause Rolls",
                                         value = isPaused,
@@ -406,7 +406,7 @@ function DTDirectorPanel:_showSettingsDialog()
                                 width = "98%",
                                 borderColor = "yellow",
                                 children = {
-                                    DTUIUtils.CreateLabeledInput("Pause Reason", {
+                                    DTUtils.CreateLabeledInput("Pause Reason", {
                                         id = "txtPauseReason",
                                         text = pauseReason,
                                         placeholderText = "Enter reason for pausing rolls...",
@@ -517,7 +517,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     local characterInfo = {}
 
     -- Local validation function to check if character meets criteria
-    local function isHeroWithDowntime(character)
+    local function isHeroWithDowntimeProjects(character)
         if character and character.properties and character.properties:IsHero() then
             local dti = character.properties:try_get("downtime_info")
             if dti and next(dti:GetDowntimeProjects()) then return true end
@@ -525,42 +525,12 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         return false
     end
 
-    local partyTable = dmhub.GetTable(Party.tableName)
-    for partyId, _ in pairs(partyTable) do
-        local characterIds = dmhub.GetCharacterIdsInParty(partyId)
-        for _, characterId in ipairs(characterIds) do
-            local character = dmhub.GetCharacterById(characterId)
-            if isHeroWithDowntime(character) then
-                characterInfo[#characterInfo + 1] = {
-                    id = character.id,
-                    name = character.name or "Unknown Character"
-                }
-            end
-        end
-    end
-
-    -- Also get unaffiliated characters (director controlled on current map)
-    local unaffiliatedTokens = dmhub.GetTokens{ unaffiliated = true }
-    for _, token in ipairs(unaffiliatedTokens) do
-        local character = dmhub.GetCharacterById(token.charid)
-        if isHeroWithDowntime(character) then
-            characterInfo[#characterInfo + 1] = {
-                id = character.id,
-                name = character.name or "Unknown Character"
-            }
-        end
-    end
-
-    -- Optionally include despawned characters from graveyard
-    local despawnedTokens = dmhub.despawnedTokens or {}
-    for _, token in ipairs(despawnedTokens) do
-        local character = dmhub.GetCharacterById(token.charid)
-        if isHeroWithDowntime(character) then
-            characterInfo[#characterInfo + 1] = {
-                id = character.id,
-                name = character.name or "Unknown Character"
-            }
-        end
+    local allHeroes = DTUtils.GetAllHeroTokens(isHeroWithDowntimeProjects)
+    for _, character in ipairs(allHeroes) do
+        characterInfo[#characterInfo + 1] = {
+            id = character.id,
+            name = character.name or "Unknown Character"
+        }
     end
 
     return characterInfo
