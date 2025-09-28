@@ -275,28 +275,27 @@ end
 --- and characters!
 function DTDirectorPanel:_clearAllData()
 
-    local partyTable = dmhub.GetTable(Party.tableName)
-    for partyId, _ in pairs(partyTable) do
-        local characterIds = dmhub.GetCharacterIdsInParty(partyId)
-        for _, characterId in ipairs(characterIds) do
-            local t = dmhub.GetCharacterById(characterId)
-            if t and t.properties then
-                if t.properties:try_get("downtimeInfo") or t.properties:try_get("downtime_projects") then
-                    print("THC:: WIPEDOWNTIME::", t.name)
-                    t:ModifyProperties{
-                        description = "Clear Downtime Info",
-                        execute = function()
-                            if t.properties:try_get("downtimeInfo") then
-                                t.properties.downtimeInfo = nil
-                            end
-                            if t.properties:try_get("downtime_projects") then
-                                t.properties.downtime_projects = nil
-                            end
-                        end
-                    }
+    local function tokenHasDowntime(t)
+        if t.properties and t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
+            return true
+        end
+        return false
+    end
+
+    local heroes = DTUtils.GetAllHeroTokens(tokenHasDowntime)
+    for _, t in ipairs(heroes) do
+        print("THC:: WIPEDOWNTIME::", t.name)
+        t:ModifyProperties{
+            description = "Clear Downtime Info",
+            execute = function()
+                if t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
+                    t.properties.downtimeInfo = nil
+                end
+                if t.properties:try_get("downtime_projects") then
+                    t.properties.downtime_projects = nil
                 end
             end
-        end
+        }
     end
 
     self.downtimeSettings:InitializeDocument()
@@ -519,7 +518,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     -- Local validation function to check if character meets criteria
     local function isHeroWithDowntimeProjects(character)
         if character and character.properties and character.properties:IsHero() then
-            local dti = character.properties:try_get("downtimeInfo")
+            local dti = character.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
             if dti and next(dti:GetDowntimeProjects()) then return true end
         end
         return false
@@ -555,7 +554,7 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
             local characterId = characterInfo.id
             local characterName = characterInfo.name
 
-            local downtimeInfo = character.properties:try_get("downtimeInfo")
+            local downtimeInfo = character.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
             if downtimeInfo then
                 local projects = downtimeInfo:GetDowntimeProjects()
 

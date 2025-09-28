@@ -118,17 +118,13 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
                 classes = {"DTPanel", "DTBase"},
                 width = "100%",
                 height = 40,
-                -- flow = "horizontal",
                 halign = "center",
                 valign = "center",
                 borderColor = "yellow",
                 children = {
-                    -- Cancel button (first)
                     gui.Button{
                         text = cancelButtonText,
                         width = 120,
-                        -- height = 40,
-                        -- hmargin = 10,
                         classes = {"DTButton", "DTBase"},
                         click = function(element)
                             local controller = element:FindParentWithClass("confirmDialogController")
@@ -137,13 +133,10 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
                             end
                         end
                     },
-                    -- Confirm button (second)
                     gui.Button{
                         text = confirmButtonText,
                         width = 120,
                         halign = "right",
-                        -- height = 40,
-                        -- hmargin = 10,
                         classes = {"DTButton", "DTBase"},
                         click = function(element)
                             local controller = element:FindParentWithClass("confirmDialogController")

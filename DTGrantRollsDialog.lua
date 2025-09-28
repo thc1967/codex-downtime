@@ -50,7 +50,7 @@ function DTGrantRollsDialog:ShowDialog()
                                 token:ModifyProperties{
                                     description = "Grant Downtime Rolls",
                                     execute = function ()
-                                        local downtimeInfo = token.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
+                                        local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
                                         if type(downtimeInfo) ~= "table" then downtimeInfo = DTDowntimeInfo:new() end
                                         downtimeInfo:GrantRolls(numRolls)
                                     end,

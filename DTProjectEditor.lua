@@ -21,7 +21,7 @@ end
 function DTProjectEditor:GetProject()
     local character = CharacterSheet.instance.data.info.token
     if character and character.properties and character.properties:IsHero() then
-        local downtimeInfo = character.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
+        local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
         if downtimeInfo then
             return downtimeInfo:GetDowntimeProject(self.projectId)
         end
@@ -544,25 +544,71 @@ function DTProjectEditor:_createProjectForm()
     }
 end
 
---- Creates the rolls list for a downtime project
---- @return table panel The rolls table / panel
-function DTProjectEditor:_createRollsPanel()
+--- Creates the adjustments list for a downtime project
+--- @return table panel The adjustments table / panel
+function DTProjectEditor:_createAdjustmentsPanel()
     return gui.Panel {
+        id = "adjustmentsController",
+        classes = {"adjustmentsController", "DTPanel", "DTBase"},
         width = "98%",
         height = "100%",
-        valign = "top",
-        halign = "center",
+        valign = "center",
+        flow = "vertical",
         bgimage = "panels/square.png",
-        borderColor = "white",
+        borderColor = "#999999",
         border = 1,
         children = {
-            gui.Label {
-                text = "Rolls Placeholder",
+            -- Header
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                width = "100%",
+                margin = 0,
+                pad = 0,
+                bgimage = "panels/square.png",
+                bgcolor = "#222222",
+                borderColor = "#666666",
+                border = { y1 = 1, y2 = 0, x1 = 0, x2 = 0 },
+                children = {
+                    gui.Panel {
+                        classes = { "DTPanel", "DTBase"},
+                        width = "80%",
+                        halign = "left",
+                        children = {
+                            gui.Label {
+                                classes = {"DTLabel", "DTBase"},
+                                text = "Adjustments",
+                                width = "90%",
+                                hmargin = 10,
+                            },
+                        }
+                    },
+                    gui.Panel {
+                        classes = { "DTPanel", "DTBase" },
+                        width = "12%",
+                        halign = "right",
+                        linger = function(element)
+                            gui.Tooltip("Add an adjustment")(element)
+                        end,
+                        children = {
+                            gui.AddButton {
+                                classes = {"DTButton", "DTBase"},
+                                halign = "center",
+                                click = function(element)
+                                    print("THC:: ADJUSTMENT:: ADD::")
+                                end,
+                            }
+                        }
+                    },
+                }
+            },
+
+            -- Body
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
                 width = "98%",
-                height = "auto",
-                valign = "top",
-                halign = "center",
-                classes = {"DTInput", "DTBase"},
+                height = "85%",
+                borderColor = "blue",
+                bgcolor = "blue",
             }
         }
     }
@@ -570,23 +616,63 @@ end
 
 --- Creates the adjustments list for a downtime project
 --- @return table panel The adjustments table / panel
-function DTProjectEditor:_createAdjustmentsPanel()
+function DTProjectEditor:_createRollsPanel()
     return gui.Panel {
+        id = "rollsController",
+        classes = {"rollsController", "DTPanel", "DTBase"},
         width = "98%",
         height = "100%",
-        valign = "top",
-        halign = "center",
+        valign = "center",
         bgimage = "panels/square.png",
-        borderColor = "white",
+        borderColor = "#999999",
         border = 1,
         children = {
-            gui.Label {
-                text = "Adjustments Placeholder",
-                width = "98%",
-                height = "auto",
-                valign = "top",
-                halign = "center",
-                classes = {"DTInput", "DTBase"},
+            -- Header
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                width = "100%",
+                margin = 0,
+                pad = 0,
+                bgimage = "panels/square.png",
+                bgcolor = "#222222",
+                borderColor = "#666666",
+                border = { y1 = 1, y2 = 0, x1 = 0, x2 = 0 },
+                children = {
+                    gui.Panel {
+                        classes = { "DTPanel", "DTBase"},
+                        width = "80%",
+                        halign = "left",
+                        children = {
+                            gui.Label {
+                                classes = {"DTLabel", "DTBase"},
+                                text = "Rolls",
+                                width = "90%",
+                                hmargin = 10,
+                            },
+                        }
+                    },
+                    gui.Panel {
+                        classes = { "DTPanel", "DTBase" },
+                        width = "12%",
+                        halign = "right",
+                        children = {
+                            gui.Button {
+                                classes = {"DTButton", "DTBase"},
+                                icon = "panels/initiative/initiative-dice.png",
+                                width = 24,
+                                height = 24,
+                                margin = 0,
+                                borderWidth = 0,
+                                linger = function(element)
+                                    gui.Tooltip("Make a roll")(element)
+                                end,
+                                click = function()
+                                    print("THC:: ROLL:: ADD::")
+                                end,
+                            },
+                        }
+                    },
+                }
             }
         }
     }
@@ -619,28 +705,11 @@ function DTProjectEditor:CreateEditorPanel()
                 click = function()
                     local project = editor:GetProject()
                     if project then
-                        -- OLD MODAL APPROACH (commented out)
-                        -- DTConfirmationDialog.ShowDeleteModal("Project", project:GetTitle(), function()
-                        --     local token = CharacterSheet.instance.data.info.token
-                        --     if token and token.properties and token.properties:IsHero() then
-                        --         local downtimeInfo = token.properties:try_get("downtimeInfo")
-                        --         if downtimeInfo then
-                        --             downtimeInfo:RemoveDowntimeProject(editor.projectId)
-                        --             DTSettings.Touch()
-                        --             local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
-                        --             if scrollArea then
-                        --                 scrollArea:FireEventTree("refreshToken")
-                        --             end
-                        --         end
-                        --     end
-                        -- end)
-
-                        -- NEW ADDCHILD APPROACH
                         CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
                             confirm = function()
                                 local token = CharacterSheet.instance.data.info.token
                                 if token and token.properties and token.properties:IsHero() then
-                                    local downtimeInfo = token.properties:try_get("downtimeInfo")
+                                    local downtimeInfo = token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
                                     if downtimeInfo then
                                         downtimeInfo:RemoveDowntimeProject(editor.projectId)
                                         DTSettings.Touch()

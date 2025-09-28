@@ -203,7 +203,6 @@ function DTUtils.GetDialogStyles()
             fontFace = "Berling",
             color = Styles.textColor,
             height = 24,
-            cornerRadius = 4,
         },
 
         -- DT Dialog Windows
@@ -245,6 +244,7 @@ function DTUtils.GetDialogStyles()
             selectors = {"DTLabel", "DTBase"},
             bold = true,
             textAlignment = "left",
+            cornerRadius = 4,
         },
         gui.Style{
             selectors = {"DTInput", "DTBase"},
@@ -252,6 +252,7 @@ function DTUtils.GetDialogStyles()
             borderWidth = 1,
             borderColor = Styles.textColor,
             bold = false,
+            cornerRadius = 4,
         },
         gui.Style{
             selectors = {"DTDropdown", "DTBase"},
@@ -260,10 +261,12 @@ function DTUtils.GetDialogStyles()
             borderColor = Styles.textColor,
             height = 30,
             bold = false,
+            cornerRadius = 4,
         },
         gui.Style{
             selectors = {"DTCheck", "DTBase"},
             halign = "left",
+            cornerRadius = 4,
         },
 
         -- Buttons
@@ -272,7 +275,8 @@ function DTUtils.GetDialogStyles()
             fontSize = 22,
             textAlignment = "center",
             bold = true,
-            height = 35  -- Override DTBase height for buttons
+            height = 35,
+            cornerRadius = 4,
         },
         gui.Style{
             selectors = {"DTDanger", "DTButton", "DTBase"},

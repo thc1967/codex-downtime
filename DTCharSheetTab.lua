@@ -140,12 +140,12 @@ function DTCharSheetTab._createHeaderPanel()
                         hmargin = "20",
                         fontSize = 20,
                         refreshToken = function(element)
-                            local fmt = "%d Available Rolls%s"
+                            local fmt = "Available Rolls: %d%s"
                             local availableRolls = 0
                             local msg = ""
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:try_get("downtimeInfo")
+                                local downtimeInfo = token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
                                 if downtimeInfo then
                                     availableRolls = downtimeInfo:GetAvailableRolls()
                                 else
@@ -178,7 +178,7 @@ function DTCharSheetTab._createHeaderPanel()
                         click = function(element)
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
+                                local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
                                 if downtimeInfo then
                                     downtimeInfo:AddDowntimeProject()
                                     DTSettings.Touch()
@@ -249,7 +249,7 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    local downtimeInfo = character.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
+    local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
     if not downtimeInfo then
         -- Show "no projects" message
         element.children = {

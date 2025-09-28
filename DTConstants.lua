@@ -6,6 +6,9 @@ DTConstants = RegisterGameType("DTConstants")
 DTConstants.DEVMODE = true
 DTConstants.DEVUI = false
 
+--- The location on the character we're storing the downtime
+DTConstants.CHARACTER_STORAGE_KEY = "downtimeInfo"
+
 --- Valid language penalty values used in downtime projects and rolls
 DTConstants.LANGUAGE_PENALTY = {
     DTConstant:new("NONE", 1, "None"),
