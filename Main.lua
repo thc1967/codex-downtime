@@ -5,3 +5,7 @@ if dmhub.isDM then
         directorPanel:Register()
     end
 end
+
+-- TODO: This is debug remove it.
+CharSheet.defaultSheet = "Downtime"
+dmhub.RefreshCharacterSheet()

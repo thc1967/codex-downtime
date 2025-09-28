@@ -445,7 +445,6 @@ end
 function DTGrantRollsDialog:_onConfirm()
     if not self:_isFormValid() then return end
 
-    print("THC:: Grant " .. self.numberOfRolls .. " rolls to " .. #self.selectedTokens .. " characters:")
     for _, tokenId in ipairs(self.selectedTokens) do
         local token = dmhub.GetCharacterById(tokenId)
         if token and token.properties then

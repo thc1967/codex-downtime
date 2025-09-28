@@ -821,17 +821,35 @@ function DTDirectorPanel:_buildContentPanel()
     -- Get categorized data for tab content
     local categorized = directorPanel:_categorizeDowntimeProjects()
 
+    -- Get preferred selected tab
+    local prefKey = string.format("dt_director_selected_tab:%s", dmhub.gameid or "default")
+    local selectedTab = dmhub.GetPref(prefKey) or "Attention"
+
+    -- Validate selected tab (fallback to Attention if invalid)
+    local validTabs = {"Attention", "Milestones", "Active", "Completed"}
+    local isValidTab = false
+    for _, validTab in ipairs(validTabs) do
+        if selectedTab == validTab then
+            isValidTab = true
+            break
+        end
+    end
+    if not isValidTab then
+        selectedTab = "Attention"
+    end
+
     -- Create content panels for each tab
     local attentionPanel = directorPanel:_buildTabContent(categorized.attention, "attention")
+    attentionPanel:SetClass("hidden", selectedTab ~= "Attention")
 
     local milestonesPanel = directorPanel:_buildTabContent(categorized.milestones, "milestones")
-    milestonesPanel:SetClass("hidden", true)
+    milestonesPanel:SetClass("hidden", selectedTab ~= "Milestones")
 
     local activePanel = directorPanel:_buildTabContent(categorized.active, "active")
-    activePanel:SetClass("hidden", true)
+    activePanel:SetClass("hidden", selectedTab ~= "Active")
 
     local completedPanel = directorPanel:_buildTabContent(categorized.completed, "completed")
-    completedPanel:SetClass("hidden", true)
+    completedPanel:SetClass("hidden", selectedTab ~= "Completed")
 
     local tabPanels = {attentionPanel, milestonesPanel, activePanel, completedPanel}
 
@@ -869,6 +887,10 @@ function DTDirectorPanel:_buildContentPanel()
                 tab:SetClass("selected", tab.data.tabName == tabName)
             end
         end
+
+        -- Save selected tab preference
+        local prefKey = string.format("dt_director_selected_tab:%s", dmhub.gameid or "default")
+        dmhub.SetPref(prefKey, tabName)
     end
 
     -- Use the same categorized data for counts (already calculated above)
@@ -879,25 +901,25 @@ function DTDirectorPanel:_buildContentPanel()
         styles = {DTDirectorPanel.TabsStyles},
         children = {
             gui.Label{
-                classes = {"dtTab", "selected"},
+                classes = {"dtTab", selectedTab == "Attention" and "selected" or nil},
                 text = string.format("Attention (%d)", #categorized.attention),
                 data = {tabName = "Attention"},
                 press = function() selectTab("Attention") end,
             },
             gui.Label{
-                classes = {"dtTab"},
+                classes = {"dtTab", selectedTab == "Milestones" and "selected" or nil},
                 text = string.format("Milestones (%d)", #categorized.milestones),
                 data = {tabName = "Milestones"},
                 press = function() selectTab("Milestones") end,
             },
             gui.Label{
-                classes = {"dtTab"},
+                classes = {"dtTab", selectedTab == "Active" and "selected" or nil},
                 text = string.format("Active (%d)", #categorized.active),
                 data = {tabName = "Active"},
                 press = function() selectTab("Active") end,
             },
             gui.Label{
-                classes = {"dtTab"},
+                classes = {"dtTab", selectedTab == "Completed" and "selected" or nil},
                 text = string.format("Completed (%d)", #categorized.completed),
                 data = {tabName = "Completed"},
                 press = function() selectTab("Completed") end,

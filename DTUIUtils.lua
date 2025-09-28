@@ -3,6 +3,10 @@
 --- @class DTUIUtils
 DTUIUtils = RegisterGameType("DTUIUtils")
 
+-- Turn on the background to see lines around the downtime tab panels
+-- local DEBUG_PANEL_BG = "panels/square.png"
+local DEBUG_PANEL_BG = nil
+
 --- Creates a labeled checkbox with consistent styling
 --- @param checkboxOptions table Options for the checkbox (text, value, change, etc.)
 --- @param panelOptions table Optional panel options (width, height, etc.)
@@ -164,21 +168,41 @@ function DTUIUtils.GetDialogStyles()
 
         -- DT Control Types: Inherit from DTBase, add specific properties
         gui.Style{
+            selectors = {"DTPanel", "DTBase"},
+            height = "auto",
+            hmargin = 2,
+            vmargin = 2,
+            flow = "horizontal",
+            bgimage = DEBUG_PANEL_BG,
+            border = DEBUG_PANEL_BG and 1 or 0,
+        },
+        gui.Style{
+            selectors = {"DTPanelRow", "DTPanel", "DTBase"},
+            vmargin = 4,
+            height = 60,
+            width = "100%-4",
+        },
+        gui.Style{
             selectors = {"DTLabel", "DTBase"},
             bold = true,
-            textAlignment = "left"
+            textAlignment = "left",
+            height = 24,
         },
         gui.Style{
             selectors = {"DTInput", "DTBase"},
             bgcolor = Styles.backgroundColor,
             borderWidth = 1,
-            borderColor = Styles.textColor
+            borderColor = Styles.textColor,
+            height = 24,
+            bold = false,
         },
         gui.Style{
             selectors = {"DTDropdown", "DTBase"},
             bgcolor = Styles.backgroundColor,
             borderWidth = 1,
-            borderColor = Styles.textColor
+            borderColor = Styles.textColor,
+            height = 30,
+            bold = false,
         },
         gui.Style{
             selectors = {"DTCheck", "DTBase"},
@@ -268,7 +292,7 @@ function DTUIUtils.ListToDropdownOptions(sourceList)
 
         -- Create dropdown options using displayText
         for _, constant in ipairs(sortedList) do
-            destList[#destList+1] = { id = constant.displayText, text = constant.displayText}
+            destList[#destList+1] = { id = constant.key, text = constant.displayText}
         end
     end
     return destList
