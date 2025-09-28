@@ -529,7 +529,8 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     for _, character in ipairs(allHeroes) do
         characterInfo[#characterInfo + 1] = {
             id = character.id,
-            name = character.name or "Unknown Character"
+            name = character.name or "Unknown Character",
+            rolls = character.properties.downtime_info:GetAvailableRolls(),
         }
     end
 
@@ -562,6 +563,7 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
                     local projectEntry = {
                         characterId = characterId,
                         characterName = characterName,
+                        characterRolls = characterInfo.rolls,
                         projectId = project:GetID(),
                         projectTitle = project:GetTitle(),
                         progress = project:GetProgress(),
@@ -606,7 +608,7 @@ function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabT
     local playerDisplay = ""
     if token and token.playerNameOrNil then
         local color = token.playerColor.tostring
-        playerDisplay = string.format(" (<color=%s>%s</color>)", color, token.playerNameOrNil)
+        playerDisplay = string.format(" (<color=%s>%s</color>) [Rolls: %d]", color, token.playerNameOrNil, characterInfo.rolls)
     end
 
     local triangle = gui.Panel{
@@ -650,7 +652,7 @@ function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabT
             gui.Label{
                 text = characterName .. playerDisplay,
                 classes = {"DTLabel", "DTBase"},
-                width = "auto",
+                width = "70%",
                 height = "100%",
                 valign = "center",
                 hmargin = 4,
@@ -658,7 +660,7 @@ function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabT
             },
             -- Settings button (right-aligned)
             gui.Panel{
-                width = "100%-150",
+                width = "30",
                 height = "100%",
                 flow = "horizontal",
                 halign = "right",
@@ -801,7 +803,7 @@ function DTDirectorPanel:_buildTabContent(categorizedProjects, tabType)
             width = "100%",
             height = "100%",
             halign = "center",
-            valign = "center",
+            valign = "top",
             textAlignment = "center",
             fontSize = 14
         }
@@ -814,7 +816,8 @@ function DTDirectorPanel:_buildTabContent(categorizedProjects, tabType)
                 projectsByCharacter[charId] = {
                     characterInfo = {
                         id = charId,
-                        name = projectEntry.characterName
+                        name = projectEntry.characterName,
+                        rolls = projectEntry.characterRolls
                     },
                     projects = {}
                 }
@@ -824,7 +827,7 @@ function DTDirectorPanel:_buildTabContent(categorizedProjects, tabType)
 
         -- Build character sections
         local hasCharacters = false
-        for characterId, characterData in pairs(projectsByCharacter) do
+        for _, characterData in pairs(projectsByCharacter) do
             if hasCharacters then
                 -- Add spacing between characters
                 tabChildren[#tabChildren + 1] = gui.Divider { width = "95%" }
