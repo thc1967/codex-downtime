@@ -619,7 +619,7 @@ function DTProjectEditor:CreateEditorPanel()
                 click = function()
                     local project = editor:GetProject()
                     if project then
-                        DTUtils.ShowDeleteConfirmation("Project", project:GetTitle(), function()
+                        DTConfirmationDialog.ShowDeleteModal("Project", project:GetTitle(), function()
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
                                 local downtimeInfo = token.properties:try_get("downtimeInfo")
