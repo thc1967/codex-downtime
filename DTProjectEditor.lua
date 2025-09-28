@@ -46,7 +46,7 @@ function DTProjectEditor:_createProjectForm()
     local titleField = gui.Panel{
         classes = {"DTPanel", "DTBase"},
         width = "98%",
-        height = "50",
+        height = 64,
         children = {
             gui.Input {
                 width = "98%",
@@ -76,10 +76,10 @@ function DTProjectEditor:_createProjectForm()
 
     -- Progress field (label + read-only display)
     local progressField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
         width = "98%",
-        height = "90%",
         flow = "vertical",
-        valign = "center",
+        halign = "center",
         children = {
             gui.Label {
                 text = "Progress:",
@@ -89,6 +89,7 @@ function DTProjectEditor:_createProjectForm()
             gui.Label {
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
+                height = 30,
                 bold = false,
                 refreshToken = function(element, info)
                     local project = editor:GetProject()
@@ -116,18 +117,38 @@ function DTProjectEditor:_createProjectForm()
                 height = 25,
                 flow = "horizontal",
                 halign = "left",
+                refreshToken = function(element)
+                    local enabled = false
+                    local project = editor:GetProject()
+                    if project then
+                        enabled = project:GetStatus() ~= DTConstants.STATUS.COMPLETE.key
+                    end
+                    element:FireEventTree("setButtonEnabled", enabled)
+                end,
+                updatePendingRolls = function(element, numRolls)
+                    local project = editor:GetProject()
+                    local controllerPanel = element:FindParentWithClass("downtimeController")
+                    if project and controllerPanel then
+                        project:SetPendingRolls(numRolls)
+                        controllerPanel:FireEventTree("refreshToken")
+                    end
+                end,
                 children = {
                     gui.Button{
                         text = "-",
                         width = 25,
                         height = 25,
                         classes = {"DTButton", "DTBase"},
+                        setButtonEnabled = function(element, enabled)
+                            element:SetClass("invalid", not enabled)
+                            element.interactable = enabled
+                        end,
                         click = function(element)
                             local project = editor:GetProject()
                             if project then
                                 local current = project:GetPendingRolls()
                                 if current > 0 then
-                                    project:SetPendingRolls(current - 1)
+                                    element.parent:FireEvent("updatePendingRolls", current - 1)
                                 end
                             end
                         end
@@ -140,7 +161,7 @@ function DTProjectEditor:_createProjectForm()
                         halign = "center",
                         valign = "center",
                         bold = false,
-                        refreshToken = function(element, info)
+                        refreshToken = function(element)
                             local project = editor:GetProject()
                             if project then
                                 local pendingRolls = project:GetPendingRolls() or 0
@@ -157,11 +178,14 @@ function DTProjectEditor:_createProjectForm()
                         width = 25,
                         height = 25,
                         classes = {"DTButton", "DTBase"},
+                        setButtonEnabled = function(element, enabled)
+                            element:SetClass("invalid", not enabled)
+                            element.interactable = enabled
+                        end,
                         click = function(element)
                             local project = editor:GetProject()
                             if project then
-                                local current = project:GetPendingRolls()
-                                project:SetPendingRolls(current + 1)
+                                element.parent:FireEvent("updatePendingRolls", project:GetPendingRolls() + 1)
                             end
                         end
                     },
@@ -182,7 +206,7 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
             },
             gui.Input {
-                width = "98%",
+                width = "96%",
                 classes = {"DTInput", "DTBase"},
                 placeholderText = "Required items or prerequisites...",
                 editlag = 0.5,
@@ -217,7 +241,7 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
             },
             gui.Input {
-                width = "98%",
+                width = "96%",
                 classes = {"DTInput", "DTBase"},
                 placeholderText = "Book, tutor, or source of project knowledge...",
                 editlag = 0.5,
@@ -251,7 +275,7 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
             },
             gui.Dropdown {
-                width = "98%",
+                width = "100%",
                 classes = {"DTDropdown", "DTBase"},
                 options = DTUIUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
                 refreshToken = function(element, info)
@@ -282,7 +306,7 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
             },
             gui.Dropdown {
-                width = "98%",
+                width = "100%",
                 classes = {"DTDropdown", "DTBase"},
                 options = DTUIUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY),
                 refreshToken = function(element)
@@ -349,7 +373,7 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
             },
             isDM and gui.Dropdown {
-                width = "98%",
+                width = "100%",
                 classes = {"DTDropdown", "DTBase"},
                 options = DTUIUtils.ListToDropdownOptions(DTConstants.STATUS),
                 refreshToken = function(element)
@@ -490,15 +514,9 @@ function DTProjectEditor:_createProjectForm()
                 children = {
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "76%",
+                        width = "87%",
                         borderColor = "yellow",
                         children = {titleField}
-                    },
-                    gui.Panel {
-                        classes = {"DTPanel", "DTBase"},
-                        width = "10%",
-                        borderColor = "yellow",
-                        children = {progressField,},
                     },
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
@@ -516,15 +534,21 @@ function DTProjectEditor:_createProjectForm()
                 children = {
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "49%",
+                        width = "43%",
                         borderColor = "yellow",
                         children = {prerequisiteField,}
                     },
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "49%",
+                        width = "43%",
                         borderColor = "yellow",
                         children = {sourceField,}
+                    },
+                    gui.Panel {
+                        classes = {"DTPanel", "DTBase"},
+                        width = "12%",
+                        borderColor = "yellow",
+                        children = {progressField,},
                     },
                 }
             },
@@ -536,19 +560,19 @@ function DTProjectEditor:_createProjectForm()
                 children = {
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "40%",
+                        width = "43%",
                         borderColor = "yellow",
                         children = {characteristicField,}
                     },
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "40%",
+                        width = "43%",
                         borderColor = "yellow",
                         children = {languageField,}
                     },
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "18%",
+                        width = "12%",
                         borderColor = "yellow",
                         children = {goalField,}
                     },
@@ -562,19 +586,19 @@ function DTProjectEditor:_createProjectForm()
                 children = {
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "40%",
+                        width = "43%",
                         borderColor = "yellow",
                         children = {statusField,}
                     },
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "40%",
+                        width = "43%",
                         borderColor = "yellow",
                         children = {statusReasonField,}
                     },
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "18%",
+                        width = "12%",
                         borderColor = "yellow",
                         children = {milestoneField,}
                     },
@@ -681,6 +705,7 @@ function DTProjectEditor:CreateEditorPanel()
 
     -- Container panel with form and delete button side by side
     return gui.Panel {
+        id = editor:GetProject():GetID(),
         width = "95%",
         height = "auto",
         flow = "horizontal",

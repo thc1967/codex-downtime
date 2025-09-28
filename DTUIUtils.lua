@@ -216,6 +216,11 @@ function DTUIUtils.GetDialogStyles()
             height = 35  -- Override DTBase height for buttons
         },
         gui.Style{
+            selectors = {"DTButton", "DTBase", "invalid"},
+            bgcolor = "#220000",
+            borderColor = "#440000",
+        },
+        gui.Style{
             selectors = {"downtime-edit-button"},
             width = 20,
             height = 20

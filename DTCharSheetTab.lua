@@ -16,6 +16,7 @@ end
 --- @return table|nil panel The GUI panel containing downtime content
 function DTCharSheetTab.CreateDowntimePanel()
     local downtimePanel = gui.Panel {
+        classes = {"downtimeController"},
         bgimage = true,
         bgcolor = "clear",
         width = "100%",
@@ -138,14 +139,14 @@ function DTCharSheetTab._createHeaderPanel()
                         valign = "center",
                         hmargin = "20",
                         fontSize = 20,
-                        refreshToken = function(element, info)
+                        refreshToken = function(element)
                             local fmt = "Staged %d / %d Available Rolls.%s"
                             local stagedRolls = 0
                             local availableRolls = 0
                             local msg = ""
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+                                local downtimeInfo = token.properties:try_get("downtime_info")
                                 if downtimeInfo then
                                     availableRolls = downtimeInfo:GetAvailableRolls()
                                     stagedRolls = downtimeInfo:GetStagedRollsCount()

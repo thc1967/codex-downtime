@@ -96,7 +96,7 @@ function DTGrantRollsDialog:ShowDialog()
                         hmargin = 20,
                         classes = {"DTButton", "DTBase"},
                         create = function(element)
-                            dialog.confirmButton = element
+                            dialog.confirmButton = element  -- TODO: Validation with events
                             dialog:_validateForm()
                         end,
                         click = function(element)

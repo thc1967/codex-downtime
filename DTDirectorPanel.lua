@@ -299,11 +299,6 @@ function DTDirectorPanel:ShowSettingsEditDialog()
 
     -- Build styles array with invalid button styling
     local dialogStyles = DTUIUtils.GetDialogStyles()
-    dialogStyles[#dialogStyles + 1] = gui.Style{
-        selectors = {'DTButton', 'DTBase', 'invalid'},
-        bgcolor = '#222222',
-        borderColor = '#444444',
-    }
 
     local settingsDialog = gui.Panel{
         width = 500,
