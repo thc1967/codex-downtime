@@ -145,7 +145,7 @@ function DTCharSheetTab._createHeaderPanel()
                             local msg = ""
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:try_get("downtime_info")
+                                local downtimeInfo = token.properties:try_get("downtimeInfo")
                                 if downtimeInfo then
                                     availableRolls = downtimeInfo:GetAvailableRolls()
                                 else
@@ -178,7 +178,7 @@ function DTCharSheetTab._createHeaderPanel()
                         click = function(element)
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+                                local downtimeInfo = token.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
                                 if downtimeInfo then
                                     downtimeInfo:AddDowntimeProject()
                                     DTSettings.Touch()
@@ -249,7 +249,7 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    local downtimeInfo = character.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+    local downtimeInfo = character.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
     if not downtimeInfo then
         -- Show "no projects" message
         element.children = {

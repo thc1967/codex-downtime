@@ -281,13 +281,13 @@ function DTDirectorPanel:_clearAllData()
         for _, characterId in ipairs(characterIds) do
             local t = dmhub.GetCharacterById(characterId)
             if t and t.properties then
-                if t.properties:try_get("downtime_info") or t.properties:try_get("downtime_projects") then
+                if t.properties:try_get("downtimeInfo") or t.properties:try_get("downtime_projects") then
                     print("THC:: WIPEDOWNTIME::", t.name)
                     t:ModifyProperties{
                         description = "Clear Downtime Info",
                         execute = function()
-                            if t.properties:try_get("downtime_info") then
-                                t.properties.downtime_info = nil
+                            if t.properties:try_get("downtimeInfo") then
+                                t.properties.downtimeInfo = nil
                             end
                             if t.properties:try_get("downtime_projects") then
                                 t.properties.downtime_projects = nil
@@ -519,7 +519,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     -- Local validation function to check if character meets criteria
     local function isHeroWithDowntimeProjects(character)
         if character and character.properties and character.properties:IsHero() then
-            local dti = character.properties:try_get("downtime_info")
+            local dti = character.properties:try_get("downtimeInfo")
             if dti and next(dti:GetDowntimeProjects()) then return true end
         end
         return false
@@ -530,7 +530,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         characterInfo[#characterInfo + 1] = {
             id = character.id,
             name = character.name or "Unknown Character",
-            rolls = character.properties.downtime_info:GetAvailableRolls(),
+            rolls = character.properties.downtimeInfo:GetAvailableRolls(),
         }
     end
 
@@ -555,7 +555,7 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
             local characterId = characterInfo.id
             local characterName = characterInfo.name
 
-            local downtimeInfo = character.properties:try_get("downtime_info")
+            local downtimeInfo = character.properties:try_get("downtimeInfo")
             if downtimeInfo then
                 local projects = downtimeInfo:GetDowntimeProjects()
 

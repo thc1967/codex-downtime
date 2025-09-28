@@ -1,6 +1,6 @@
 --- Downtime information manager for a character
 --- Manages available rolls and downtime projects for a single character
---- Stored within the character object in the root node named 'downtime_info'
+--- Stored within the character object in the root node named 'downtimeInfo'
 --- @class DTDowntimeInfo
 --- @field availableRolls number Counter that the Director increments via Grant Rolls to All
 --- @field downtimeProjects table The list of DTDowntimeProject records for the character

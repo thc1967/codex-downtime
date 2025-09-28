@@ -16,19 +16,12 @@ function DTProjectEditor:new(project)
     return instance
 end
 
---- Executes the function to update downtime settings
---- and touches the shared document to prompt refresh
-local function updateDowntime(f)
-    f()
-    DTSettings.Touch()
-end
-
 --- Gets the fresh project data from the character sheet
 --- @return DTDowntimeProject|nil project The current project or nil if not found
 function DTProjectEditor:GetProject()
     local character = CharacterSheet.instance.data.info.token
     if character and character.properties and character.properties:IsHero() then
-        local downtimeInfo = character.properties:get_or_add("downtime_info", DTDowntimeInfo:new())
+        local downtimeInfo = character.properties:get_or_add("downtimeInfo", DTDowntimeInfo:new())
         if downtimeInfo then
             return downtimeInfo:GetDowntimeProject(self.projectId)
         end
@@ -67,7 +60,8 @@ function DTProjectEditor:_createProjectForm()
                 change = function(element)
                     local project = editor:GetProject()
                     if project and element.text ~= project:GetTitle() then
-                        updateDowntime(function() project:SetTitle(element.text) end)
+                        project:SetTitle(element.text)
+                        DTSettings.Touch()
                     end
                 end
             }
@@ -109,8 +103,9 @@ function DTProjectEditor:_createProjectForm()
         hmargin = 2,
         children = {
             gui.Label {
-                text = "Prerequisites:",
+                text = "Project Prerequisite:",
                 classes = {"DTLabel", "DTBase"},
+                width = "98%",
             },
             gui.Input {
                 width = "96%",
@@ -144,7 +139,7 @@ function DTProjectEditor:_createProjectForm()
         hmargin = 2,
         children = {
             gui.Label {
-                text = "Source:",
+                text = "Project Source:",
                 classes = {"DTLabel", "DTBase"},
             },
             gui.Input {
@@ -208,8 +203,9 @@ function DTProjectEditor:_createProjectForm()
         flow = "vertical",
         children = {
             gui.Label {
-                text = "Characteristic:",
+                text = "Project Roll Characteristic:",
                 classes = {"DTLabel", "DTBase"},
+                width = "98%",
             },
             gui.Dropdown {
                 width = "100%",
@@ -269,7 +265,7 @@ function DTProjectEditor:_createProjectForm()
         flow = "vertical",
         children = {
             gui.Label {
-                text = "Goal:",
+                text = "Project Goal:",
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
             },
@@ -292,6 +288,7 @@ function DTProjectEditor:_createProjectForm()
                     if project and tonumber(element.text) ~= project:GetProjectGoal() then
                         local value = tonumber(element.text) or 1
                         project:SetProjectGoal(math.max(1, math.floor(value)))
+                        DTSettings.Touch()
                     end
                 end
             }
@@ -322,7 +319,8 @@ function DTProjectEditor:_createProjectForm()
                 change = function(element)
                     local project = editor:GetProject()
                     if project and element.idChosen ~= project:GetStatus() then
-                        updateDowntime(function() project:SetStatus(element.idChosen) end)
+                        project:SetStatus(element.idChosen)
+                        DTSettings.Touch()
                     end
                 end
             } or gui.Label {
@@ -374,7 +372,8 @@ function DTProjectEditor:_createProjectForm()
                 change = function(element)
                     local project = editor:GetProject()
                     if project and element.text ~= project:GetStatusReason() then
-                        updateDowntime(function() project:SetStatusReason(element.text) end)
+                        project:SetStatusReason(element.text)
+                        DTSettings.Touch()
                     end
                 end
             }or gui.Label {
@@ -623,7 +622,7 @@ function DTProjectEditor:CreateEditorPanel()
                         DTUtils.ShowDeleteConfirmation("Project", project:GetTitle(), function()
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:try_get("downtime_info")
+                                local downtimeInfo = token.properties:try_get("downtimeInfo")
                                 if downtimeInfo then
                                     downtimeInfo:RemoveDowntimeProject(editor.projectId)
                                     DTSettings.Touch()

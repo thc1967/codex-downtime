@@ -15,9 +15,6 @@ function DTUtils.CreateLabeledCheckbox(checkboxOptions, panelOptions)
     local panelDefaults = {
         classes = {"DTPanel", "DTBase"},
         width = "25%",
-        -- height = 60,
-        -- halign = "left",
-        -- valign = "center"
     }
 
     -- Merge panel options
@@ -27,9 +24,6 @@ function DTUtils.CreateLabeledCheckbox(checkboxOptions, panelOptions)
 
     -- Default checkbox options
     local checkboxDefaults = {
-        -- width = 160,
-        -- halign = "left",
-        -- valign = "center",
         classes = {"DTCheck", "DTBase"}
     }
 
