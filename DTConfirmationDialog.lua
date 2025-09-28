@@ -13,11 +13,50 @@ DTConfirmationDialog = {}
 --- @param onConfirm function Callback function to execute if user confirms
 --- @param onCancel function|nil Optional callback function to execute if user cancels (default: just close dialog)
 function DTConfirmationDialog.ShowModal(title, message, confirmButtonText, cancelButtonText, onConfirm, onCancel)
+    local confirmHandler = function(element)
+        gui.CloseModal()
+        if onConfirm then
+            onConfirm()
+        end
+    end
+
+    local cancelHandler = function(element)
+        gui.CloseModal()
+        if onCancel then
+            onCancel()
+        end
+    end
+
+    local confirmationWindow = DTConfirmationDialog._createPanel(title, message, confirmButtonText, cancelButtonText, confirmHandler, cancelHandler)
+    gui.ShowModal(confirmationWindow)
+end
+
+--- Shows a standardized delete confirmation dialog
+--- @param itemType string The type of item being deleted ("quest", "note", "objective")
+--- @param itemTitle string The display name/title of the item being deleted
+--- @param onConfirm function Callback function to execute if user confirms deletion
+--- @param onCancel function Optional callback function to execute if user cancels (default: just close dialog)
+function DTConfirmationDialog.ShowDeleteModal(itemType, itemTitle, onConfirm, onCancel)
+    local title = "Delete Confirmation"
+    local message = "Are you sure you want to delete " .. itemType .. " \"" .. (itemTitle or "Untitled") .. "\"?"
+
+    DTConfirmationDialog.ShowModal(title, message, "Delete", "Cancel", onConfirm, onCancel)
+end
+
+--- Private helper to create the panel structure
+--- @param title string The dialog title text
+--- @param message string The main confirmation message
+--- @param confirmButtonText string Text for the confirm button
+--- @param cancelButtonText string Text for the cancel button
+--- @param confirmHandler function Handler function for confirm button click
+--- @param cancelHandler function Handler function for cancel button click and escape
+--- @return table panel The GUI panel structure
+function DTConfirmationDialog._createPanel(title, message, confirmButtonText, cancelButtonText, confirmHandler, cancelHandler)
     -- Set default button text if not provided or empty
     confirmButtonText = (confirmButtonText and confirmButtonText ~= "") and confirmButtonText or "Confirm"
     cancelButtonText = (cancelButtonText and cancelButtonText ~= "") and cancelButtonText or "Cancel"
 
-    local confirmationWindow = gui.Panel{
+    return gui.Panel{
         width = 400,
         height = 200,
         halign = "center",
@@ -70,12 +109,7 @@ function DTConfirmationDialog.ShowModal(title, message, confirmButtonText, cance
                         height = 40,
                         hmargin = 10,
                         classes = {"DTButton", "DTBase"},
-                        click = function(element)
-                            gui.CloseModal()
-                            if onCancel then
-                                onCancel()
-                            end
-                        end
+                        click = cancelHandler
                     },
                     -- Confirm button (second)
                     gui.Button{
@@ -84,36 +118,47 @@ function DTConfirmationDialog.ShowModal(title, message, confirmButtonText, cance
                         height = 40,
                         hmargin = 10,
                         classes = {"DTButton", "DTBase"},
-                        click = function(element)
-                            gui.CloseModal()
-                            if onConfirm then
-                                onConfirm()
-                            end
-                        end
+                        click = confirmHandler
                     }
                 }
             }
         },
 
-        escape = function(element)
-            gui.CloseModal()
-            if onCancel then
-                onCancel()
-            end
-        end
+        escape = cancelHandler
     }
-
-    gui.ShowModal(confirmationWindow)
 end
 
---- Shows a standardized delete confirmation dialog
---- @param itemType string The type of item being deleted ("quest", "note", "objective")
---- @param itemTitle string The display name/title of the item being deleted
---- @param onConfirm function Callback function to execute if user confirms deletion
---- @param onCancel function Optional callback function to execute if user cancels (default: just close dialog)
-function DTConfirmationDialog.ShowDeleteModal(itemType, itemTitle, onConfirm, onCancel)
+--- Creates a confirmation dialog panel for AddChild usage
+--- @param title string The dialog title text
+--- @param message string The main confirmation message
+--- @param confirmButtonText string Text for the confirm button
+--- @param cancelButtonText string Text for the cancel button
+--- @param callbacks table Table with confirm and cancel callback functions
+--- @return table panel The GUI panel ready for AddChild
+function DTConfirmationDialog.CreateAsChild(title, message, confirmButtonText, cancelButtonText, callbacks)
+    local confirmHandler = function(element)
+        if callbacks.confirm then
+            callbacks.confirm()
+        end
+    end
+
+    local cancelHandler = function(element)
+        if callbacks.cancel then
+            callbacks.cancel()
+        end
+    end
+
+    return DTConfirmationDialog._createPanel(title, message, confirmButtonText, cancelButtonText, confirmHandler, cancelHandler)
+end
+
+--- Creates a delete confirmation dialog panel for AddChild usage
+--- @param itemType string The type of item being deleted
+--- @param itemTitle string The display name of the item being deleted
+--- @param callbacks table Table with confirm and cancel callback functions
+--- @return table panel The GUI panel ready for AddChild
+function DTConfirmationDialog.ShowDeleteAsChild(itemType, itemTitle, callbacks)
     local title = "Delete Confirmation"
     local message = "Are you sure you want to delete " .. itemType .. " \"" .. (itemTitle or "Untitled") .. "\"?"
 
-    DTConfirmationDialog.ShowModal(title, message, "Delete", "Cancel", onConfirm, onCancel)
+    return DTConfirmationDialog.CreateAsChild(title, message, "Delete", "Cancel", callbacks)
 end
