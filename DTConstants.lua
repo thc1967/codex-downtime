@@ -3,6 +3,9 @@
 --- @class DTConstants
 DTConstants = RegisterGameType("DTConstants")
 
+DTConstants.DEVMODE = true
+DTConstants.DEVUI = true
+
 --- Valid language penalty values used in downtime projects and rolls
 DTConstants.LANGUAGE_PENALTY = {
     DTConstant:new("NONE", 1, "None"),

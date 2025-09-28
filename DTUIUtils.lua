@@ -4,20 +4,20 @@
 DTUIUtils = RegisterGameType("DTUIUtils")
 
 -- Turn on the background to see lines around the downtime tab panels
--- local DEBUG_PANEL_BG = "panels/square.png"
-local DEBUG_PANEL_BG = nil
+local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
 
 --- Creates a labeled checkbox with consistent styling
 --- @param checkboxOptions table Options for the checkbox (text, value, change, etc.)
---- @param panelOptions table Optional panel options (width, height, etc.)
+--- @param panelOptions? table Optional panel options (width, height, etc.)
 --- @return table panel The complete labeled checkbox panel
 function DTUIUtils.CreateLabeledCheckbox(checkboxOptions, panelOptions)
     -- Default panel options
     local panelDefaults = {
+        classes = {"DTPanel", "DTBase"},
         width = "25%",
-        height = 60,
-        halign = "left",
-        valign = "center"
+        -- height = 60,
+        -- halign = "left",
+        -- valign = "center"
     }
 
     -- Merge panel options
@@ -27,9 +27,9 @@ function DTUIUtils.CreateLabeledCheckbox(checkboxOptions, panelOptions)
 
     -- Default checkbox options
     local checkboxDefaults = {
-        width = 160,
-        halign = "left",
-        valign = "center",
+        -- width = 160,
+        -- halign = "left",
+        -- valign = "center",
         classes = {"DTCheck", "DTBase"}
     }
 
@@ -163,15 +163,31 @@ function DTUIUtils.GetDialogStyles()
             fontSize = 18,
             fontFace = "Berling",
             color = Styles.textColor,
-            height = 40,
+            height = 24,
         },
 
-        -- DT Control Types: Inherit from DTBase, add specific properties
+        -- DT Dialog Windows
+        gui.Style{
+            selectors = {"DTDialog"},
+            halign = "center",
+            valign = "center",
+            bgcolor = "#111111ff",
+            borderWidth = 2,
+            borderColor = Styles.textColor,
+            bgimage = "panels/square.png",
+            flow = "vertical",
+            hpad = 20,
+            vpad = 20,
+        },
+
+        -- Panels
         gui.Style{
             selectors = {"DTPanel", "DTBase"},
             height = "auto",
             hmargin = 2,
             vmargin = 2,
+            hpad = 2,
+            vpad = 2,
             flow = "horizontal",
             bgimage = DEBUG_PANEL_BG,
             border = DEBUG_PANEL_BG and 1 or 0,
@@ -181,19 +197,20 @@ function DTUIUtils.GetDialogStyles()
             vmargin = 4,
             height = 60,
             width = "100%-4",
+            valign = "top",
         },
+
+        -- DT Control Types: Inherit from DTBase, add specific properties
         gui.Style{
             selectors = {"DTLabel", "DTBase"},
             bold = true,
             textAlignment = "left",
-            height = 24,
         },
         gui.Style{
             selectors = {"DTInput", "DTBase"},
             bgcolor = Styles.backgroundColor,
             borderWidth = 1,
             borderColor = Styles.textColor,
-            height = 24,
             bold = false,
         },
         gui.Style{
@@ -206,19 +223,27 @@ function DTUIUtils.GetDialogStyles()
         },
         gui.Style{
             selectors = {"DTCheck", "DTBase"},
-            -- Inherits all DTBase properties
+            halign = "left",
         },
+
+        -- Buttons
         gui.Style{
             selectors = {"DTButton", "DTBase"},
             fontSize = 22,
+            cornerRadius = 4,
             textAlignment = "center",
             bold = true,
             height = 35  -- Override DTBase height for buttons
         },
         gui.Style{
-            selectors = {"DTButton", "DTBase", "invalid"},
+            selectors = {"DTDanger", "DTButton", "DTBase"},
             bgcolor = "#220000",
             borderColor = "#440000",
+        },
+        gui.Style{
+            selectors = {"DTDisabled", "DTButton", "DTBase"},
+            bgcolor = "#222222",
+            borderColor = "#444444",
         },
         gui.Style{
             selectors = {"downtime-edit-button"},

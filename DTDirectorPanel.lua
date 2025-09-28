@@ -166,7 +166,7 @@ function DTDirectorPanel:_buildHeaderPanel()
                             gui.Tooltip("Edit downtime settings")(element)
                         end,
                         press = function()
-                            self:ShowSettingsEditDialog()
+                            self:_showSettingsDialog()
                         end
                     },
                     gui.Panel {
@@ -216,185 +216,260 @@ function DTDirectorPanel:_buildHeaderPanel()
                         linger = function(element)
                             gui.Tooltip("Grant rolls to characters")(element)
                         end,
-                        click = function(element)
+                        click = function()
                             DTGrantRollsDialog:new():ShowDialog()
                         end,
                     },
-                    -- gui.Button {
-                    --     text = "C",
-                    --     width = 30,
-                    --     height = 30,
-                    --     halign = "right",
-                    --     valign = "center",
-                    --     hmargin = 5,
-                    --     classes = {"DTButton", "DTBase"},
-                    --     linger = function(element)
-                    --         gui.Tooltip("Test categorization")(element)
-                    --     end,
-                    --     click = function(element)
-                    --         self:_debugCategorization()
-                    --     end
-                    -- },
-                    -- gui.Button{
-                    --     text = "I",
-                    --     width = 30,
-                    --     height = 30,
-                    --     halign = "right",
-                    --     valign = "center",
-                    --     hmargin = 5,
-                    --     classes = {"DTButton", "DTBase"},
-                    --     linger = function(element)
-                    --         gui.Tooltip("Clear all data.")(element)
-                    --     end,
-                    --     click = function(element)
-                    --         self.downtimeSettings:InitializeDocument()
-                    --     end
-                    -- },
-                    -- gui.Button{
-                    --     text = "D",
-                    --     width = 30,
-                    --     height = 30,
-                    --     halign = "right",
-                    --     valign = "center",
-                    --     hmargin = 5,
-                    --     classes = {"DTButton", "DTBase"},
-                    --     linger = function(element)
-                    --         gui.Tooltip("Clear all data.")(element)
-                    --     end,
-                    --     click = function(element)
-                    --         self:_debugDocument()
-                    --     end
-                    -- },
+                    DTConstants.DEVMODE and gui.Button {
+                        text = "C",
+                        width = 30,
+                        height = 30,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        classes = {"DTButton", "DTBase"},
+                        linger = function(element)
+                            gui.Tooltip("Test categorization")(element)
+                        end,
+                        click = function()
+                            self:_debugCategorization()
+                        end
+                    } or nil,
+                    DTConstants.DEVMODE and gui.Button{
+                        text = "I",
+                        width = 30,
+                        height = 30,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        classes = {"DTDanger", "DTButton", "DTBase"},
+                        linger = function(element)
+                            gui.Tooltip("Clear all data.")(element)
+                        end,
+                        click = function()
+                            self:_clearAllData()
+                        end
+                    } or nil,
+                    DTConstants.DEVMODE and gui.Button{
+                        text = "D",
+                        width = 30,
+                        height = 30,
+                        halign = "right",
+                        valign = "center",
+                        hmargin = 5,
+                        classes = {"DTButton", "DTBase"},
+                        linger = function(element)
+                            gui.Tooltip("Display network document.")(element)
+                        end,
+                        click = function()
+                            self:_debugDocument()
+                        end
+                    } or nil,
                 }
             },
         }
     }
 end
 
---- Shows the settings edit dialog for downtime configuration
---- Allows editing pause rolls setting and reason
-function DTDirectorPanel:ShowSettingsEditDialog()
-    local dialog = self
-    local isPaused = self.downtimeSettings:GetPauseRolls()
-    local pauseReason = self.downtimeSettings:GetPauseRollsReason()
+--- DESTRUCTIVE Clears all downtime data from network storage
+--- and characters!
+function DTDirectorPanel:_clearAllData()
 
-    -- Local variables to track form state
-    local newPauseState = isPaused
-    local newPauseReason = pauseReason
-    local confirmButton = nil
-
-    -- Validation functions
-    local function isFormValid()
-        -- Enable if pause is OFF OR pause reason has non-whitespace text
-        return not newPauseState or (newPauseReason and newPauseReason:trim() ~= "")
-    end
-
-    local function validateForm()
-        if confirmButton ~= nil then
-            local isValid = isFormValid()
-            confirmButton:SetClass("invalid", not isValid)
-            confirmButton.interactable = isValid
+    local partyTable = dmhub.GetTable(Party.tableName)
+    for partyId, _ in pairs(partyTable) do
+        local characterIds = dmhub.GetCharacterIdsInParty(partyId)
+        for _, characterId in ipairs(characterIds) do
+            local t = dmhub.GetCharacterById(characterId)
+            if t and t.properties then
+                if t.properties:try_get("downtime_info") or t.properties:try_get("downtime_projects") then
+                    print("THC:: WIPEDOWNTIME::", t.name)
+                    t:ModifyProperties{
+                        description = "Clear Downtime Info",
+                        execute = function()
+                            if t.properties:try_get("downtime_info") then
+                                t.properties.downtime_info = nil
+                            end
+                            if t.properties:try_get("downtime_projects") then
+                                t.properties.downtime_projects = nil
+                            end
+                        end
+                    }
+                end
+            end
         end
     end
 
-    -- Build styles array with invalid button styling
-    local dialogStyles = DTUIUtils.GetDialogStyles()
+    self.downtimeSettings:InitializeDocument()
+
+end
+
+--- Shows the settings edit dialog for downtime configuration
+--- Allows editing pause rolls setting and reason
+function DTDirectorPanel:_showSettingsDialog()
+    local isPaused = self.downtimeSettings:GetPauseRolls()
+    local pauseReason = self.downtimeSettings:GetPauseRollsReason()
 
     local settingsDialog = gui.Panel{
+        classes = {"dtSettingsController", "DTDialog"},
         width = 500,
         height = 300,
-        halign = "center",
-        valign = "center",
-        bgcolor = "#111111ff",
-        borderWidth = 2,
-        borderColor = Styles.textColor,
-        bgimage = "panels/square.png",
-        flow = "vertical",
-        hpad = 20,
-        vpad = 20,
-        styles = dialogStyles,
+        styles = DTUIUtils.GetDialogStyles(),
 
+        saveAndClose = function(element)
+            local chkPause = element:Get("chkPauseRolls")
+            local txtReason = element:Get("txtPauseReason")
+            if chkPause and txtReason then
+                self.downtimeSettings:SetData(chkPause.value, txtReason.text)
+                gui.CloseModal()
+            end
+        end,
+
+        validateForm = function(element)
+            local enabled = false
+            local chkPause = element:Get("chkPauseRolls")
+            if chkPause and not chkPause.value then
+                enabled = true
+            else
+                local txtReason = element:Get("txtPauseReason")
+                enabled = (txtReason and txtReason.text) and #txtReason.text > 0
+            end
+            element:FireEventTree("enableConfirm", enabled)
+        end,
+
+        create = function(element)
+            element:FireEvent("validateForm")
+        end,
+        
         children = {
-            -- Title
-            gui.Label{
-                text = "Edit Downtime Settings",
-                width = "100%",
-                height = 30,
-                fontSize = "24",
-                classes = {"DTLabel", "DTBase"},
-                textAlignment = "center",
-                halign = "center"
-            },
-
-            -- Pause rolls checkbox
-            DTUIUtils.CreateLabeledCheckbox({
-                text = "Pause Rolls",
-                value = isPaused,
-                change = function(element)
-                    newPauseState = element.value
-                    validateForm()
-                end
-            }, {
-                width = "100%",
-                height = 60,
-                vmargin = 10
-            }),
-
-            -- Pause reason input
-            DTUIUtils.CreateLabeledInput("Pause Reason", {
-                text = pauseReason,
-                placeholderText = "Enter reason for pausing rolls...",
-                lineType = "Single",
-                editlag = 0.25,
-                edit = function(element)
-                    newPauseReason = element.text or ""
-                    validateForm()
-                end
-            }, {
-                width = "100%",
-                height = 60,
-                vmargin = 10
-            }),
-
-            -- Button panel
-            gui.Panel{
-                width = "100%",
-                height = 50,
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                height = "100%",
+                width = "98%",
+                valign = "top",
                 halign = "center",
-                valign = "center",
-                flow = "horizontal",
+                flow = "vertical",
+                borderColor = "red",
                 children = {
-                    -- Cancel button
-                    gui.Button{
-                        text = "Cancel",
-                        width = 120,
+                    -- Header
+                    gui.Panel {
+                        classes = {"DTPanel", "DTBase"},
+                        valign = "top",
                         height = 40,
-                        hmargin = 20,
-                        classes = {"DTButton", "DTBase"},
-                        click = function(element)
-                            gui.CloseModal()
-                        end
+                        width = "98%",
+                        borderColor = "blue",
+                        children = {
+                            gui.Label{
+                                text = "Edit Downtime Settings",
+                                width = "100%",
+                                height = 30,
+                                fontSize = "24",
+                                classes = {"DTLabel", "DTBase"},
+                                textAlignment = "center",
+                                halign = "center"
+                            },
+                        }
                     },
-                    -- Confirm button
-                    gui.Button{
-                        text = "Confirm",
-                        width = 120,
-                        height = 40,
-                        hmargin = 20,
-                        classes = {"DTButton", "DTBase"},
-                        create = function(element)
-                            confirmButton = element
-                            validateForm()
-                        end,
-                        click = function(element)
-                            if not isFormValid() then return end
-                            -- Use SetData to minimize server round-trips
-                            self.downtimeSettings:SetData(newPauseState, newPauseReason)
-                            gui.CloseModal()
-                        end
+
+                    -- Content
+                    gui.Panel {
+                        classes = {"DTPanel", "DTBase"},
+                        height = "100%-124",
+                        width = "98%",
+                        valign="top",
+                        flow = "vertical",
+                        borderColor = "blue",
+                        children = {
+                            gui.Panel {
+                                classes = {"DTPanelRow", "DTPanel", "DTBase"},
+                                width = "98%",
+                                borderColor = "yellow",
+                                children = {
+                                    DTUIUtils.CreateLabeledCheckbox({
+                                        id = "chkPauseRolls",
+                                        text = "Pause Rolls",
+                                        value = isPaused,
+                                        change = function(element)
+                                            local controller = element:FindParentWithClass("dtSettingsController")
+                                            if controller then
+                                                controller:FireEvent("validateForm")
+                                            end
+                                        end
+                                    }, {
+                                        halign = "left",
+                                        height = "auto",
+                                    }),
+                                }
+                            },
+
+                            gui.Panel {
+                                classes = {"DTPanelRow", "DTPanel", "DTBase"},
+                                width = "98%",
+                                borderColor = "yellow",
+                                children = {
+                                    DTUIUtils.CreateLabeledInput("Pause Reason", {
+                                        id = "txtPauseReason",
+                                        text = pauseReason,
+                                        placeholderText = "Enter reason for pausing rolls...",
+                                        lineType = "Single",
+                                        editlag = 0.5,
+                                        change = function(element)
+                                            element:FireEvent("edit")
+                                        end,
+                                        edit = function(element)
+                                            local controller = element:FindParentWithClass("dtSettingsController")
+                                            if controller then
+                                                controller:FireEvent("validateForm")
+                                            end
+                                        end,
+                                    }, {}),
+                                }
+                            }
+                        }
+                    },
+
+                    -- Footer
+                    gui.Panel{
+                        classes = {"DTPanel", "DTBase"},
+                        width = "98%",
+                        height = 60,
+                        halign = "center",
+                        valign = "bottom",
+                        flow = "horizontal",
+                        borderColor = "blue",
+                        children = {
+                            -- Cancel button
+                            gui.Button{
+                                text = "Cancel",
+                                width = 120,
+                                valign = "bottom",
+                                classes = {"DTButton", "DTBase"},
+                                click = function(element)
+                                    gui.CloseModal()
+                                end
+                            },
+                            -- Confirm button
+                            gui.Button{
+                                text = "Confirm",
+                                width = 120,
+                                valign = "bottom",
+                                classes = {"DTButton", "DTBase", "DTDisabled"},
+                                interactable = false,
+                                enableConfirm = function(element, enabled)
+                                    element:SetClass("DTDisabled", not enabled)
+                                    element.interactable = enabled
+                                end,
+                                click = function(element)
+                                    if not element.interactable then return end
+                                    local controller = element:FindParentWithClass("dtSettingsController")
+                                    if controller then
+                                        controller:FireEvent("saveAndClose")
+                                    end
+                                end
+                            }
+                        }
                     }
                 }
-            }
+            },
         },
 
         escape = function(element)

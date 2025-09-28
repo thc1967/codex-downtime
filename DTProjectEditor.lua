@@ -74,7 +74,7 @@ function DTProjectEditor:_createProjectForm()
         }
     }
 
-    -- Progress field (label + read-only display)
+    -- Progress field
     local progressField = gui.Panel {
         classes = {"DTPanel", "DTBase"},
         width = "98%",
@@ -97,99 +97,6 @@ function DTProjectEditor:_createProjectForm()
                         element.text = string.format("%d / %d", project:GetProgress(), project:GetProjectGoal())
                     end
                 end
-            }
-        }
-    }
-
-    -- Pending Rolls field (label + compact +/-/number controls)
-    local pendingField = gui.Panel {
-        classes = {"DTPanel", "DTBase"},
-        width = "98%",
-        flow = "vertical",
-        children = {
-            gui.Label {
-                text = "Staged Rolls: ",
-                classes = {"DTLabel", "DTBase"},
-                width = "98%",
-            },
-            gui.Panel {
-                width = "auto",
-                height = 25,
-                flow = "horizontal",
-                halign = "left",
-                refreshToken = function(element)
-                    local enabled = false
-                    local project = editor:GetProject()
-                    if project then
-                        enabled = project:GetStatus() ~= DTConstants.STATUS.COMPLETE.key
-                    end
-                    element:FireEventTree("setButtonEnabled", enabled)
-                end,
-                updatePendingRolls = function(element, numRolls)
-                    local project = editor:GetProject()
-                    local controllerPanel = element:FindParentWithClass("downtimeController")
-                    if project and controllerPanel then
-                        project:SetPendingRolls(numRolls)
-                        controllerPanel:FireEventTree("refreshToken")
-                    end
-                end,
-                children = {
-                    gui.Button{
-                        text = "-",
-                        width = 25,
-                        height = 25,
-                        classes = {"DTButton", "DTBase"},
-                        setButtonEnabled = function(element, enabled)
-                            element:SetClass("invalid", not enabled)
-                            element.interactable = enabled
-                        end,
-                        click = function(element)
-                            local project = editor:GetProject()
-                            if project then
-                                local current = project:GetPendingRolls()
-                                if current > 0 then
-                                    element.parent:FireEvent("updatePendingRolls", current - 1)
-                                end
-                            end
-                        end
-                    },
-                    gui.Label {
-                        classes = {"DTLabel", "DTBase"},
-                        width = "auto",
-                        height = 25,
-                        textAlignment = "center",
-                        halign = "center",
-                        valign = "center",
-                        bold = false,
-                        refreshToken = function(element)
-                            local project = editor:GetProject()
-                            if project then
-                                local pendingRolls = project:GetPendingRolls() or 0
-                                local btRolls = project:GetEarnedBreakthroughs()
-                                local text = string.format("%d & %d", pendingRolls, btRolls)
-                                if element.text ~= text then
-                                    element.text = text
-                                end
-                            end
-                        end
-                    },
-                    gui.Button{
-                        text = "+",
-                        width = 25,
-                        height = 25,
-                        classes = {"DTButton", "DTBase"},
-                        setButtonEnabled = function(element, enabled)
-                            element:SetClass("invalid", not enabled)
-                            element.interactable = enabled
-                        end,
-                        click = function(element)
-                            local project = editor:GetProject()
-                            if project then
-                                element.parent:FireEvent("updatePendingRolls", project:GetPendingRolls() + 1)
-                            end
-                        end
-                    },
-                }
             }
         }
     }
@@ -229,7 +136,7 @@ function DTProjectEditor:_createProjectForm()
         }
     }
 
-    -- Source field (label + input)
+    -- Source field
     local sourceField = gui.Panel {
         classes = {"DTPanel", "DTBase"},
         width = "98%-4",
@@ -258,6 +165,36 @@ function DTProjectEditor:_createProjectForm()
                     local project = editor:GetProject()
                     if project and element.text ~= project:GetProjectSource() then
                         project:SetProjectSource(element.text)
+                    end
+                end
+            }
+        }
+    }
+
+    -- Breakthrough Rolls field
+    local breakthroughRolls = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        flow = "vertical",
+        halign = "center",
+        children = {
+            gui.Label {
+                text = "Breakthroughs:",
+                classes = {"DTLabel", "DTBase"},
+                width = "98%",
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "98%",
+                height = 30,
+                bold = false,
+                refreshToken = function(element, info)
+                    local project = editor:GetProject()
+                    if project then
+                        local s = string.format("%d pending", project:GetEarnedBreakthroughs())
+                        if element.text ~= s then
+                            element.text = s
+                        end
                     end
                 end
             }
@@ -507,14 +444,14 @@ function DTProjectEditor:_createProjectForm()
         vmargin = 10,
         borderColor = "red",
         children = {
-            -- Row 1: Title, Progress, Pending Rolls
+            -- Row 1
             gui.Panel {
                 classes = {"DTPanelRow", "DTPanel", "DTBase"},
                 borderColor = "blue",
                 children = {
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
-                        width = "87%",
+                        width = "86%",
                         borderColor = "yellow",
                         children = {titleField}
                     },
@@ -522,12 +459,12 @@ function DTProjectEditor:_createProjectForm()
                         classes = {"DTPanel", "DTBase"},
                         width = "12%",
                         borderColor = "yellow",
-                        children = {pendingField,}
-                    }
+                        children = {progressField,},
+                    },
                 }
             },
 
-            -- Row 2: Prerequisite & Source
+            -- Row 2
             gui.Panel {
                 classes = {"DTPanelRow", "DTPanel", "DTBase"},
                 borderColor = "blue",
@@ -548,12 +485,12 @@ function DTProjectEditor:_createProjectForm()
                         classes = {"DTPanel", "DTBase"},
                         width = "12%",
                         borderColor = "yellow",
-                        children = {progressField,},
+                        children = {breakthroughRolls,},
                     },
                 }
             },
 
-            -- Row 3: Characteristic, Language Penalty, Goal
+            -- Row 3
             gui.Panel {
                 classes = {"DTPanelRow", "DTPanel", "DTBase"},
                 borderColor = "blue",
@@ -579,7 +516,7 @@ function DTProjectEditor:_createProjectForm()
                 },
             },
 
-            -- Row 4: Status, Status Reason, Milestone
+            -- Row 4
             gui.Panel {
                 classes = {"DTPanelRow", "DTPanel", "DTBase"},
                 borderColor = "blue",

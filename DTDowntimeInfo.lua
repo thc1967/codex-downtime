@@ -32,11 +32,11 @@ function DTDowntimeInfo:SetAvailableRolls(rolls)
     return self
 end
 
---- Adds to the available rolls counter
+--- Modifies the available rolls counter
 --- @param rolls number The number of rolls to add
 --- @return DTDowntimeInfo self For chaining
-function DTDowntimeInfo:AddAvailableRolls(rolls)
-    self.availableRolls = (self.availableRolls or 0) + math.max(0, math.floor(rolls or 0))
+function DTDowntimeInfo:GrantRolls(rolls)
+    self.availableRolls = math.max(0, (self.availableRolls or 0) + (rolls or 0))
     return self
 end
 
@@ -99,20 +99,6 @@ function DTDowntimeInfo:RemoveDowntimeProject(projectId)
         self.downtimeProjects[projectId] = nil
     end
     return self
-end
-
---- Gets the total number of staged rolls across all non-completed projects
---- @return number stagedRolls The total count of staged rolls for active projects
-function DTDowntimeInfo:GetStagedRollsCount()
-    local totalStagedRolls = 0
-
-    for _, project in pairs(self:GetDowntimeProjects()) do
-        if project:GetStatus() ~= DTConstants.STATUS.COMPLETE.key then
-            totalStagedRolls = totalStagedRolls + project:GetPendingRolls()
-        end
-    end
-
-    return totalStagedRolls
 end
 
 --- Gets the highest sort order number among all projects for this character

@@ -13,7 +13,6 @@
 --- @field statusReason string Explanation for why the project is paused (if applicable)
 --- @field milestoneThreshold number|nil Progress value at which the project automatically pauses for Director review
 --- @field earnedBreakthroughs number Counter for breakthroughs that couldn't be used immediately due to hitting a milestone
---- @field pendingRolls number Number of rolls the player has staged for this project
 --- @field projectRolls table Array of DTProjectRoll objects - History of all rolls made on this project
 --- @field progressAdjustments table Array of DTProgressAdjustment objects - History of all adjustments made to project progress
 --- @field createdBy string GUID identifier of the user who created this project
@@ -39,7 +38,6 @@ function DTDowntimeProject:new(sortOrder)
     instance.statusReason = "New Project"
     instance.milestoneThreshold = 0
     instance.earnedBreakthroughs = 0
-    instance.pendingRolls = 0
     instance.projectRolls = {}
     instance.progressAdjustments = {}
     instance.createdBy = dmhub.userid
@@ -153,9 +151,6 @@ end
 function DTDowntimeProject:SetStatus(status)
     if self:_isValidStatus(status) then
         self.status = status
-        if status == DTConstants.STATUS.COMPLETE.key then
-            self:SetPendingRolls(0)
-        end
     end
     return self
 end
@@ -203,20 +198,6 @@ end
 --- @return DTDowntimeProject self For chaining
 function DTDowntimeProject:SetEarnedBreakthroughs(count)
     self.earnedBreakthroughs = math.max(0, math.floor(count or 0))
-    return self
-end
-
---- Gets the pending rolls count
---- @return number rolls The pending rolls count
-function DTDowntimeProject:GetPendingRolls()
-    return self.pendingRolls or 0
-end
-
---- Sets the pending rolls count
---- @param count number The pending rolls count
---- @return DTDowntimeProject self For chaining
-function DTDowntimeProject:SetPendingRolls(count)
-    self.pendingRolls = math.max(0, math.floor(count or 0))
     return self
 end
 

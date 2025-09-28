@@ -6,6 +6,16 @@ if dmhub.isDM then
     end
 end
 
--- TODO: This is debug remove it.
-CharSheet.defaultSheet = "Downtime"
-dmhub.RefreshCharacterSheet()
+CharSheet.RegisterTab {
+    id = "Downtime",
+    text = "Downtime",
+	visible = function(c)
+		return c ~= nil and c:IsHero()
+	end,
+    panel = DTCharSheetTab.CreateDowntimePanel
+}
+
+if DTConstants.DEVMODE then
+    CharSheet.defaultSheet = "Downtime"
+    dmhub.RefreshCharacterSheet()
+end

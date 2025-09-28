@@ -122,7 +122,7 @@ function DTCharSheetTab._createHeaderPanel()
                 }
             },
 
-            -- Staged & Available Rolls
+            -- Available Rolls
             gui.Panel {
                 width = "45%",
                 height = "100%",
@@ -140,8 +140,7 @@ function DTCharSheetTab._createHeaderPanel()
                         hmargin = "20",
                         fontSize = 20,
                         refreshToken = function(element)
-                            local fmt = "Staged %d / %d Available Rolls.%s"
-                            local stagedRolls = 0
+                            local fmt = "%d Available Rolls%s"
                             local availableRolls = 0
                             local msg = ""
                             local token = CharacterSheet.instance.data.info.token
@@ -149,14 +148,13 @@ function DTCharSheetTab._createHeaderPanel()
                                 local downtimeInfo = token.properties:try_get("downtime_info")
                                 if downtimeInfo then
                                     availableRolls = downtimeInfo:GetAvailableRolls()
-                                    stagedRolls = downtimeInfo:GetStagedRollsCount()
                                 else
                                     msg = " (Can't get downtime info)"
                                 end
                             else
                                 msg = " (WTF not a character)"
                             end
-                            element.text = string.format(fmt, stagedRolls, availableRolls, msg)
+                            element.text = string.format(fmt, availableRolls, msg)
                         end
                     }
                 },
@@ -294,14 +292,3 @@ function DTCharSheetTab._refreshProjectsList(element)
 
     element.children = projectEntries
 end
-
--- Register the Downtime tab at the top level of the character sheet
-CharSheet.RegisterTab {
-    id = "Downtime",
-    text = "Downtime",
-	visible = function(c)
-		--only visible for characters.
-		return c ~= nil and c:IsHero()
-	end,
-    panel = DTCharSheetTab.CreateDowntimePanel
-}
