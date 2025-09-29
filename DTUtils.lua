@@ -152,11 +152,13 @@ function DTUtils.CreateNumericEditor(labelText, initialValue, controllerClass, e
                         children = {
                             -- Decrement buttons panel (left cell)
                             gui.Panel{
-                                width = 100,
+                                classes = {"DTPanel", "DTBase"},
+                                width = 90,
                                 height = "100%",
                                 flow = "vertical",
-                                halign = "center",
+                                halign = "right",
                                 valign = "center",
+                                borderColor = "cyan",
                                 children = {
                                     -- Top row: [-5] [-1]
                                     gui.Panel{
@@ -219,46 +221,74 @@ function DTUtils.CreateNumericEditor(labelText, initialValue, controllerClass, e
                             },
                             -- Value display panel (center cell)
                             gui.Panel{
-                                width = 75,
+                                classes = {"DTPanel", "DTBase"},
+                                width = 80,
                                 height = "100%",
                                 flow = "vertical",
                                 halign = "center",
                                 valign = "center",
+                                borderColor = "cyan",
+                                hpad = 20,
                                 children = {
-                                    gui.Label {
+                                    gui.Input {
                                         id = "adjustmentAmount",
                                         text = tostring(initialValue),
-                                        width = 60,
+                                        width = 90,
                                         height = 60,
                                         cornerRadius = 4,
+                                        fontSize = 28,
                                         bgimage = "panels/square.png",
                                         border = 1,
                                         textAlignment = "center",
                                         valign = "center",
+                                        halign = "center",
                                         classes = {"DTInput", "DTBase"},
-                                        adjustValue = function(element, delta)
-                                            local currentValue = tonumber(element.text) or 0
-                                            local newValue = currentValue + delta
-                                            element.text = tostring(newValue)
+                                        editlag = 0.25,
 
+                                        edit = function(element)
+                                            -- Clean input: remove non-numeric chars except minus sign
+                                            local cleaned = string.gsub(element.text or "", "[^%d%-]", "")
+                                            cleaned = string.gsub(cleaned, "%-+", "-")
+                                            if string.sub(cleaned, 2):find("%-") then
+                                                cleaned = string.gsub(cleaned, "%-", "", 1)
+                                            end
+                                            if cleaned ~= element.text then
+                                                element.text = cleaned
+                                            end
+                                            element:FireEvent("change")
+                                        end,
+
+                                        change = function(element)
+                                            local numericValue = tonumber(element.text) or tonumber(element.text:match("%-?%d+")) or 0
+                                            element.text = tostring(numericValue)
+
+                                            -- Fire the parent controller event
                                             if type(controllerClass) == "string" and #controllerClass > 0 and
                                                type(eventName) == "string" and #eventName > 0 then
                                                 local controller = element:FindParentWithClass(controllerClass)
                                                 if controller then
-                                                    controller:FireEvent(eventName, newValue)
+                                                    controller:FireEvent(eventName, numericValue)
                                                 end
                                             end
+                                        end,
+
+                                        adjustValue = function(element, delta)
+                                            local currentValue = tonumber(element.text) or 0
+                                            local newValue = currentValue + delta
+                                            element.text = tostring(newValue)
                                         end
                                     }
                                 }
                             },
                             -- Increment buttons panel (right cell)
                             gui.Panel{
-                                width = 75,
+                                classes = {"DTPanel", "DTBase"},
+                                width = 90,
                                 height = "100%",
                                 flow = "vertical",
-                                halign = "center",
+                                halign = "left",
                                 valign = "center",
+                                borderColor = "cyan",
                                 children = {
                                     -- Top row: [+1] [+5]
                                     gui.Panel{
