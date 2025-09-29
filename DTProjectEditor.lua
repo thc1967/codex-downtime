@@ -601,7 +601,7 @@ function DTProjectEditor:_createAdjustmentsPanel()
                                         local newAdjustment = DTAdjustment:new(0, "")
                                         CharacterSheet.instance:AddChild(DTAdjustmentDialog.CreateAsChild(newAdjustment, {
                                             confirm = function()
-                                                project:AddProgressAdjustment(newAdjustment)
+                                                project:AddAdjustment(newAdjustment)
                                                 DTSettings.Touch()
                                                 local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
                                                 if scrollArea then
@@ -641,14 +641,14 @@ function DTProjectEditor:_createAdjustmentsPanel()
                         refreshToken = function(element, info)
                             local project = editor:GetProject()
                             if project then
-                                local adjustments = project:GetProgressAdjustments()
+                                local adjustments = project:GetAdjustments()
                         --         local deleteCallback = function(adjustment)
                         --             local amountText = adjustment:GetAmount() >= 0 and ("+" .. tostring(adjustment:GetAmount())) or tostring(adjustment:GetAmount())
                         --             local itemTitle = amountText .. " (" .. (adjustment:GetReason() or "No reason") .. ")"
 
                         --             CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("adjustment", itemTitle, {
                         --                 confirm = function()
-                        --                     project:RemoveProgressAdjustment(adjustment:GetID())
+                        --                     project:RemoveAdjustments(adjustment:GetID())
                         --                     DTSettings.Touch()
                         --                     element:FireEvent("refreshToken")
                         --                 end
@@ -927,7 +927,7 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
     if not adjustment then return gui.Panel{} end
 
     -- Format timestamp for display (remove seconds and timezone)
-    local displayTime = adjustment:GetTimestamp()
+    local displayTime = adjustment:GetCommitDate()
 
     -- Format amount with color coding
     local amount = adjustment:GetAmount()
@@ -935,7 +935,7 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
     local amountClass = amount >= 0 and "DTListAmountPositive" or "DTListAmountNegative"
 
     -- Get user display name with color
-    local userDisplay = DTUtils.GetPlayerDisplayName(adjustment:GetCreatedBy())
+    local userDisplay = DTUtils.GetPlayerDisplayName(adjustment:GetCommitBy())
 
     -- Get reason text
     local reason = adjustment:GetReason()

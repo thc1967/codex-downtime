@@ -1,61 +1,34 @@
 --- Project roll record for tracking dice rolls made on downtime projects
 --- Records all details of a roll including modifiers, results, and context
 --- @class DTRoll
---- @field id string GUID identifier for this roll
---- @field timestamp string|osdate When the roll occurred
 --- @field edges number 0-2. Number of edges applied to the roll
 --- @field banes number 0-2. Number of banes applied to the roll
 --- @field languagePenalty string Auto-applied based on the setting on the Downtime Project
 --- @field skill string|nil Optional. Selected from a drop-down list of available skills
---- @field followerRoll boolean Whether this roll was made by a follower on behalf of the character
+--- @field rolledBy string The name of the character or follower responsible for the roll
 --- @field naturalRoll number The unmodified die roll result
 --- @field modifiedRoll number The final roll result after applying all modifiers
 --- @field breakthrough boolean Whether this roll was triggered by a Breakthrough
---- @field createdBy string User ID of the user who made the roll
---- @field serverTime number|nil Unity server time when roll was committed
-DTRoll = RegisterGameType("DTRoll")
+DTRoll = RegisterGameType("DTRoll", "DTProgressItem")
 DTRoll.__index = DTRoll
-
 
 --- Creates a new project roll instance
 --- @param naturalRoll number The unmodified die roll result
 --- @param modifiedRoll number The final roll result after applying all modifiers
---- @return DTRoll instance The new project roll instance
+--- @return DTRoll|DTProgressItem instance The new project roll instance
 function DTRoll:new(naturalRoll, modifiedRoll)
-    local instance = setmetatable({}, self)
+    local instance = setmetatable(DTProgressItem:new(modifiedRoll), self)
 
-    instance.id = dmhub.GenerateGuid()
     instance.edges = 0
     instance.banes = 0
     instance.languagePenalty = DTConstants.LANGUAGE_PENALTY.NONE.key
     instance.skill = nil
-    instance.followerRoll = false
+    instance.rolledBy = ""
     instance.naturalRoll = math.floor(naturalRoll or 0)
     instance.modifiedRoll = math.floor(modifiedRoll or 0)
     instance.breakthrough = false
-    instance.timestamp = ""
-    instance.createdBy = ""
-    instance.serverTime = 0
 
     return instance
-end
-
---- Gets the identifier of this roll
---- @return string id GUID id of this roll
-function DTRoll:GetID()
-    return self.id
-end
-
---- Gets when this roll occurred
---- @return string|osdate timestamp ISO 8601 UTC timestamp
-function DTRoll:GetTimestamp()
-    return self.timestamp
-end
-
---- Gets the number of edges applied to the roll
---- @return number edges Number of edges (0-2)
-function DTRoll:GetEdges()
-    return self.edges or 0
 end
 
 --- Sets the number of edges applied to the roll
@@ -66,10 +39,10 @@ function DTRoll:SetEdges(edges)
     return self
 end
 
---- Gets the number of banes applied to the roll
---- @return number banes Number of banes (0-2)
-function DTRoll:GetBanes()
-    return self.banes or 0
+--- Gets the number of edges applied to the roll
+--- @return number edges Number of edges (0-2)
+function DTRoll:GetEdges()
+    return self.edges or 0
 end
 
 --- Sets the number of banes applied to the roll
@@ -80,10 +53,10 @@ function DTRoll:SetBanes(banes)
     return self
 end
 
---- Gets the language penalty for this roll
---- @return string languagePenalty One of DTConstants.LANGUAGE_PENALTY values
-function DTRoll:GetLanguagePenalty()
-    return self.languagePenalty or DTConstants.LANGUAGE_PENALTY.NONE
+--- Gets the number of banes applied to the roll
+--- @return number banes Number of banes (0-2)
+function DTRoll:GetBanes()
+    return self.banes or 0
 end
 
 --- Sets the language penalty for this roll
@@ -96,10 +69,10 @@ function DTRoll:SetLanguagePenalty(penalty)
     return self
 end
 
---- Gets the skill used for this roll
---- @return string|nil skill The skill name or nil if no skill was used
-function DTRoll:GetSkill()
-    return self.skill
+--- Gets the language penalty for this roll
+--- @return string languagePenalty One of DTConstants.LANGUAGE_PENALTY values
+function DTRoll:GetLanguagePenalty()
+    return self.languagePenalty or DTConstants.LANGUAGE_PENALTY.NONE.key
 end
 
 --- Sets the skill used for this roll
@@ -110,24 +83,24 @@ function DTRoll:SetSkill(skill)
     return self
 end
 
---- Gets whether this was a follower roll
---- @return boolean followerRoll True if this roll was made by a follower
-function DTRoll:GetFollowerRoll()
-    return self.followerRoll or false
+--- Gets the skill used for this roll
+--- @return string|nil skill The skill name or nil if no skill was used
+function DTRoll:GetSkill()
+    return self.skill
 end
 
---- Sets whether this was a follower roll
---- @param isFollowerRoll boolean True if this roll was made by a follower
+--- Gets the name of the entity responsible for this roll
+--- @param rolledBy string The name of the entity responsible for this roll
 --- @return DTRoll self For chaining
-function DTRoll:SetFollowerRoll(isFollowerRoll)
-    self.followerRoll = isFollowerRoll or false
+function DTRoll:SetFollowerRoll(rolledBy)
+    self.rolledBy = rolledBy or ""
     return self
 end
 
---- Gets the natural (unmodified) roll result
---- @return number naturalRoll The unmodified die roll result
-function DTRoll:GetNaturalRoll()
-    return self.naturalRoll or 0
+--- Sets the name of the entity responsible for this roll
+--- @return string rolledBy The name of the entity responsible for this roll
+function DTRoll:GetFollowerRoll()
+    return self.rolledBy or ""
 end
 
 --- Sets the natural (unmodified) roll result
@@ -138,24 +111,10 @@ function DTRoll:SetNaturalRoll(roll)
     return self
 end
 
---- Gets the modified roll result
---- @return number modifiedRoll The final roll result after applying all modifiers
-function DTRoll:GetModifiedRoll()
-    return self.modifiedRoll or 0
-end
-
---- Sets the modified roll result
---- @param roll number The final roll result after applying all modifiers
---- @return DTRoll self For chaining
-function DTRoll:SetModifiedRoll(roll)
-    self.modifiedRoll = math.floor(roll or 0)
-    return self
-end
-
---- Gets whether this roll was triggered by a breakthrough
---- @return boolean breakthrough True if this was a breakthrough roll
-function DTRoll:GetBreakthrough()
-    return self.breakthrough or false
+--- Gets the natural (unmodified) roll result
+--- @return number naturalRoll The unmodified die roll result
+function DTRoll:GetNaturalRoll()
+    return self.naturalRoll or 0
 end
 
 --- Sets whether this roll was triggered by a breakthrough
@@ -166,25 +125,10 @@ function DTRoll:SetBreakthrough(isBreakthrough)
     return self
 end
 
---- Gets who created this roll
---- @return string createdBy The Codex player ID of the roll creator
-function DTRoll:GetCreatedBy()
-    return self.createdBy
-end
-
---- Sets all commit information when roll is saved to project
---- @return DTRoll self For chaining
-function DTRoll:SetCommitInfo()
-    self.serverTime = dmhub.serverTime
-    self.timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-    self.createdBy = dmhub.userid
-    return self
-end
-
---- Gets the server time when roll was committed
---- @return number|nil serverTime Unity server time or nil if not committed
-function DTRoll:GetServerTime()
-    return self.serverTime
+--- Gets whether this roll was triggered by a breakthrough
+--- @return boolean breakthrough True if this was a breakthrough roll
+function DTRoll:GetBreakthrough()
+    return self.breakthrough or false
 end
 
 --- Validates if the given language penalty is valid
@@ -193,7 +137,7 @@ end
 --- @private
 function DTRoll:_isValidLanguagePenalty(penalty)
     for _, validPenalty in pairs(DTConstants.LANGUAGE_PENALTY) do
-        if penalty == validPenalty then
+        if penalty == validPenalty.key then
             return true
         end
     end

@@ -92,6 +92,7 @@ function DTDirectorPanel:new(downtimeSettings)
 
     local instance = setmetatable({}, self)
     instance.downtimeSettings = downtimeSettings
+
     return instance
 end
 

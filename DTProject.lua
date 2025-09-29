@@ -19,6 +19,9 @@
 DTProject = RegisterGameType("DTProject")
 DTProject.__index = DTProject
 
+local DEFAULT_LANG_PENALTY = DTConstants.LANGUAGE_PENALTY.NONE.key
+local DEFAULT_CHARACTERISTIC = DTConstants.CHARACTERISTICS.REASON.key
+local DEFAULT_STATUS = DTConstants.STATUS.PAUSED.key
 
 --- Creates a new downtime project instance
 --- @param sortOrder number The sort order for this project
@@ -31,10 +34,10 @@ function DTProject:new(sortOrder)
     instance.title = ""
     instance.itemPrerequisite = ""
     instance.projectSource = ""
-    instance.projectSourceLanguagePenalty = DTConstants.LANGUAGE_PENALTY.NONE.key
-    instance.testCharacteristic = DTConstants.CHARACTERISTICS.REASON.key
+    instance.projectSourceLanguagePenalty = DEFAULT_LANG_PENALTY
+    instance.testCharacteristic = DEFAULT_CHARACTERISTIC
     instance.projectGoal = 1
-    instance.status = DTConstants.STATUS.PAUSED.key
+    instance.status = DEFAULT_STATUS
     instance.statusReason = "New Project"
     instance.milestoneThreshold = 0
     instance.earnedBreakthroughs = 0
@@ -96,7 +99,7 @@ end
 --- Gets the project source language penalty
 --- @return string languagePenalty One of DTConstants.LANGUAGE_PENALTY values
 function DTProject:GetProjectSourceLanguagePenalty()
-    return self.projectSourceLanguagePenalty or DTConstants.LANGUAGE_PENALTY.NONE.key
+    return self.projectSourceLanguagePenalty or DEFAULT_LANG_PENALTY
 end
 
 --- Sets the project source language penalty
@@ -112,7 +115,7 @@ end
 --- Gets the test characteristic
 --- @return string characteristic One of DTConstants.CHARACTERISTICS values
 function DTProject:GetTestCharacteristic()
-    return self.testCharacteristic or DTConstants.CHARACTERISTICS.REASON.key
+    return self.testCharacteristic or DEFAULT_CHARACTERISTIC
 end
 
 --- Sets the test characteristic
@@ -142,7 +145,7 @@ end
 --- Gets the status of this project
 --- @return string status One of DTConstants.STATUS values
 function DTProject:GetStatus()
-    return self.status or DTConstants.STATUS.ACTIVE.key
+    return self.status or DEFAULT_STATUS
 end
 
 --- Sets the status of this project
@@ -275,22 +278,25 @@ function DTProject:GetProjectRolls()
     return self.projectRolls or {}
 end
 
---- Sets project status before adding or removing a roll
---- @param roll DTRoll The roll to be considered
---- @param direction number The direction of the roll: 1 if adding, -1 if removing
-function DTProject:_setStateFromRollChange(roll, direction)
+--- Sets project status before adding or removing a progress item
+--- @param item DTRoll|DTAdjustment|DTProgressItem The progress item to be considered
+--- @param direction number The direction of progress: 1 if adding, -1 if removing
+function DTProject:_setStateFromProgressChange(item, direction)
     if type(direction) ~= "number" or math.abs(direction) ~= 1 then return end
+
+    local function isRoll() return item.typeName == "DTRoll" end
+    local function isAdjustment() return item.typeName == "DTAdjustment" end
 
     local STATUS = DTConstants.STATUS
     local oldValue = self:GetProgress()
-    local newValue = oldValue + (direction * roll:GetTotalRoll())
-    if direction == 1 then -- Adding the roll
+    local newValue = oldValue + (direction * item:GetAmount())
+    if direction == 1 then -- Adding the item
 
-        if roll:GetBreakthrough() then
+        if isRoll() and item:GetBreakthrough() then
             self:DecrementEarnedBreakthroughs()
         end
 
-        if roll:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
+        if isRoll() and item:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
             self:IncrementEarnedBreakthroughs()
         end
 
@@ -303,15 +309,15 @@ function DTProject:_setStateFromRollChange(roll, direction)
                     :SetStatusReason("Achieved milestone! Consult with your Director.")
             end
         end
-    else -- Removing the roll
-        if roll:GetBreakthrough() then
+    else -- Removing the item
+        if isRoll() and item:GetBreakthrough() then
             self:IncrementEarnedBreakthroughs()
         end
 
-        -- If the roll we are removing resulted in a breakthrough, we
-        -- are not going to try to find the breakthrough that was rolled
-        -- as a result of that breakthrough. The user will need to find
-        -- and delete that as well.
+        -- If the item (roll) we are removing resulted in a breakthrough,
+        -- we are not going to try to find the breakthrough that was 
+        -- rolled as a result of that breakthrough. The user will need 
+        -- to find and delete that as well.
 
         local currentStatus = self:GetStatus()
         if currentStatus == STATUS.COMPLETE.key then
@@ -332,7 +338,7 @@ end
 
 --- Adds a project roll to this project
 --- **NOTE:** This method automatically calculates status
---- @param roll DTRoll The roll to add
+--- @param roll DTRoll|DTProgressItem The roll to add
 --- @return DTProject self For chaining
 function DTProject:AddProjectRoll(roll)
     if not self:IsValidStateToRoll() then return self end
@@ -341,7 +347,7 @@ function DTProject:AddProjectRoll(roll)
         self.projectRolls = {}
     end
 
-    self:_setStateFromRollChange(roll, 1)
+    self:_setStateFromProgressChange(roll, 1)
     roll:SetCommitInfo()
     self.projectRolls[#self.projectRolls + 1] = roll
 
@@ -359,7 +365,7 @@ function DTProject:RemoveProjectRoll(rollId)
 
     local roll, index = self:GetProjectRoll(rollId)
     if roll then
-        self:_setStateFromRollChange(roll, -1)
+        self:_setStateFromProgressChange(roll, -1)
         table.remove(self.projectRolls, index)
     end
 
@@ -368,19 +374,20 @@ end
 
 --- Gets all progress adjustments
 --- @return table adjustments Array of DTAdjustment instances
-function DTProject:GetProgressAdjustments()
+function DTProject:GetAdjustments()
     return self.progressAdjustments or {}
 end
 
 --- Adds a progress adjustment to this project
 --- **NOTE:** This method automatically calculates status
---- @param adjustment DTAdjustment The adjustment to add
+--- @param adjustment DTAdjustment|DTProgressItem The adjustment to add
 --- @return DTProject self For chaining
-function DTProject:AddProgressAdjustment(adjustment)
+function DTProject:AddAdjustment(adjustment)
     if not self.progressAdjustments then
         self.progressAdjustments = {}
     end
 
+    self:_setStateFromProgressChange(adjustment, 1)
     adjustment:SetCommitInfo()
     self.progressAdjustments[#self.progressAdjustments + 1] = adjustment
     return self
@@ -390,7 +397,7 @@ end
 --- **NOTE:** This method automatically calculates status
 --- @param adjustmentId string The GUID of the adjustment to remove
 --- @return DTProject self For chaining
-function DTProject:RemoveProgressAdjustment(adjustmentId)
+function DTProject:RemoveAdjustment(adjustmentId)
     if not self.progressAdjustments or not adjustmentId then
         return self
     end
@@ -404,12 +411,6 @@ function DTProject:RemoveProgressAdjustment(adjustmentId)
     end
 
     return self
-end
-
---- Gets who created this project
---- @return string createdBy The Codex player ID of the project creator
-function DTProject:GetCreatedBy()
-    return self.createdBy
 end
 
 --- Gets the sort order of this project
@@ -436,11 +437,11 @@ function DTProject:GetProgress()
     -- Add all roll results
     local rolls = self:GetProjectRolls()
     for _, roll in ipairs(rolls) do
-        progress = progress + roll:GetTotalRoll()
+        progress = progress + roll:GetAmount()
     end
 
     -- Add all progress adjustments
-    local adjustments = self:GetProgressAdjustments()
+    local adjustments = self:GetAdjustments()
     for _, adjustment in ipairs(adjustments) do
         progress = progress + adjustment:GetAmount()
     end
