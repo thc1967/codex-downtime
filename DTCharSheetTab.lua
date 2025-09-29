@@ -67,6 +67,10 @@ function DTCharSheetTab._createHeaderPanel()
                         halign = "left",
                         valign = "center",
                         hmargin = "20",
+                        monitorGame = DTSettings:new():GetDocumentPath(),
+                        refreshGame = function(element)
+                            element:FireEventTree("refreshToken")
+                        end,
                         children = {
                             gui.Label {
                                 text = "Rolling status is ",
@@ -87,14 +91,15 @@ function DTCharSheetTab._createHeaderPanel()
                                 fontSize = 20,
                                 halign = "left",
                                 valign = "center",
-                                refreshToken = function(element, info)
+                                refreshToken = function(element)
                                     local status = "UNKNOWN"
                                     local settings = DTSettings:new()
                                     if settings then
                                         status = settings:GetPauseRolls() and "PAUSED" or "AVAILABLE"
                                     end
                                     element.text = status
-                                    element.classes = {"DTLabel", "DTBase", status == "AVAILABLE" and "DTStatusAvailable" or "DTStatusPaused"}
+                                    element:SetClass("DTStatusAvailable", status == "AVAILABLE")
+                                    element:SetClass("DTStatusPaused", status ~= "AVAILABLE")
                                 end
                             },
                             gui.Label {

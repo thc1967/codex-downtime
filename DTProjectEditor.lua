@@ -714,11 +714,32 @@ function DTProjectEditor:_createRollsPanel()
                                 height = 24,
                                 margin = 0,
                                 borderWidth = 0,
+                                monitorGame = DTSettings:new():GetDocumentPath(),
+                                refreshGame = function(element)
+                                    local isEnabled = false
+                                    local settings = DTSettings:new()
+                                    if settings then
+                                        isEnabled = not settings:GetPauseRolls()
+                                    end
+                                    element:SetClass("DTDisabled", not isEnabled)
+                                    element.interactable = isEnabled
+                                end,
                                 linger = function(element)
-                                    gui.Tooltip("Make a roll")(element)
+                                    if element.interactable then
+                                        gui.Tooltip("Make a roll")(element)
+                                    else
+                                        gui.Tooltip("Rolling is currently paused")(element)
+                                    end
                                 end,
                                 click = function()
-                                    print("THC:: ROLL:: ADD::")
+                                    CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild({
+                                        confirm = function()
+                                            print("THC:: CONFIRM::")
+                                        end,
+                                        cancel = function()
+                                            print("THC:: CANCEL::")
+                                        end
+                                    }))
                                 end,
                             },
                         }
