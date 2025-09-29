@@ -178,7 +178,7 @@ function DTCharSheetTab._createHeaderPanel()
                         click = function(element)
                             local token = CharacterSheet.instance.data.info.token
                             if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
+                                local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
                                 if downtimeInfo then
                                     downtimeInfo:AddDowntimeProject()
                                     DTSettings.Touch()
@@ -249,7 +249,7 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
+    local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
     if not downtimeInfo then
         -- Show "no projects" message
         element.children = {

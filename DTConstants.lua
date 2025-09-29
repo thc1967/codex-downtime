@@ -9,6 +9,9 @@ DTConstants.DEVUI = false
 --- The location on the character we're storing the downtime
 DTConstants.CHARACTER_STORAGE_KEY = "downtimeInfo"
 
+--- The natural roll at and above which is considered a crit or breakthrough
+DTConstants.BREAKTHROUGH_MIN = 19
+
 --- Valid language penalty values used in downtime projects and rolls
 DTConstants.LANGUAGE_PENALTY = {
     DTConstant:new("NONE", 1, "None"),

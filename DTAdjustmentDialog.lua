@@ -1,12 +1,12 @@
 local mod = dmhub.GetModLoading()
 
---- Progress adjustment editing dialog for modifying DTProgressAdjustment instances
+--- Progress adjustment editing dialog for modifying DTAdjustment instances
 --- Provides consistent UI for editing adjustment amount and reason with validation
 --- @class DTAdjustmentDialog
 DTAdjustmentDialog = {}
 
 --- Creates a progress adjustment edit dialog for AddChild usage
---- @param adjustment DTProgressAdjustment The adjustment instance to edit
+--- @param adjustment DTAdjustment The adjustment instance to edit
 --- @param callbacks table Table with confirm and cancel callback functions
 --- @return table panel The GUI panel ready for AddChild
 function DTAdjustmentDialog.CreateAsChild(adjustment, callbacks)
@@ -26,7 +26,7 @@ function DTAdjustmentDialog.CreateAsChild(adjustment, callbacks)
 end
 
 --- Private helper to create the adjustment dialog panel structure
---- @param adjustment DTProgressAdjustment The adjustment instance to edit
+--- @param adjustment DTAdjustment The adjustment instance to edit
 --- @param confirmHandler function Handler function for confirm button click
 --- @param cancelHandler function Handler function for cancel button click and escape
 --- @return table panel The GUI panel structure
@@ -115,7 +115,7 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
                 vmargin = 10,
                 children = {
                     -- Amount field with numeric editor
-                    DTUtils.CreateNumericEditor("Amount:", adjustment:GetAmount(), "adjustmentDialogController", "adjustAmount"),
+                    DTUtils.CreateNumericEditor("Adjustment Amount:", adjustment:GetAmount(), "adjustmentDialogController", "adjustAmount"),
 
                     -- Reason field
                     gui.Panel{

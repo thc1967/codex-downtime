@@ -1,14 +1,14 @@
 --- In-place project editor for character sheet integration
 --- Provides real-time editing of project fields within the character sheet
 --- @class DTProjectEditor
---- @field project DTDowntimeProject The project being edited
+--- @field project DTProject The project being edited
 DTProjectEditor = RegisterGameType("DTProjectEditor")
 DTProjectEditor.__index = DTProjectEditor
 
 local DEBUG_PANEL_BG = "panels/square.png"
 
 --- Creates a new DTProjectEditor instance
---- @param project DTDowntimeProject The project to edit
+--- @param project DTProject The project to edit
 --- @return DTProjectEditor instance The new editor instance
 function DTProjectEditor:new(project)
     local instance = setmetatable({}, self)
@@ -17,11 +17,11 @@ function DTProjectEditor:new(project)
 end
 
 --- Gets the fresh project data from the character sheet
---- @return DTDowntimeProject|nil project The current project or nil if not found
+--- @return DTProject|nil project The current project or nil if not found
 function DTProjectEditor:GetProject()
     local character = CharacterSheet.instance.data.info.token
     if character and character.properties and character.properties:IsHero() then
-        local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
+        local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
         if downtimeInfo then
             return downtimeInfo:GetDowntimeProject(self.projectId)
         end
@@ -598,7 +598,7 @@ function DTProjectEditor:_createAdjustmentsPanel()
                                 click = function(element)
                                     local project = editor:GetProject()
                                     if project then
-                                        local newAdjustment = DTProgressAdjustment:new(0, "")
+                                        local newAdjustment = DTAdjustment:new(0, "")
                                         CharacterSheet.instance:AddChild(DTAdjustmentDialog.CreateAsChild(newAdjustment, {
                                             confirm = function()
                                                 project:AddProgressAdjustment(newAdjustment)
@@ -838,7 +838,7 @@ end
 
 --- Reconciles adjustment list panels with current data using efficient 3-step process
 --- @param adjustmentPanels table Existing array of adjustment panels
---- @param adjustments table Array of DTProgressAdjustment objects
+--- @param adjustments table Array of DTAdjustment objects
 --- @return table panels The reconciled panel array
 function DTProjectEditor.ReconcileAdjustmentsList(adjustmentPanels, adjustments)
     adjustmentPanels = adjustmentPanels or {}
@@ -921,7 +921,7 @@ function DTProjectEditor.ReconcileAdjustmentsList(adjustmentPanels, adjustments)
 end
 
 --- Creates a single adjustment item panel for list display
---- @param adjustment DTProgressAdjustment The adjustment data to display
+--- @param adjustment DTAdjustment The adjustment data to display
 --- @return table panel The complete adjustment item panel
 function DTProjectEditor.CreateAdjustmentListItem(adjustment)
     if not adjustment then return gui.Panel{} end

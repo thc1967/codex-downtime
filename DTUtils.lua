@@ -96,7 +96,7 @@ end
 --- @param initialValue number The starting numeric value
 --- @param controllerClass string The CSS class of the parent controller for event targeting
 --- @param eventName string The event name to fire when value changes
---- @param panelOptions table Optional panel options (width, height, vmargin, etc.)
+--- @param panelOptions? table Optional panel options (width, height, vmargin, etc.)
 --- @return table panel The complete numeric editor panel
 function DTUtils.CreateNumericEditor(labelText, initialValue, controllerClass, eventName, panelOptions)
     -- Default panel options
