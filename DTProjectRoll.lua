@@ -1,6 +1,7 @@
 --- Project roll record for tracking dice rolls made on downtime projects
 --- Records all details of a roll including modifiers, results, and context
 --- @class DTProjectRoll
+--- @field id string GUID identifier for this roll
 --- @field timestamp string|osdate When the roll occurred
 --- @field edges number 0-2. Number of edges applied to the roll
 --- @field banes number 0-2. Number of banes applied to the roll
@@ -23,9 +24,10 @@ DTProjectRoll.__index = DTProjectRoll
 function DTProjectRoll:new(naturalRoll, modifiedRoll)
     local instance = setmetatable({}, self)
 
+    instance.id = dmhub.GenerateGuid()
     instance.edges = 0
     instance.banes = 0
-    instance.languagePenalty = DTConstants.LANGUAGE_PENALTY.NONE
+    instance.languagePenalty = DTConstants.LANGUAGE_PENALTY.NONE.key
     instance.skill = nil
     instance.followerRoll = false
     instance.naturalRoll = math.floor(naturalRoll or 0)
@@ -36,6 +38,12 @@ function DTProjectRoll:new(naturalRoll, modifiedRoll)
     instance.serverTime = 0
 
     return instance
+end
+
+--- Gets the identifier of this roll
+--- @return string id GUID id of this roll
+function DTProjectRoll:GetID()
+    return self.id
 end
 
 --- Gets when this roll occurred

@@ -1,6 +1,7 @@
 --- Progress adjustment record for tracking manual adjustments to downtime project progress
 --- Records manual progress changes made by directors or players with reasoning
 --- @class DTProgressAdjustment
+--- @field id string GUID identifier for this adjustment
 --- @field amount number Progress points to add (negative to subtract)
 --- @field reason string Required. The reason for the adjustment
 --- @field timestamp string|osdate When the adjustment was created
@@ -16,6 +17,7 @@ DTProgressAdjustment.__index = DTProgressAdjustment
 function DTProgressAdjustment:new(amount, reason)
     local instance = setmetatable({}, self)
 
+    instance.id = dmhub.GenerateGuid()
     instance.amount = math.floor(amount or 0)
     instance.reason = reason or ""
     instance.timestamp = ""
@@ -23,6 +25,12 @@ function DTProgressAdjustment:new(amount, reason)
     instance.serverTime = 0
 
     return instance
+end
+
+--- Gets the identifier of this adjustment
+--- @return string id GUID id of this adjustment
+function DTProgressAdjustment:GetID()
+    return self.id
 end
 
 --- Gets the adjustment amount

@@ -562,6 +562,68 @@ function DTUtils.GetDialogStyles()
             selectors = {"objective-drag-handle", "drag-target"},
             bgcolor = "#4CAF50aa"
         },
+
+        -- Compact List Styles for efficient list views
+        gui.Style {
+            selectors = {"DTListBase"},
+            fontSize = 12,
+            bgimage = DEBUG_PANEL_BG,
+            border = DEBUG_PANEL_BG and 1 or 0,
+        },
+        gui.Style {
+            selectors = {"DTListRow", "DTListBase"},
+            width = "98%",
+            height = 45,
+            pad = 2,
+            flow = "horizontal",
+            valign = "top",
+            halign = "right",
+            bgimage = "panels/square.png",
+            border = { y1 = 1, y2 = 0, x1 = 0, x2 = 0 },
+            borderColor = "#666666",
+        },
+        gui.Style {
+            selectors = {"DTListDetail", "DTListBase"},
+            width = 100,
+            height = 45,
+            valign = "top",
+            flow = "vertical",
+        },
+        gui.Style {
+            selectors = {"DTListHeader", "DTListBase"},
+            width = "98%",
+            margin = 2,
+            height = 20,
+            flow = "horizontal",
+            valign = "top",
+            fontSize = 14,
+        },
+        gui.Style {
+            selectors = {"DTListTimestamp"},
+            width = 120,
+            hmargin = 2,
+        },
+        gui.Style {
+            selectors = {"DTListAmount"},
+            width = 25,
+            hmargin = 2,
+        },
+        gui.Style {
+            selectors = {"DTListAmountPositive"},
+            color = "#4CAF50",
+        },
+        gui.Style {
+            selectors = {"DTListAmountNegative"},
+            color = "#F44336",
+        },
+        gui.Style {
+            selectors = {"DTListDetail", "DTListBase"},
+            width = "100%",
+            valign = "top",
+            height = 20,
+            margin = 2,
+            border = 1,
+        },
     }
 end
 

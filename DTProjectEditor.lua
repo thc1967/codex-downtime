@@ -620,23 +620,44 @@ function DTProjectEditor:_createAdjustmentsPanel()
                 }
             },
 
-            -- Body
+            -- Body - Scrollable adjustments list
             gui.Panel {
                 classes = {"DTPanel", "DTBase"},
                 width = "98%",
                 height = "85%",
-                borderColor = "blue",
-                bgcolor = "blue",
+                valign = "top",
+                vscroll = true,
                 children = {
                     gui.Panel {
                         id = "adjustmentScrollArea",
                         classes = {"DTPanel", "DTBase"},
-                        width = "96%",
-                        height = "96%",
-                        borderColor = "yellow",
-                        children = {
-                            -- Adjustment items here.
-                        }
+                        width = "100%",
+                        height = "auto",
+                        flow = "vertical",
+                        valign = "top",
+                        deleteAdjustment = function(element, id)
+                            print("THC:: ADJUST:: DELETE::", id)
+                        end,
+                        refreshToken = function(element, info)
+                            local project = editor:GetProject()
+                            if project then
+                                local adjustments = project:GetProgressAdjustments()
+                        --         local deleteCallback = function(adjustment)
+                        --             local amountText = adjustment:GetAmount() >= 0 and ("+" .. tostring(adjustment:GetAmount())) or tostring(adjustment:GetAmount())
+                        --             local itemTitle = amountText .. " (" .. (adjustment:GetReason() or "No reason") .. ")"
+
+                        --             CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("adjustment", itemTitle, {
+                        --                 confirm = function()
+                        --                     project:RemoveProgressAdjustment(adjustment:GetID())
+                        --                     DTSettings.Touch()
+                        --                     element:FireEvent("refreshToken")
+                        --                 end
+                        --             }))
+                        --         end
+                                element.children = DTProjectEditor.ReconcileAdjustmentsList(element.children, adjustments)
+                            end
+                        end,
+                        children = {}
                     }
                 }
             }
@@ -807,6 +828,188 @@ function DTProjectEditor:CreateEditorPanel()
                         halign = "right",
                         valign = "top",
                         children = { deletePanel }
+                    }
+                }
+            }
+        }
+    }
+end
+
+
+--- Reconciles adjustment list panels with current data using efficient 3-step process
+--- @param adjustmentPanels table Existing array of adjustment panels
+--- @param adjustments table Array of DTProgressAdjustment objects
+--- @return table panels The reconciled panel array
+function DTProjectEditor.ReconcileAdjustmentsList(adjustmentPanels, adjustments)
+    adjustmentPanels = adjustmentPanels or {}
+    if type(adjustmentPanels) ~= "table" then
+        adjustmentPanels = {}
+    end
+
+    adjustments = adjustments or {}
+
+    -- Handle empty adjustments case
+    if not next(adjustments) then
+        local emptyMessage = gui.Panel {
+            classes = {"DTListItem"},
+            children = {
+                gui.Label {
+                    text = "No progress adjustments yet.",
+                    width = "100%",
+                    height = 40,
+                    halign = "center",
+                    valign = "center",
+                    textAlignment = "center",
+                    classes = {"DTListText"},
+                    bold = false,
+                    color = "#888888"
+                }
+            }
+        }
+        return {emptyMessage}
+    end
+
+    -- Step 1: Remove panels that don't have corresponding adjustments (iterate backwards)
+    for i = #adjustmentPanels, 1, -1 do
+        local panel = adjustmentPanels[i]
+        if panel.data and panel.data.adjustment then
+            local foundAdjustment = false
+            for _, adjustment in ipairs(adjustments) do
+                if adjustment:GetID() == panel.id then
+                    foundAdjustment = true
+                    break
+                end
+            end
+            if not foundAdjustment then
+                table.remove(adjustmentPanels, i)
+            end
+        end
+    end
+
+    -- Step 2: Add panels for adjustments that don't have panels
+    for _, adjustment in ipairs(adjustments) do
+        -- Defensive check: ensure adjustment has required methods
+        if adjustment and type(adjustment.GetID) == "function" then
+            local foundPanel = false
+            for _, panel in ipairs(adjustmentPanels) do
+                if panel.id == adjustment:GetID() then
+                    foundPanel = true
+                    break
+                end
+            end
+            if not foundPanel then
+                adjustmentPanels[#adjustmentPanels + 1] = DTProjectEditor.CreateAdjustmentListItem(adjustment)
+            end
+        end
+    end
+
+    -- Step 3: Sort panels by reverse chronological order (newest first)
+    -- Build serverTime lookup table first
+    local serverTimeLookup = {}
+    for _, adjustment in ipairs(adjustments) do
+        serverTimeLookup[adjustment:GetID()] = adjustment:GetServerTime()
+    end
+
+    -- Reverse chronological sort
+    table.sort(adjustmentPanels, function(a, b)
+        local aTime = serverTimeLookup[a.id] or 0
+        local bTime = serverTimeLookup[b.id] or 0
+        return aTime > bTime
+    end)
+
+    return adjustmentPanels
+end
+
+--- Creates a single adjustment item panel for list display
+--- @param adjustment DTProgressAdjustment The adjustment data to display
+--- @return table panel The complete adjustment item panel
+function DTProjectEditor.CreateAdjustmentListItem(adjustment)
+    if not adjustment then return gui.Panel{} end
+
+    -- Format timestamp for display (remove seconds and timezone)
+    local displayTime = adjustment:GetTimestamp()
+
+    -- Format amount with color coding
+    local amount = adjustment:GetAmount()
+    local amountText = string.format("%+d", amount)
+    local amountClass = amount >= 0 and "DTListAmountPositive" or "DTListAmountNegative"
+
+    -- Get user display name with color
+    local userDisplay = DTUtils.GetPlayerDisplayName(adjustment:GetCreatedBy())
+
+    -- Get reason text
+    local reason = adjustment:GetReason()
+    if #reason > 60 then
+        reason = reason:sub(1, 57) .. "..."
+    end
+
+    return gui.Panel{
+        id = adjustment:GetID(),
+        classes = {"dtAdjustmentPanel", "DTListRow", "DTListBase"},
+        borderColor = "white",
+        data = {
+            serverTime = adjustment:GetServerTime(),
+        },
+        children = {
+            -- Left side - detail
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "vertical",
+                valign = "top",
+                height = 45,
+                width = 280,
+                borderColor = "red",
+                children = {
+                    -- Header
+                    gui.Panel{
+                        classes = {"DTListHeader", "DTListBase"},
+                        borderColor = "blue",
+                        children = {
+                            gui.Label{
+                                classes = {"DTListTimestamp", "DTListBase"},
+                                text = displayTime,
+                            },
+                            gui.Label{
+                                classes = {"DTListAmount", "DTListBase", amountClass},
+                                text = amountText,
+                            },
+                            gui.Label{
+                                classes = {"DTListUser", "DTListBase"},
+                                text = userDisplay,
+                            },
+                        }
+                    },
+                    -- Detail
+                    gui.Panel{
+                        classes = {"DTListDetail", "DTListBase"},
+                        borderColor = "blue",
+                        children = {
+                            gui.Label{
+                                classes = {"DTListReason", "DTListBase"},
+                                height = "auto",
+                                text = reason,
+                            }
+                        }
+                    }
+                }
+            },
+            -- Right side - actions
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "vertical",
+                valign = "top",
+                height = 45,
+                width = 45,
+                borderColor = "cyan",
+                children = {
+                    gui.DeleteItemButton {
+                        width = 20,
+                        height = 20,
+                        halign = "center",
+                        valign = "center",
+                        click = function()
+                            print("THC:: DELETECLICK::", adjustment:GetID())
+                        end,
                     }
                 }
             }

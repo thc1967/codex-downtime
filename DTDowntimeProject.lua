@@ -220,6 +220,25 @@ function DTDowntimeProject:AddProjectRoll(roll)
     return self
 end
 
+--- Removes a project roll from this project by ID
+--- @param rollId string The GUID of the roll to remove
+--- @return DTDowntimeProject self For chaining
+function DTDowntimeProject:RemoveProjectRoll(rollId)
+    if not self.projectRolls or not rollId then
+        return self
+    end
+
+    for i = #self.projectRolls, 1, -1 do
+        local roll = self.projectRolls[i]
+        if roll and roll:GetID() == rollId then
+            table.remove(self.projectRolls, i)
+            break
+        end
+    end
+
+    return self
+end
+
 --- Gets all progress adjustments
 --- @return table adjustments Array of DTProgressAdjustment instances
 function DTDowntimeProject:GetProgressAdjustments()
@@ -236,6 +255,25 @@ function DTDowntimeProject:AddProgressAdjustment(adjustment)
 
     adjustment:SetCommitInfo()
     self.progressAdjustments[#self.progressAdjustments + 1] = adjustment
+    return self
+end
+
+--- Removes a progress adjustment from this project by ID
+--- @param adjustmentId string The GUID of the adjustment to remove
+--- @return DTDowntimeProject self For chaining
+function DTDowntimeProject:RemoveProgressAdjustment(adjustmentId)
+    if not self.progressAdjustments or not adjustmentId then
+        return self
+    end
+
+    for i = #self.progressAdjustments, 1, -1 do
+        local adjustment = self.progressAdjustments[i]
+        if adjustment and adjustment:GetID() == adjustmentId then
+            table.remove(self.progressAdjustments, i)
+            break
+        end
+    end
+
     return self
 end
 
