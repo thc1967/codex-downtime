@@ -20,6 +20,9 @@ function DTGrantRollsDialog:ShowDialog()
         width = 450,
         height = 450,
         styles = DTUtils.GetDialogStyles(),
+        data = {
+            currentRollCount = 1,
+        },
 
         create = function(element)
             element:FireEvent("validateForm")
@@ -28,38 +31,38 @@ function DTGrantRollsDialog:ShowDialog()
         validateForm = function(element)
             local isValid = false
             local tokenPool = element:Get("tokenPool")
-            local txtNumRolls = element:Get("txtNumRolls")
-            local numRolls = 0
-            if tokenPool and tokenPool.data and tokenPool.data.selectedTokens and txtNumRolls then
-                numRolls = tonum(txtNumRolls.text, 0)
+            local numRolls = element.data.currentRollCount or 0
+            if tokenPool and tokenPool.data and tokenPool.data.selectedTokens then
                 isValid = #tokenPool.data.selectedTokens > 0 and numRolls ~= 0
             end
             element:FireEventTree("enableConfirm", isValid, numRolls >= 0 and "Grant" or "Revoke")
         end,
 
+        rollCountChanged = function(element, newValue)
+            element.data.currentRollCount = newValue
+            element:FireEvent("validateForm")
+        end,
+
         saveAndClose = function(element)
-            local txtNumRolls = element:Get("txtNumRolls")
-            if txtNumRolls then
-                local numRolls = tonum(txtNumRolls.text, 0)
-                if numRolls ~= 0 then
-                    local tokenPool = element:Get("tokenPool")
-                    if tokenPool and tokenPool.data and tokenPool.data.selectedTokens and #tokenPool.data.selectedTokens then
-                        for _, tokenId in ipairs(tokenPool.data.selectedTokens) do
-                            local token = dmhub.GetCharacterById(tokenId)
-                            if token and token.properties then
-                                token:ModifyProperties{
-                                    description = "Grant Downtime Rolls",
-                                    execute = function ()
-                                        local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
-                                        if type(downtimeInfo) ~= "table" then downtimeInfo = DTDowntimeInfo:new() end
-                                        downtimeInfo:GrantRolls(numRolls)
-                                    end,
-                                }
-                            end
+            local numRolls = element.data.currentRollCount or 0
+            if numRolls ~= 0 then
+                local tokenPool = element:Get("tokenPool")
+                if tokenPool and tokenPool.data and tokenPool.data.selectedTokens and #tokenPool.data.selectedTokens then
+                    for _, tokenId in ipairs(tokenPool.data.selectedTokens) do
+                        local token = dmhub.GetCharacterById(tokenId)
+                        if token and token.properties then
+                            token:ModifyProperties{
+                                description = "Grant Downtime Rolls",
+                                execute = function ()
+                                    local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTDowntimeInfo:new())
+                                    if type(downtimeInfo) ~= "table" then downtimeInfo = DTDowntimeInfo:new() end
+                                    downtimeInfo:GrantRolls(numRolls)
+                                end,
+                            }
                         end
-                        DTSettings.Touch()
-                        gui.CloseModal()
                     end
+                    DTSettings.Touch()
+                    gui.CloseModal()
                 end
             end
         end,
@@ -179,80 +182,10 @@ end
 --- Builds the number of rolls input field with +/- buttons
 --- @return table panel The number of rolls input panel
 function DTGrantRollsDialog:_buildNumberOfRollsField()
-
-    return gui.Panel{
-        classes = {"dtNumRollsController", "DTPanel", "DTBase"},
+    return DTUtils.CreateNumericEditor("Number of Rolls", 1, "dtGrantRollsController", "rollCountChanged", {
         width = "50%",
-        height = "auto",
-        halign = "left",
-        flow = "vertical",
-
-        children = {
-            gui.Label{
-                text = "Number of Rolls",
-                classes = {"DTLabel", "DTBase"},
-                width = "100%",
-            },
-            gui.Panel{
-                width = "100%",
-                height = "auto",
-                flow = "horizontal",
-                halign = "left",
-                valign = "center",
-                children = {
-                    -- Decrement
-                    gui.Button{
-                        text = "-",
-                        width = 35,
-                        height = 35,
-                        classes = {"DTButton", "DTBase"},
-                        click = function(element)
-                            local controller = element:FindParentWithClass("dtNumRollsController")
-                            if controller then
-                                controller:FireEventTree("adjustNumRolls", -1)
-                            end
-                        end
-                    },
-                    -- Display
-                    gui.Label {
-                        id = "txtNumRolls",
-                        text = "1",
-                        width = 80,
-                        height = 35,
-                        hmargin = 5,
-                        cornerRadius = 4,
-                        bgimage = "panels/square.png",
-                        border = 1,
-                        textAlignment = "center",
-                        classes = {"DTInput", "DTBase"},
-                        adjustNumRolls = function(element, n)
-                            if n and n ~= 0 then
-                                local controller = element:FindParentWithClass("dtGrantRollsController")
-                                if controller then
-                                    local n1 = tonum(element.text, 1)
-                                    element.text = tostring(n1 + n)
-                                    controller:FireEvent("validateForm")
-                                end
-                            end
-                        end,
-                    },
-                    -- Increment
-                    gui.Button{
-                        text = "+",
-                        width = 35,
-                        height = 35,
-                        classes = {"DTButton", "DTBase"},
-                        click = function(element)
-                            local controller = element:FindParentWithClass("dtNumRollsController")
-                            if controller then
-                                controller:FireEventTree("adjustNumRolls", 1)
-                            end
-                        end
-                    }
-                }
-            }
-        }
-    }
+        halign = "left"
+    })
 end
 
 --- Creates the character selector with token grid and All/Party/None controls
