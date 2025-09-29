@@ -11,6 +11,7 @@
 --- @field modifiedRoll number The final roll result after applying all modifiers
 --- @field breakthrough boolean Whether this roll was triggered by a Breakthrough
 --- @field createdBy string User ID of the user who made the roll
+--- @field serverTime number|nil Unity server time when roll was committed
 DTProjectRoll = RegisterGameType("DTProjectRoll")
 DTProjectRoll.__index = DTProjectRoll
 
@@ -22,7 +23,6 @@ DTProjectRoll.__index = DTProjectRoll
 function DTProjectRoll:new(naturalRoll, modifiedRoll)
     local instance = setmetatable({}, self)
 
-    instance.timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
     instance.edges = 0
     instance.banes = 0
     instance.languagePenalty = DTConstants.LANGUAGE_PENALTY.NONE
@@ -31,7 +31,9 @@ function DTProjectRoll:new(naturalRoll, modifiedRoll)
     instance.naturalRoll = math.floor(naturalRoll or 0)
     instance.modifiedRoll = math.floor(modifiedRoll or 0)
     instance.breakthrough = false
-    instance.createdBy = dmhub.userid
+    instance.timestamp = ""
+    instance.createdBy = ""
+    instance.serverTime = 0
 
     return instance
 end
@@ -160,6 +162,21 @@ end
 --- @return string createdBy The Codex player ID of the roll creator
 function DTProjectRoll:GetCreatedBy()
     return self.createdBy
+end
+
+--- Sets all commit information when roll is saved to project
+--- @return DTProjectRoll self For chaining
+function DTProjectRoll:SetCommitInfo()
+    self.serverTime = dmhub.serverTime
+    self.timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    self.createdBy = dmhub.userid
+    return self
+end
+
+--- Gets the server time when roll was committed
+--- @return number|nil serverTime Unity server time or nil if not committed
+function DTProjectRoll:GetServerTime()
+    return self.serverTime
 end
 
 --- Validates if the given language penalty is valid

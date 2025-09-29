@@ -91,6 +91,242 @@ function DTUtils.CreateLabeledDropdown(labelText, dropdownOptions, panelOptions)
     }
 end
 
+--- Creates a numeric editor with +/- buttons for precise value adjustment
+--- @param labelText string The label text to display above the editor
+--- @param initialValue number The starting numeric value
+--- @param controllerClass string The CSS class of the parent controller for event targeting
+--- @param eventName string The event name to fire when value changes
+--- @param panelOptions table Optional panel options (width, height, vmargin, etc.)
+--- @return table panel The complete numeric editor panel
+function DTUtils.CreateNumericEditor(labelText, initialValue, controllerClass, eventName, panelOptions)
+    -- Default panel options
+    local panelDefaults = {
+        width = "100%",
+        height = 100,
+        flow = "vertical",
+        vmargin = 5
+    }
+
+    -- Merge panel options
+    for k, v in pairs(panelOptions or {}) do
+        panelDefaults[k] = v
+    end
+
+    return gui.Panel{
+        classes = {"dtNumericEditorController", "DTPanel", "DTBase"},
+        width = panelDefaults.width,
+        height = panelDefaults.height,
+        flow = panelDefaults.flow,
+        vmargin = panelDefaults.vmargin,
+        halign = panelDefaults.halign,
+
+        updateValue = function(element, delta)
+            local valueLabel = element:Get("adjustmentAmount")
+            if valueLabel and delta then
+                valueLabel:FireEvent("adjustValue", delta)
+            end
+        end,
+        children = {
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                height = "100%-6",
+                width = "100%-12",
+                pad = 3,
+                halign = "center",
+                flow = "vertical",
+                -- borderColor = "red",
+                children = {
+                    gui.Label{
+                        text = labelText,
+                        classes = {"DTLabel", "DTBase"},
+                        width = "100%",
+                        height = 20
+                    },
+                    -- Control panel with 3 equal cells
+                    gui.Panel{
+                        width = "auto",
+                        height = 80,
+                        flow = "horizontal",
+                        halign = "left",
+                        valign = "center",
+                        children = {
+                            -- Decrement buttons panel (left cell)
+                            gui.Panel{
+                                width = 100,
+                                height = "100%",
+                                flow = "vertical",
+                                halign = "center",
+                                valign = "center",
+                                children = {
+                                    -- Top row: [-5] [-1]
+                                    gui.Panel{
+                                        width = "100%",
+                                        height = 35,
+                                        flow = "horizontal",
+                                        halign = "center",
+                                        valign = "center",
+                                        children = {
+                                            gui.Button{
+                                                text = "-5",
+                                                width = 30,
+                                                height = 30,
+                                                classes = {"DTButton", "DTBase"},
+                                                click = function(element)
+                                                    local controller = element:FindParentWithClass("dtNumericEditorController")
+                                                    if controller then
+                                                        controller:FireEvent("updateValue", -5)
+                                                    end
+                                                end
+                                            },
+                                            gui.Button{
+                                                text = "-1",
+                                                width = 30,
+                                                height = 30,
+                                                hmargin = 2,
+                                                classes = {"DTButton", "DTBase"},
+                                                click = function(element)
+                                                    local controller = element:FindParentWithClass("dtNumericEditorController")
+                                                    if controller then
+                                                        controller:FireEvent("updateValue", -1)
+                                                    end
+                                                end
+                                            }
+                                        }
+                                    },
+                                    -- Bottom row: [-10]
+                                    gui.Panel{
+                                        width = "100%",
+                                        height = 35,
+                                        flow = "horizontal",
+                                        halign = "center",
+                                        valign = "center",
+                                        children = {
+                                            gui.Button{
+                                                text = "-10",
+                                                width = 70,
+                                                height = 30,
+                                                classes = {"DTButton", "DTBase"},
+                                                click = function(element)
+                                                    local controller = element:FindParentWithClass("dtNumericEditorController")
+                                                    if controller then
+                                                        controller:FireEvent("updateValue", -10)
+                                                    end
+                                                end
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            -- Value display panel (center cell)
+                            gui.Panel{
+                                width = 75,
+                                height = "100%",
+                                flow = "vertical",
+                                halign = "center",
+                                valign = "center",
+                                children = {
+                                    gui.Label {
+                                        id = "adjustmentAmount",
+                                        text = tostring(initialValue),
+                                        width = 60,
+                                        height = 60,
+                                        cornerRadius = 4,
+                                        bgimage = "panels/square.png",
+                                        border = 1,
+                                        textAlignment = "center",
+                                        valign = "center",
+                                        classes = {"DTInput", "DTBase"},
+                                        adjustValue = function(element, delta)
+                                            local currentValue = tonumber(element.text) or 0
+                                            local newValue = currentValue + delta
+                                            element.text = tostring(newValue)
+
+                                            if type(controllerClass) == "string" and #controllerClass > 0 and
+                                               type(eventName) == "string" and #eventName > 0 then
+                                                local controller = element:FindParentWithClass(controllerClass)
+                                                if controller then
+                                                    controller:FireEvent(eventName, newValue)
+                                                end
+                                            end
+                                        end
+                                    }
+                                }
+                            },
+                            -- Increment buttons panel (right cell)
+                            gui.Panel{
+                                width = 75,
+                                height = "100%",
+                                flow = "vertical",
+                                halign = "center",
+                                valign = "center",
+                                children = {
+                                    -- Top row: [+1] [+5]
+                                    gui.Panel{
+                                        width = "100%",
+                                        height = 35,
+                                        flow = "horizontal",
+                                        halign = "center",
+                                        valign = "center",
+                                        children = {
+                                            gui.Button{
+                                                text = "+1",
+                                                width = 30,
+                                                height = 30,
+                                                classes = {"DTButton", "DTBase"},
+                                                click = function(element)
+                                                    local controller = element:FindParentWithClass("dtNumericEditorController")
+                                                    if controller then
+                                                        controller:FireEvent("updateValue", 1)
+                                                    end
+                                                end
+                                            },
+                                            gui.Button{
+                                                text = "+5",
+                                                width = 30,
+                                                height = 30,
+                                                hmargin = 2,
+                                                classes = {"DTButton", "DTBase"},
+                                                click = function(element)
+                                                    local controller = element:FindParentWithClass("dtNumericEditorController")
+                                                    if controller then
+                                                        controller:FireEvent("updateValue", 5)
+                                                    end
+                                                end
+                                            }
+                                        }
+                                    },
+                                    -- Bottom row: [+10]
+                                    gui.Panel{
+                                        width = "100%",
+                                        height = 35,
+                                        flow = "horizontal",
+                                        halign = "center",
+                                        valign = "center",
+                                        children = {
+                                            gui.Button{
+                                                text = "+10",
+                                                width = 70,
+                                                height = 30,
+                                                classes = {"DTButton", "DTBase"},
+                                                click = function(element)
+                                                    local controller = element:FindParentWithClass("dtNumericEditorController")
+                                                    if controller then
+                                                        controller:FireEvent("updateValue", 10)
+                                                    end
+                                                end
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+end
+
 --- Creates a labeled input field with consistent styling
 --- @param labelText string The label text to display above the input
 --- @param inputOptions table Options for the input field (text, placeholderText, lineType, etc.)

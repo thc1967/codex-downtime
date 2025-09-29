@@ -214,6 +214,8 @@ function DTDowntimeProject:AddProjectRoll(roll)
     if not self.projectRolls then
         self.projectRolls = {}
     end
+
+    roll:SetCommitInfo()
     self.projectRolls[#self.projectRolls + 1] = roll
     return self
 end
@@ -231,6 +233,8 @@ function DTDowntimeProject:AddProgressAdjustment(adjustment)
     if not self.progressAdjustments then
         self.progressAdjustments = {}
     end
+
+    adjustment:SetCommitInfo()
     self.progressAdjustments[#self.progressAdjustments + 1] = adjustment
     return self
 end

@@ -547,6 +547,8 @@ end
 --- Creates the adjustments list for a downtime project
 --- @return table panel The adjustments table / panel
 function DTProjectEditor:_createAdjustmentsPanel()
+    local editor = self
+    
     return gui.Panel {
         id = "adjustmentsController",
         classes = {"adjustmentsController", "DTPanel", "DTBase"},
@@ -594,7 +596,23 @@ function DTProjectEditor:_createAdjustmentsPanel()
                                 classes = {"DTButton", "DTBase"},
                                 halign = "center",
                                 click = function(element)
-                                    print("THC:: ADJUSTMENT:: ADD::")
+                                    local project = editor:GetProject()
+                                    if project then
+                                        local newAdjustment = DTProgressAdjustment:new(0, "")
+                                        CharacterSheet.instance:AddChild(DTAdjustmentDialog.CreateAsChild(newAdjustment, {
+                                            confirm = function()
+                                                project:AddProgressAdjustment(newAdjustment)
+                                                DTSettings.Touch()
+                                                local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
+                                                if scrollArea then
+                                                    scrollArea:FireEventTree("refreshToken")
+                                                end
+                                            end,
+                                            cancel = function()
+                                                -- Cancel handling if needed
+                                            end
+                                        }))
+                                    end
                                 end,
                             }
                         }

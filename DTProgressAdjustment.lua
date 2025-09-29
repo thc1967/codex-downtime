@@ -5,6 +5,7 @@
 --- @field reason string Required. The reason for the adjustment
 --- @field timestamp string|osdate When the adjustment was created
 --- @field createdBy string User ID of the user who made the adjustment
+--- @field serverTime number|nil Unity server time when adjustment was committed
 DTProgressAdjustment = RegisterGameType("DTProgressAdjustment")
 DTProgressAdjustment.__index = DTProgressAdjustment
 
@@ -17,8 +18,9 @@ function DTProgressAdjustment:new(amount, reason)
 
     instance.amount = math.floor(amount or 0)
     instance.reason = reason or ""
-    instance.timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-    instance.createdBy = dmhub.userid
+    instance.timestamp = ""
+    instance.createdBy = ""
+    instance.serverTime = 0
 
     return instance
 end
@@ -61,4 +63,19 @@ end
 --- @return string createdBy The Codex player ID of the adjustment creator
 function DTProgressAdjustment:GetCreatedBy()
     return self.createdBy
+end
+
+--- Sets all commit information when adjustment is saved to project
+--- @return DTProgressAdjustment self For chaining
+function DTProgressAdjustment:SetCommitInfo()
+    self.serverTime = dmhub.serverTime
+    self.timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    self.createdBy = dmhub.userid
+    return self
+end
+
+--- Gets the server time when adjustment was committed
+--- @return number|nil serverTime Unity server time or nil if not committed
+function DTProgressAdjustment:GetServerTime()
+    return self.serverTime
 end
