@@ -241,7 +241,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
             press = function(element)
                 element:SetClass("selected", not element:HasClass("selected"))
                 local controller = element:FindParentWithClass("tokenPool")
-                if controller then controller:FireEvent("updateSelected") end
+                if controller then controller:FireEventTree("updateSelected") end
             end,
         }
     end
