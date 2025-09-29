@@ -548,7 +548,7 @@ end
 --- @return table panel The adjustments table / panel
 function DTProjectEditor:_createAdjustmentsPanel()
     local editor = self
-    
+
     return gui.Panel {
         id = "adjustmentsController",
         classes = {"adjustmentsController", "DTPanel", "DTBase"},
@@ -627,6 +627,18 @@ function DTProjectEditor:_createAdjustmentsPanel()
                 height = "85%",
                 borderColor = "blue",
                 bgcolor = "blue",
+                children = {
+                    gui.Panel {
+                        id = "adjustmentScrollArea",
+                        classes = {"DTPanel", "DTBase"},
+                        width = "96%",
+                        height = "96%",
+                        borderColor = "yellow",
+                        children = {
+                            -- Adjustment items here.
+                        }
+                    }
+                }
             }
         }
     }
