@@ -182,7 +182,7 @@ end
 --- Builds the number of rolls input field with +/- buttons
 --- @return table panel The number of rolls input panel
 function DTGrantRollsDialog:_buildNumberOfRollsField()
-    return DTUtils.CreateNumericEditor("Number of Rolls", 1, "dtGrantRollsController", "rollCountChanged", {
+    return DTUtils.CreateNumericEditor("Number of Rolls:", 1, "dtGrantRollsController", "rollCountChanged", {
         width = "50%",
         halign = "left"
     })
@@ -192,22 +192,23 @@ end
 --- @return table panel The character selector panel
 function DTGrantRollsDialog:_createCharacterSelector()
     local tokenPanels = {}
+    local displayTokens = {}
 
-    -- Get available tokens
-    local candidateTokens = DTUtils.GetAllHeroTokens()
     local selectedTokens = dmhub.selectedTokens
+    local allTokens = DTUtils.GetAllHeroTokens()
 
-    -- Add selected tokens to candidates if not already present
-    for _, tok in ipairs(selectedTokens) do
-        local found = false
-        for _, existing in ipairs(candidateTokens) do
-            if existing == tok then
-                found = true
+    table.move(selectedTokens, 1, #selectedTokens, 1, displayTokens)
+
+    for _, candidate in ipairs(allTokens) do
+        local isPresent = false
+        for _, present in ipairs(selectedTokens) do
+            if present == candidate then
+                isPresent = true
                 break
             end
         end
-        if not found then
-            candidateTokens[#candidateTokens + 1] = tok
+        if not isPresent then
+            displayTokens[#displayTokens + 1] = candidate
         end
     end
 
@@ -215,7 +216,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
     local startingSelection = {}
 
     -- Create token panels
-    for i, token in ipairs(candidateTokens) do
+    for _, token in ipairs(displayTokens) do
         local isSelected = false
         -- Check if this token was selected on the map
         for _, selectedTok in ipairs(selectedTokens) do
