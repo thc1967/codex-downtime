@@ -883,14 +883,20 @@ function DTProjectEditor:_createRollsPanel()
                                     local controller = element:FindParentWithClass("projectController")
                                     local roll = DTRoll:new()
                                     if project and controller and roll then
-                                        CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(roll, {
-                                            confirm = function()
-                                                print("THC:: CONFIRM::")
-                                            end,
-                                            cancel = function()
-                                                -- cancel handler
-                                            end
-                                        }))
+                                        local options = {
+                                            data = {
+                                                project = project
+                                            },
+                                            callbacks = {
+                                                confirm = function()
+                                                    print("THC:: CONFIRM::")
+                                                end,
+                                                cancel = function()
+                                                    -- cancel handler
+                                                end
+                                            }
+                                        }
+                                        CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(roll, options))
                                     end
                                 end,
                             },
