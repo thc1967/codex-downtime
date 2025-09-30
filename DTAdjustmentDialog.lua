@@ -103,6 +103,7 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
                 textAlignment = "center",
                 halign = "center"
             },
+            gui.Divider { width = "50%" },
 
             -- Form content
             gui.Panel{
@@ -133,7 +134,7 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
                                 text = adjustment:GetReason(),
                                 width = "100%",
                                 classes = {"DTInput", "DTBase"},
-                                placeholderText = "Enter reason for adjustment...",
+                                placeholderText = "Enter the reason for the adjustment...",
                                 editlag = 0.5,
                                 edit = function(element)
                                     element:FireEvent("change")

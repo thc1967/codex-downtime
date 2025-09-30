@@ -83,6 +83,7 @@ function DTGrantRollsDialog:ShowDialog()
                         valign = "top",
                         height = 40,
                         width = "98%",
+                        flow = "vertical",
                         borderColor = "blue",
                         children = {
                             gui.Label{
@@ -94,6 +95,7 @@ function DTGrantRollsDialog:ShowDialog()
                                 textAlignment = "center",
                                 halign = "center"
                             },
+                            gui.Divider { width = "50%", },
                         }
                     },
 

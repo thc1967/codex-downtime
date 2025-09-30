@@ -84,6 +84,7 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
                 height = 30,
                 bold = false,
+                textAlignment = "center",
                 data = {
                     getProject = function(element)
                         local projectController = element:FindParentWithClass("projectController")
@@ -209,6 +210,7 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
                 height = 30,
                 bold = false,
+                textAlignment = "center",
                 data = {
                     getProject = function(element)
                         local projectController = element:FindParentWithClass("projectController")
@@ -323,7 +325,7 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
             },
             gui.Input {
-                width = 60,
+                width = 90,
                 classes = {"DTInput", "DTBase"},
                 textAlignment = "center",
                 editlag = 0.5,
@@ -512,7 +514,7 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
             },
             gui.Input {
-                width = 60,
+                width = 90,
                 classes = {"DTInput", "DTBase"},
                 textAlignment = "center",
                 placeholderText = "0",
