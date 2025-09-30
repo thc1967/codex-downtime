@@ -753,10 +753,7 @@ function DTProjectEditor:_createAdjustmentsPanel()
                                 return nil
                             end,
                         },
-                        deleteAdjustment = function(element, adjustmentId)
-                            print("THC:: ADJUST:: DELETE::", adjustmentId)
-                        end,
-                        refreshToken = function(element, info)
+                        refreshToken = function(element)
                             local project = element.data.getProject(element)
                             if project then
                                 local adjustments = project:GetAdjustments()
@@ -968,6 +965,11 @@ function DTProjectEditor:CreateEditorPanel()
             DTSettings.Touch()
             element:FireEvent("refreshProject")
         end,
+        deleteAdjustment = function(element, adjustmentId)
+            element.data.project:RemoveAdjustment(adjustmentId)
+            DTSettings.Touch()
+            element:FireEvent("refreshProject")
+        end,
         refreshProject = function(element)
             element:FireEventTree("refreshToken")
         end,
@@ -1055,34 +1057,29 @@ function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments
     -- Step 1: Remove panels that don't have corresponding adjustments (iterate backwards)
     for i = #adjustmentPanels, 1, -1 do
         local panel = adjustmentPanels[i]
-        if panel.data and panel.data.adjustment then
-            local foundAdjustment = false
-            for _, adjustment in ipairs(adjustments) do
-                if adjustment:GetID() == panel.id then
-                    foundAdjustment = true
-                    break
-                end
+        local foundAdjustment = false
+        for _, adjustment in ipairs(adjustments) do
+            if adjustment:GetID() == panel.id then
+                foundAdjustment = true
+                break
             end
-            if not foundAdjustment then
-                table.remove(adjustmentPanels, i)
-            end
+        end
+        if not foundAdjustment then
+            table.remove(adjustmentPanels, i)
         end
     end
 
     -- Step 2: Add panels for adjustments that don't have panels
     for _, adjustment in ipairs(adjustments) do
-        -- Defensive check: ensure adjustment has required methods
-        if adjustment and type(adjustment.GetID) == "function" then
-            local foundPanel = false
-            for _, panel in ipairs(adjustmentPanels) do
-                if panel.id == adjustment:GetID() then
-                    foundPanel = true
-                    break
-                end
+        local foundPanel = false
+        for _, panel in ipairs(adjustmentPanels) do
+            if panel.id == adjustment:GetID() then
+                foundPanel = true
+                break
             end
-            if not foundPanel then
-                adjustmentPanels[#adjustmentPanels + 1] = DTProjectEditor.CreateAdjustmentListItem(adjustment)
-            end
+        end
+        if not foundPanel then
+            adjustmentPanels[#adjustmentPanels + 1] = DTProjectEditor.CreateAdjustmentListItem(adjustment)
         end
     end
 
@@ -1189,15 +1186,25 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
                 width = 45,
                 borderColor = "cyan",
                 children = {
-                    gui.DeleteItemButton {
+                    dmhub.isDM and gui.DeleteItemButton {
                         width = 20,
                         height = 20,
                         halign = "center",
                         valign = "center",
-                        click = function()
-                            print("THC:: DELETECLICK::", adjustment:GetID())
+                        click = function(element)
+                            local projectController = element:FindParentWithClass("projectController")
+                            if projectController then
+                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Adjustment", "this Adjustment", {
+                                    confirm = function()
+                                        projectController:FireEvent("deleteAdjustment", adjustment:GetID())
+                                    end,
+                                    cancel = function()
+                                        -- Optional cancel logic
+                                    end
+                                }))
+                            end
                         end,
-                    }
+                    } or nil
                 }
             }
         }
