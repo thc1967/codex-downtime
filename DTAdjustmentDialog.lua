@@ -1,9 +1,8 @@
-local mod = dmhub.GetModLoading()
-
 --- Progress adjustment editing dialog for modifying DTAdjustment instances
 --- Provides consistent UI for editing adjustment amount and reason with validation
 --- @class DTAdjustmentDialog
-DTAdjustmentDialog = {}
+DTAdjustmentDialog = RegisterGameType("DTAdjustmentDialog")
+DTAdjustmentDialog.__index = DTAdjustmentDialog
 
 --- Creates a progress adjustment edit dialog for AddChild usage
 --- @param adjustment DTAdjustment The adjustment instance to edit
@@ -51,13 +50,12 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
 
         validateForm = function(element)
             local isValid = false
-            local amount = element.data.currentAmount or 0
             local reason = element.data.currentReason or ""
 
             -- Trim whitespace from reason
             reason = string.match(reason, "^%s*(.-)%s*$") or ""
 
-            isValid = amount ~= 0 and reason ~= ""
+            isValid = reason ~= ""
             element:FireEventTree("enableSave", isValid)
         end,
 

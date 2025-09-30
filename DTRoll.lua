@@ -13,8 +13,8 @@ DTRoll = RegisterGameType("DTRoll", "DTProgressItem")
 DTRoll.__index = DTRoll
 
 --- Creates a new project roll instance
---- @param naturalRoll number The unmodified die roll result
---- @param modifiedRoll number The final roll result after applying all modifiers
+--- @param naturalRoll? number The unmodified die roll result
+--- @param modifiedRoll? number The final roll result after applying all modifiers
 --- @return DTRoll|DTProgressItem instance The new project roll instance
 function DTRoll:new(naturalRoll, modifiedRoll)
     local instance = setmetatable(DTProgressItem:new(modifiedRoll), self)

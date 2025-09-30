@@ -1,13 +1,13 @@
-local mod = dmhub.GetModLoading()
-
 --- Project roll dialog for making downtime project rolls
 --- @class DTProjectRollDialog
-DTProjectRollDialog = {}
+DTProjectRollDialog = RegisterGameType("DTProjectRollDialog")
+DTProjectRollDialog.__index = DTProjectRollDialog
 
 --- Creates a project roll dialog for AddChild usage
+--- @param roll DTRoll|DTProgressItem The roll instance to edit
 --- @param callbacks table Table with confirm and cancel callback functions
 --- @return table panel The GUI panel ready for AddChild
-function DTProjectRollDialog.CreateAsChild(callbacks)
+function DTProjectRollDialog.CreateAsChild(roll, callbacks)
     local confirmHandler = function(element)
         if callbacks.confirm then
             callbacks.confirm()
@@ -20,24 +20,26 @@ function DTProjectRollDialog.CreateAsChild(callbacks)
         end
     end
 
-    return DTProjectRollDialog._createPanel(confirmHandler, cancelHandler)
+    return DTProjectRollDialog._createPanel(roll, confirmHandler, cancelHandler)
 end
 
 --- Private helper to create the roll dialog panel structure
+--- @param roll DTRoll|DTProgressItem The roll instance to edit
 --- @param confirmHandler function Handler function for confirm button click
 --- @param cancelHandler function Handler function for cancel button click and escape
 --- @return table panel The GUI panel structure
-function DTProjectRollDialog._createPanel(confirmHandler, cancelHandler)
+function DTProjectRollDialog._createPanel(roll, confirmHandler, cancelHandler)
     local resultPanel = nil
     resultPanel = gui.Panel {
         classes = {"projectRollDialogController", "DTDialog"},
-        width = 500,
-        height = 350,
+        width = 800,
+        height = 600,
         styles = DTUtils.GetDialogStyles(),
         floating = true,
         escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
         captureEscape = true,
         data = {
+            roll = roll,
             close = function()
                 resultPanel:DestroySelf()
             end,

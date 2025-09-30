@@ -94,7 +94,7 @@ end
 --- Removes a downtime project from this character
 --- @param projectId string The GUID of the project to remove
 --- @return DTInfo self For chaining
-function DTInfo:RemoveDowntimeProject(projectId)
+function DTInfo:RemoveProject(projectId)
     if self.downtimeProjects[projectId] then
         self.downtimeProjects[projectId] = nil
     end

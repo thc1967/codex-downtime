@@ -1,9 +1,8 @@
-local mod = dmhub.GetModLoading()
-
 --- Confirmation Dialog - Reusable confirmation dialog for modal windows
 --- Provides consistent confirmation UI with standardized styling
 --- @class DTConfirmationDialog
-DTConfirmationDialog = {}
+DTConfirmationDialog = RegisterGameType("DTConfirmationDialog")
+DTConfirmationDialog.__index = DTConfirmationDialog
 
 --- Shows a generic confirmation dialog with customizable title and message
 --- @param title string The title text for the dialog header

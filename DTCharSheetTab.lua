@@ -16,6 +16,7 @@ end
 --- @return table|nil panel The GUI panel containing downtime content
 function DTCharSheetTab.CreateDowntimePanel()
     local downtimePanel = gui.Panel {
+        id = "downtimeController",
         classes = {"downtimeController"},
         bgimage = true,
         bgcolor = "clear",
@@ -25,11 +26,30 @@ function DTCharSheetTab.CreateDowntimePanel()
         valign = "top",
         halign = "center",
         styles = DTUtils.GetDialogStyles(),
+        data = {
+            getDowntimeInfo = function()
+                return CharacterSheet.instance.data.info.token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+            end,
+        },
+
+        deleteProject = function(element, projectId)
+            if projectId and type(projectId) == "string" and #projectId then
+                local downtimeInfo = element.data.getDowntimeInfo()
+                if downtimeInfo then
+                    downtimeInfo:RemoveProject(projectId)
+                    DTSettings.Touch()
+                    element:FireEventTree("refreshToken")
+                end
+            end
+        end,
+
+        refreshDowntime = function(element)
+            element:FireEventTree("refreshToken")
+        end,
 
         children = {
             -- Header
             DTCharSheetTab._createHeaderPanel(),
-
             -- Body
             DTCharSheetTab._createBodyPanel(),
         }
@@ -211,12 +231,6 @@ function DTCharSheetTab._createBodyPanel()
         halign = "center",
         valign = "top",
         vmargin = 10,
-        refreshDowntimeProjectList = function(element)
-            local scrollArea = element:Get("projectScrollArea")
-            if scrollArea then
-                DTCharSheetTab._refreshProjectsList(scrollArea)
-            end
-        end,
         children = {
             -- Scrollable projects area
             gui.Panel{
@@ -229,6 +243,7 @@ function DTCharSheetTab._createBodyPanel()
                     -- Inner auto-height container that pins content to top
                     gui.Panel{
                         id = "projectScrollArea",
+                        classes = {"projectListController"},
                         width = "100%",
                         height = "auto",
                         flow = "vertical",

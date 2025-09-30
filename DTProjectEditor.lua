@@ -5,34 +5,24 @@
 DTProjectEditor = RegisterGameType("DTProjectEditor")
 DTProjectEditor.__index = DTProjectEditor
 
-local DEBUG_PANEL_BG = "panels/square.png"
-
 --- Creates a new DTProjectEditor instance
 --- @param project DTProject The project to edit
 --- @return DTProjectEditor instance The new editor instance
 function DTProjectEditor:new(project)
     local instance = setmetatable({}, self)
-    instance.projectId = project:GetID()
+    instance.project = project
     return instance
 end
 
 --- Gets the fresh project data from the character sheet
 --- @return DTProject|nil project The current project or nil if not found
 function DTProjectEditor:GetProject()
-    local character = CharacterSheet.instance.data.info.token
-    if character and character.properties and character.properties:IsHero() then
-        local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
-        if downtimeInfo then
-            return downtimeInfo:GetDowntimeProject(self.projectId)
-        end
-    end
-    return nil
+    return self.project
 end
 
 --- Creates the project editor form for a downtime project
 --- @return table panel The form panel with input fields
 function DTProjectEditor:_createProjectForm()
-    local editor = self
     local isDM = dmhub.isDM
 
     -- Title field (input only, no label)
@@ -48,8 +38,17 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTInput", "DTBase"},
                 placeholderText = "Enter project title...",
                 editlag = 0.5,
-                refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetTitle() then
                         element.text = project:GetTitle() or ""
                     end
@@ -58,7 +57,7 @@ function DTProjectEditor:_createProjectForm()
                     element:FireEvent("change")
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetTitle() then
                         project:SetTitle(element.text)
                         DTSettings.Touch()
@@ -85,8 +84,17 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
                 height = 30,
                 bold = false,
-                refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
                     if project then
                         element.text = string.format("%d / %d", project:GetProgress(), project:GetProjectGoal())
                     end
@@ -112,8 +120,17 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTInput", "DTBase"},
                 placeholderText = "Required items or prerequisites...",
                 editlag = 0.5,
-                refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetItemPrerequisite() then
                         element.text = project:GetItemPrerequisite() or ""
                     end
@@ -122,7 +139,7 @@ function DTProjectEditor:_createProjectForm()
                     element:FireEvent("change")
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetItemPrerequisite() then
                         project:SetItemPrerequisite(element.text)
                     end
@@ -147,8 +164,17 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTInput", "DTBase"},
                 placeholderText = "Book, tutor, or source of project knowledge...",
                 editlag = 0.5,
-                refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetProjectSource() then
                         element.text = project:GetProjectSource() or ""
                     end
@@ -157,7 +183,7 @@ function DTProjectEditor:_createProjectForm()
                     element:FireEvent("change")
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetProjectSource() then
                         project:SetProjectSource(element.text)
                     end
@@ -183,8 +209,17 @@ function DTProjectEditor:_createProjectForm()
                 width = "98%",
                 height = 30,
                 bold = false,
-                refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
                     if project then
                         local s = string.format("%d pending", project:GetEarnedBreakthroughs())
                         if element.text ~= s then
@@ -211,14 +246,23 @@ function DTProjectEditor:_createProjectForm()
                 width = "100%",
                 classes = {"DTDropdown", "DTBase"},
                 options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.idChosen ~= project:GetTestCharacteristic() then
                         element.idChosen = project:GetTestCharacteristic()
                     end
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.idChosen ~= project:GetTestCharacteristic() then
                         project:SetTestCharacteristic(element.idChosen)
                     end
@@ -242,14 +286,23 @@ function DTProjectEditor:_createProjectForm()
                 width = "100%",
                 classes = {"DTDropdown", "DTBase"},
                 options = DTUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY),
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.idChosen ~= project:GetProjectSourceLanguagePenalty() then
                         element.idChosen = project:GetProjectSourceLanguagePenalty()
                     end
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.idChosen ~= project:GetProjectSourceLanguagePenalty() then
                         project:SetProjectSourceLanguagePenalty(element.idChosen)
                     end
@@ -274,8 +327,17 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTInput", "DTBase"},
                 textAlignment = "center",
                 editlag = 0.5,
-                refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
                     if project and element.text ~= tostring(project:GetProjectGoal()) then
                         element.text = tostring(project:GetProjectGoal())
                     end
@@ -284,7 +346,7 @@ function DTProjectEditor:_createProjectForm()
                     element:FireEvent("change")
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and tonumber(element.text) ~= project:GetProjectGoal() then
                         local value = tonumber(element.text) or 1
                         project:SetProjectGoal(math.max(1, math.floor(value)))
@@ -310,14 +372,23 @@ function DTProjectEditor:_createProjectForm()
                 width = "100%",
                 classes = {"DTDropdown", "DTBase"},
                 options = DTUtils.ListToDropdownOptions(DTConstants.STATUS),
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element)
-                    local project = editor:GetProject()
+                    local project =element.data.getProject(element)
                     if project and element.idChosen ~= project:GetStatus() then
                         element.idChosen = project:GetStatus()
                     end
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project =element.data.getProject(element)
                     if project and element.idChosen ~= project:GetStatus() then
                         project:SetStatus(element.idChosen)
                         DTSettings.Touch()
@@ -327,8 +398,17 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
                 valign = "center",
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element)
-                    local project = editor:GetProject()
+                    local project =element.data.getProject(element)
                     if project then
                         element.text = DTConstants.GetDisplayText(DTConstants.STATUS, project:GetStatus())
                     end
@@ -347,8 +427,17 @@ function DTProjectEditor:_createProjectForm()
                 text = "",
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if isDM or (project and project:GetStatus() == DTConstants.STATUS.PAUSED.key) then
                         element.text = "Status Reason:"
                     else
@@ -360,8 +449,17 @@ function DTProjectEditor:_createProjectForm()
                 width = "96%",
                 classes = {"DTInput", "DTBase"},
                 editlag = 0.5,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetStatusReason() then
                         element.text = project:GetStatusReason()
                     end
@@ -370,7 +468,7 @@ function DTProjectEditor:_createProjectForm()
                     element:FireEvent("change")
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= project:GetStatusReason() then
                         project:SetStatusReason(element.text)
                         DTSettings.Touch()
@@ -381,8 +479,17 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
                 bold = false,
                 width = "98%",
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and project:GetStatus() == DTConstants.STATUS.PAUSED.key then
                         element.text = project:GetStatusReason()
                     else
@@ -410,8 +517,17 @@ function DTProjectEditor:_createProjectForm()
                 textAlignment = "center",
                 placeholderText = "0",
                 editlag = 0.5,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
                 refreshToken = function(element, info)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= tostring(project:GetMilestoneThreshold()) then
                         local threshold = project:GetMilestoneThreshold()
                         element.text = threshold and tostring(threshold) or ""
@@ -421,7 +537,7 @@ function DTProjectEditor:_createProjectForm()
                     element:FireEvent("change")
                 end,
                 change = function(element)
-                    local project = editor:GetProject()
+                    local project = element.data.getProject(element)
                     if project and element.text ~= tostring(project:GetMilestoneThreshold()) then
                         if element.text == "" then
                             project:SetMilestoneThreshold(nil)
@@ -547,8 +663,6 @@ end
 --- Creates the adjustments list for a downtime project
 --- @return table panel The adjustments table / panel
 function DTProjectEditor:_createAdjustmentsPanel()
-    local editor = self
-
     return gui.Panel {
         id = "adjustmentsController",
         classes = {"adjustmentsController", "DTPanel", "DTBase"},
@@ -596,17 +710,12 @@ function DTProjectEditor:_createAdjustmentsPanel()
                                 classes = {"DTButton", "DTBase"},
                                 halign = "center",
                                 click = function(element)
-                                    local project = editor:GetProject()
-                                    if project then
+                                    local controller = element:FindParentWithClass("projectController")
+                                    if controller then
                                         local newAdjustment = DTAdjustment:new(0, "")
                                         CharacterSheet.instance:AddChild(DTAdjustmentDialog.CreateAsChild(newAdjustment, {
                                             confirm = function()
-                                                project:AddAdjustment(newAdjustment)
-                                                DTSettings.Touch()
-                                                local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
-                                                if scrollArea then
-                                                    scrollArea:FireEventTree("refreshToken")
-                                                end
+                                                controller:FireEvent("addAdjustment", newAdjustment)
                                             end,
                                             cancel = function()
                                                 -- Cancel handling if needed
@@ -630,31 +739,28 @@ function DTProjectEditor:_createAdjustmentsPanel()
                 children = {
                     gui.Panel {
                         id = "adjustmentScrollArea",
-                        classes = {"DTPanel", "DTBase"},
+                        classes = {"adjustmentListController", "DTPanel", "DTBase"},
                         width = "100%",
                         height = "auto",
                         flow = "vertical",
                         valign = "top",
-                        deleteAdjustment = function(element, id)
-                            print("THC:: ADJUST:: DELETE::", id)
+                        data = {
+                            getProject = function(element)
+                                local projectController = element:FindParentWithClass("projectController")
+                                if projectController then
+                                    return projectController.data.project
+                                end
+                                return nil
+                            end,
+                        },
+                        deleteAdjustment = function(element, adjustmentId)
+                            print("THC:: ADJUST:: DELETE::", adjustmentId)
                         end,
                         refreshToken = function(element, info)
-                            local project = editor:GetProject()
+                            local project = element.data.getProject(element)
                             if project then
                                 local adjustments = project:GetAdjustments()
-                        --         local deleteCallback = function(adjustment)
-                        --             local amountText = adjustment:GetAmount() >= 0 and ("+" .. tostring(adjustment:GetAmount())) or tostring(adjustment:GetAmount())
-                        --             local itemTitle = amountText .. " (" .. (adjustment:GetReason() or "No reason") .. ")"
-
-                        --             CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("adjustment", itemTitle, {
-                        --                 confirm = function()
-                        --                     project:RemoveAdjustments(adjustment:GetID())
-                        --                     DTSettings.Touch()
-                        --                     element:FireEvent("refreshToken")
-                        --                 end
-                        --             }))
-                        --         end
-                                element.children = DTProjectEditor.ReconcileAdjustmentsList(element.children, adjustments)
+                                element.children = DTProjectEditor._reconcileAdjustmentsList(element.children, adjustments)
                             end
                         end,
                         children = {}
@@ -714,32 +820,79 @@ function DTProjectEditor:_createRollsPanel()
                                 height = 24,
                                 margin = 0,
                                 borderWidth = 0,
+                                data = {
+                                    tooltipText = "",
+                                    getDowntimeInfo = function(element)
+                                        local downtimeController = element:FindParentWithClass("downtimeController")
+                                        if downtimeController then
+                                            return downtimeController.data.getDowntimeInfo()
+                                        end
+                                        return nil
+                                    end,
+                                    getProject = function(element)
+                                        local projectController = element:FindParentWithClass("projectController")
+                                        if projectController then
+                                            return projectController.data.project
+                                        end
+                                        return nil
+                                    end,
+                                },
                                 monitorGame = DTSettings:new():GetDocumentPath(),
+                                refreshToken = function(element)
+                                    element:FireEvent("refreshGame")
+                                end,
                                 refreshGame = function(element)
                                     local isEnabled = false
-                                    local settings = DTSettings:new()
-                                    if settings then
-                                        isEnabled = not settings:GetPauseRolls()
+                                    element.data.tooltipText = "Project not found?"
+                                    local project = element.data.getProject(element)
+                                    if project then
+                                        local issueList
+                                        isEnabled, issueList = project:IsValidStateToRoll()
+                                        if isEnabled then
+                                            local downtimeInfo = element.data.getDowntimeInfo(element)
+                                            if downtimeInfo then
+                                                if downtimeInfo:GetAvailableRolls() > 0 then
+                                                    local settings = DTSettings:new()
+                                                    if settings then
+                                                        if settings:GetPauseRolls() then
+                                                            element.data.tooltipText = "Rolling is currently paused"
+                                                        else
+                                                            element.data.tooltipText = "Make a roll"
+                                                            isEnabled = true
+                                                        end
+                                                    end
+                                                else
+                                                    element.data.tooltipText = "You have no available rolls"
+                                                end
+                                            else
+                                                element.data.tooltipText = "No available rolls"
+                                            end
+                                        else
+                                            element.data.tooltipText = table.concat(issueList, "<br/>")
+                                        end
                                     end
                                     element:SetClass("DTDisabled", not isEnabled)
                                     element.interactable = isEnabled
                                 end,
                                 linger = function(element)
-                                    if element.interactable then
-                                        gui.Tooltip("Make a roll")(element)
-                                    else
-                                        gui.Tooltip("Rolling is currently paused")(element)
+                                    if element.data.tooltipText and #element.data.tooltipText then
+                                        gui.Tooltip(element.data.tooltipText)(element)
                                     end
                                 end,
-                                click = function()
-                                    CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild({
-                                        confirm = function()
-                                            print("THC:: CONFIRM::")
-                                        end,
-                                        cancel = function()
-                                            print("THC:: CANCEL::")
-                                        end
-                                    }))
+                                click = function(element)
+                                    local project = element.data.getProject(element)
+                                    local controller = element:FindParentWithClass("projectController")
+                                    local roll = DTRoll:new()
+                                    if project and controller and roll then
+                                        CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(roll, {
+                                            confirm = function()
+                                                print("THC:: CONFIRM::")
+                                            end,
+                                            cancel = function()
+                                                -- cancel handler
+                                            end
+                                        }))
+                                    end
                                 end,
                             },
                         }
@@ -774,28 +927,21 @@ function DTProjectEditor:CreateEditorPanel()
                 valign = "top",
                 hmargin = 5,
                 vmargin = 5,
-                click = function()
-                    local project = editor:GetProject()
-                    if project then
-                        CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
-                            confirm = function()
-                                local token = CharacterSheet.instance.data.info.token
-                                if token and token.properties and token.properties:IsHero() then
-                                    local downtimeInfo = token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
-                                    if downtimeInfo then
-                                        downtimeInfo:RemoveDowntimeProject(editor.projectId)
-                                        DTSettings.Touch()
-                                        local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
-                                        if scrollArea then
-                                            scrollArea:FireEventTree("refreshToken")
-                                        end
-                                    end
+                click = function(element)
+                    local downtimeController = element:FindParentWithClass("downtimeController")
+                    local projectController = element:FindParentWithClass("projectController")
+                    if projectController and downtimeController then
+                        local project = projectController.data and projectController.data.project
+                        if project then
+                            CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
+                                confirm = function()
+                                    downtimeController:FireEvent("deleteProject", project:GetID())
+                                end,
+                                cancel = function()
+                                    -- Optional cancel logic
                                 end
-                            end,
-                            cancel = function()
-                                -- Optional cancel logic
-                            end
-                        }))
+                            }))
+                        end
                     end
                 end
             }
@@ -805,6 +951,7 @@ function DTProjectEditor:CreateEditorPanel()
     -- Container panel with form and delete button side by side
     return gui.Panel {
         id = editor:GetProject():GetID(),
+        classes = {"projectController"},
         width = "95%",
         height = "auto",
         flow = "horizontal",
@@ -813,6 +960,17 @@ function DTProjectEditor:CreateEditorPanel()
         bgimage = "panels/square.png",
         borderColor = "#444444",
         border = { y1 = 4, y2 = 1, x2 = 4, x1 = 1 },
+        data = {
+            project = self:GetProject()
+        },
+        addAdjustment = function(element, newAdjustment)
+            element.data.project:AddAdjustment(newAdjustment)
+            DTSettings.Touch()
+            element:FireEvent("refreshProject")
+        end,
+        refreshProject = function(element)
+            element:FireEventTree("refreshToken")
+        end,
         children = {
             gui.Panel{
                 width = "98%",
@@ -861,7 +1019,7 @@ end
 --- @param adjustmentPanels table Existing array of adjustment panels
 --- @param adjustments table Array of DTAdjustment objects
 --- @return table panels The reconciled panel array
-function DTProjectEditor.ReconcileAdjustmentsList(adjustmentPanels, adjustments)
+function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments)
     adjustmentPanels = adjustmentPanels or {}
     if type(adjustmentPanels) ~= "table" then
         adjustmentPanels = {}
@@ -871,23 +1029,27 @@ function DTProjectEditor.ReconcileAdjustmentsList(adjustmentPanels, adjustments)
 
     -- Handle empty adjustments case
     if not next(adjustments) then
-        local emptyMessage = gui.Panel {
-            classes = {"DTListItem"},
-            children = {
-                gui.Label {
-                    text = "No progress adjustments yet.",
-                    width = "100%",
-                    height = 40,
-                    halign = "center",
-                    valign = "center",
-                    textAlignment = "center",
-                    classes = {"DTListText"},
-                    bold = false,
-                    color = "#888888"
+        return {
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                width = "100%",
+                height = "100%",
+                halign = "center",
+                valign = "top",
+                children = {
+                    gui.Label {
+                        text = "No progress adjustments yet.",
+                        width = "96%",
+                        height = "96%",
+                        halign = "center",
+                        valign = "top",
+                        classes = {"DTLabel", "DTBase"},
+                        bold = false,
+                        color = "#888888"
+                    }
                 }
             }
         }
-        return {emptyMessage}
     end
 
     -- Step 1: Remove panels that don't have corresponding adjustments (iterate backwards)
@@ -961,7 +1123,7 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
     -- Get reason text
     local reason = adjustment:GetReason()
     if #reason > 60 then
-        reason = reason:sub(1, 57) .. "..."
+        reason = reason:sub(1, 27) .. "..."
     end
 
     return gui.Panel{
@@ -1003,11 +1165,15 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
                     -- Detail
                     gui.Panel{
                         classes = {"DTListDetail", "DTListBase"},
+                        width = "98%",
+                        valign = "top",
                         borderColor = "blue",
                         children = {
                             gui.Label{
                                 classes = {"DTListReason", "DTListBase"},
                                 height = "auto",
+                                width = "98%",
+                                valign = "top",
                                 text = reason,
                             }
                         }
