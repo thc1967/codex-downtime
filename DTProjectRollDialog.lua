@@ -74,7 +74,6 @@ function DTProjectRollDialog._createPanel(roll, options)
                 local edges = math.min(2, element.data.edges)
                 local edgeVsBane = edges + banes
 
-                print("THC:: BONUSES::", json(element.data.itemLists.bonuses))
                 local seen, bonuses = {}, 0
                 for _, item in pairs(element.data.itemLists.bonuses) do
                     if not seen[item.description] then
@@ -82,7 +81,6 @@ function DTProjectRollDialog._createPanel(roll, options)
                         bonuses = bonuses + item.value
                     end
                 end
-                print("THC:: SEEN::", json(seen))
 
                 local totalBonus = (edgeVsBane * 2) + bonuses
                 local roll = string.format("2d10 %+d", totalBonus)

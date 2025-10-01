@@ -290,6 +290,10 @@ function DTProject:_setStateFromProgressChange(item, direction)
     local STATUS = DTConstants.STATUS
     local oldValue = self:GetProgress()
     local newValue = oldValue + (direction * item:GetAmount())
+    local currentStatus = self:GetStatus()
+    local milestoneStop = self:GetMilestoneThreshold()
+
+    print(string.format("THC:: STATUS:: %s OLD:: %d NEW:: %d MILESTONE:: %d", currentStatus, oldValue, newValue, milestoneStop))
     if direction == 1 then -- Adding the item
 
         if isRoll() and item:GetBreakthrough() then
@@ -302,11 +306,20 @@ function DTProject:_setStateFromProgressChange(item, direction)
 
         if newValue >= self:GetProjectGoal() then
             self:SetStatus(STATUS.COMPLETE.key)
+        elseif currentStatus == STATUS.MILESTONE.key then
+            -- If we're on a milestone, rolling should be paused for this
+            -- project, so we check for an adjustment that reduces our
+            -- total below the milestone value.
+            if newValue < milestoneStop and oldValue >= milestoneStop then
+                self:SetStatus(STATUS.ACTIVE.key)
+                    :SetStatusReason("")
+            end
         else
-            local milestoneStop = self:GetMilestoneThreshold()
-            if milestoneStop > 0 and newValue > milestoneStop and oldValue < milestoneStop then
-                self:SetStatus(STATUS.MILESTONE.key)
-                    :SetStatusReason("Achieved milestone! Consult with your Director.")
+            if milestoneStop > 0 then
+                if newValue >= milestoneStop and oldValue < milestoneStop then
+                    self:SetStatus(STATUS.MILESTONE.key)
+                        :SetStatusReason("Milestone achieved! Consult with your Director.")
+                end
             end
         end
     else -- Removing the item
@@ -319,18 +332,21 @@ function DTProject:_setStateFromProgressChange(item, direction)
         -- rolled as a result of that breakthrough. The user will need 
         -- to find and delete that as well.
 
-        local currentStatus = self:GetStatus()
         if currentStatus == STATUS.COMPLETE.key then
             if newValue < self:GetProjectGoal() then
                 self:SetStatus(STATUS.ACTIVE.key)
+                    :SetStatusReason("")
             end
-        else
-            if currentStatus == STATUS.MILESTONE.key then
-                local milestoneStop = self:GetMilestoneThreshold()
-                if oldValue > milestoneStop and newValue < milestoneStop then
-                    self:SetStatus(STATUS.ACTIVE.key)
-                        :SetStatusReason("")
-                end
+        elseif currentStatus == STATUS.MILESTONE.key then
+            -- Removing an item that brought us into Milestone status
+            if oldValue >= milestoneStop and newValue < milestoneStop then
+                self:SetStatus(STATUS.ACTIVE.key)
+                    :SetStatusReason("")
+            end
+        elseif milestoneStop > 0 then
+            if newValue >= milestoneStop and oldValue < milestoneStop then
+                self:SetStatus(STATUS.MILESTONE.key)
+                    :SetStatusReason("Milestone achieved! Consult with your Director.")
             end
         end
     end
@@ -405,6 +421,7 @@ function DTProject:RemoveAdjustment(adjustmentId)
     for i = #self.progressAdjustments, 1, -1 do
         local adjustment = self.progressAdjustments[i]
         if adjustment and adjustment:GetID() == adjustmentId then
+            self:_setStateFromProgressChange(adjustment, -1)
             table.remove(self.progressAdjustments, i)
             break
         end
