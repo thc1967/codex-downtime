@@ -11,13 +11,13 @@ function DTProjectRollDialog.CreateAsChild(roll, options)
     if not options then return end
     if not options.callbacks then options.callbacks = {} end
 
-    options.callbacks.confirmHandler = function(element)
+    options.callbacks.confirmHandler = function(roll)
         if options.callbacks and options.callbacks.confirm then
-            options.callbacks.callbacks.confirm()
+            options.callbacks.confirm(roll)
         end
     end
 
-    options.callbacks.cancelHandler = function(element)
+    options.callbacks.cancelHandler = function()
         if options.callbacks and options.callbacks.cancel then
             options.callbacks.cancel()
         end
@@ -83,9 +83,9 @@ function DTProjectRollDialog._createPanel(roll, options)
                 end
 
                 local totalBonus = (edgeVsBane * 2) + bonuses
-                local roll = string.format("2d10 %+d", totalBonus)
+                local rollString = string.format("2d10%+d", totalBonus)
 
-                return roll
+                return rollString
             end,
         },
 
@@ -119,6 +119,63 @@ function DTProjectRollDialog._createPanel(roll, options)
                 element.data.bonuses = element.data.bonuses + (item.value or 0)
             end
             element:FireEventTree("updateFields")
+        end,
+
+        executeRoll = function(element)
+
+            local audit = ""
+            local adjustDetails = element:GetChildrenWithClassRecursive("adjustDetail")
+            if adjustDetails and #adjustDetails > 0 then
+                for _, detail in ipairs(adjustDetails) do
+                    local label, text = detail.data.getTypeAndText(detail)
+                    if #audit > 0 then audit = audit .. "/n" end
+                    audit = string.format("%s<b>%s</b> %s", audit, label, text)
+                end
+            end
+
+            local rollString = element.data.calculateRoll(element)
+
+            local token = CharacterSheet.instance.data.info.token
+
+            local rollGuid = dmhub.GenerateGuid()
+            dmhub.Roll {
+                guid = rollGuid,
+                roll = rollString,
+                -- numKeep = 2,
+                description = "Making a Project Roll",
+                tokenid = token,
+                complete = function(rollInfoArg)
+                    local rollResult = {
+                        banes = rollInfoArg.banes,
+                        description = rollInfoArg.description,
+                        edges = rollInfoArg.boons,
+                        formattedText = rollInfoArg.formattedText,
+                        key = rollInfoArg.key,
+                        message = rollInfoArg.message,
+                        naturalRoll = rollInfoArg.naturalRoll,
+                        nick = rollInfoArg.nick,
+                        nickColor = rollInfoArg.nickColor,
+                        playerColor = rollInfoArg.playerColor,
+                        playerName = rollInfoArg.playerName,
+                        result = rollInfoArg.result,
+                        resultInfo = rollInfoArg.resultInfo,
+                        rolls = rollInfoArg.rolls,
+                        rollStr = rollInfoArg.rollstr,
+                        total = rollInfoArg.total,
+                    }
+                    print("THC:: ROLLRESULT::",rollInfoArg, json(rollResult))
+                    element.data.roll:SetAudit(audit)
+                        :SetRollGuid(rollInfoArg.key)
+                        :SetRollString(rollString)
+                        :SetRolledBy(token.name or "(unnamed character)")
+                        :SetNaturalRoll(rollInfoArg.naturalRoll)
+                        :SetBreakthrough(rollInfoArg.naturalRoll >= DTConstants.BREAKTHROUGH_MIN)
+                        :SetAmount(rollInfoArg.total)
+                    print("THC:: ROLL::", json(element.data.roll))
+                    options.callbacks.confirmHandler(element.data.roll)
+                    element:FireEvent("close")
+                end,
+            }
         end,
 
         close = function(element)
@@ -431,41 +488,7 @@ function DTProjectRollDialog._createPanel(roll, options)
                         click = function(element)
                             local controller = element:FindParentWithClass("rollController")
                             if controller then
-                                local rollGuid = dmhub.GenerateGuid()
-                                local result = dmhub.Roll {
-                                    guid = rollGuid,
-                                    -- numDice = 2,
-                                    -- numFaces = 10,
-                                    roll = "2d10+4",
-                                    numKeep = 2,
-                                    description = "Testing a roll",
-                                    tokenid = CharacterSheet.instance.data.info.token,
-                                    -- silent = false,
-                                    -- instant = false,
-                                    complete = function(rollInfoArg)
-                                        print("THC:: ROLLED1::", rollInfoArg)
-                                        local rollResult = {
-                                            banes = rollInfoArg.banes,
-                                            edges = rollInfoArg.boons,
-                                            description = rollInfoArg.description,
-                                            formattedText = rollInfoArg.formattedText,
-                                            naturalRoll = rollInfoArg.naturalRoll,
-                                            nick = rollInfoArg.nick,
-                                            nickColor = rollInfoArg.nickColor,
-                                            playerColor = rollInfoArg.playerColor,
-                                            playerName = rollInfoArg.playerName,
-                                            result = rollInfoArg.result,
-                                            resultInfo = rollInfoArg.resultInfo,
-                                            rollStr = rollInfoArg.rollstr,
-                                            rolls = rollInfoArg.rolls,
-                                            total = rollInfoArg.total,
-                                        }
-                                        print("THC:: RESULT::", json(rollResult))
-                                    end,
-                                }
-                                print("THC:: ROLLED2::", result)
-                                -- confirmHandler(element)
-                                -- controller:FireEvent("close")
+                                controller:FireEvent("executeRoll")
                             end
                         end
                     }
@@ -525,15 +548,22 @@ function DTProjectRollDialog._makeExtraAdjustmentLabel(adjustType)
     local defaultLabel = string.format("No %s selected.", proper)
 
     return gui.Panel {
-        classes = {"DTPanel", "DTBase"},
+        classes = {"adjustDetail", "DTPanel", "DTBase"},
         width = "100%-10",
         height = "auto",
         valign = "top",
         flow = "horizontal",
         borderColor = "yellow",
+        data = {
+            getTypeAndText = function(element)
+                local labelField = element:GetChildrenWithClass("adjustLabel")[1]
+                local textField = element:GetChildrenWithClass("adjustText")[1]
+                return labelField.text, textField.text
+            end
+        },
         children = {
             gui.Label {
-                classes = {"DTLabel", "DTBase"},
+                classes = {"adjustLabel", "DTLabel", "DTBase"},
                 width = 64,
                 height = 30,
                 valign = "center",
@@ -541,7 +571,7 @@ function DTProjectRollDialog._makeExtraAdjustmentLabel(adjustType)
                 text = proper .. ":"
             },
             gui.Label {
-                classes = {"DTLabel", "DTBase"},
+                classes = {"adjustText", "DTLabel", "DTBase"},
                 width = "100%-80",
                 height = 30,
                 valign = "center",

@@ -492,7 +492,7 @@ function DTProjectEditor:_createProjectForm()
                 },
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
-                    if project and project:GetStatus() == DTConstants.STATUS.PAUSED.key then
+                    if project and not project:IsActive() then
                         element.text = project:GetStatusReason()
                     else
                         element.text = ""
@@ -743,7 +743,7 @@ function DTProjectEditor:_createAdjustmentsPanel()
                         id = "adjustmentScrollArea",
                         classes = {"adjustmentListController", "DTPanel", "DTBase"},
                         width = "100%",
-                        height = "auto",
+                        height = "100%-6",
                         flow = "vertical",
                         valign = "top",
                         data = {
@@ -779,6 +779,7 @@ function DTProjectEditor:_createRollsPanel()
         width = "98%",
         height = "100%",
         valign = "center",
+        flow = "vertical",
         bgimage = "panels/square.png",
         borderColor = "#999999",
         border = 1,
@@ -820,6 +821,7 @@ function DTProjectEditor:_createRollsPanel()
                                 margin = 0,
                                 borderWidth = 0,
                                 data = {
+                                    enabled = false,
                                     tooltipText = "",
                                     getDowntimeInfo = function(element)
                                         local downtimeController = element:FindParentWithClass("downtimeController")
@@ -845,9 +847,8 @@ function DTProjectEditor:_createRollsPanel()
                                     element.data.tooltipText = "Project not found?"
                                     local project = element.data.getProject(element)
                                     if project then
-                                        local issueList
-                                        isEnabled, issueList = project:IsValidStateToRoll()
-                                        if isEnabled then
+                                        local validState, issueList = project:IsValidStateToRoll()
+                                        if validState then
                                             local downtimeInfo = element.data.getDowntimeInfo(element)
                                             if downtimeInfo then
                                                 if downtimeInfo:GetAvailableRolls() > 0 then
@@ -867,7 +868,7 @@ function DTProjectEditor:_createRollsPanel()
                                                 element.data.tooltipText = "No available rolls"
                                             end
                                         else
-                                            element.data.tooltipText = table.concat(issueList, "<br/>")
+                                            element.data.tooltipText = table.concat(issueList, " ")
                                         end
                                     end
                                     element:SetClass("DTDisabled", not isEnabled)
@@ -879,6 +880,7 @@ function DTProjectEditor:_createRollsPanel()
                                     end
                                 end,
                                 click = function(element)
+                                    if not element.interactable then return end
                                     local project = element.data.getProject(element)
                                     local controller = element:FindParentWithClass("projectController")
                                     local roll = DTRoll:new()
@@ -888,8 +890,9 @@ function DTProjectEditor:_createRollsPanel()
                                                 project = project
                                             },
                                             callbacks = {
-                                                confirm = function()
-                                                    print("THC:: CONFIRM::")
+                                                confirm = function(roll)
+                                                    print("THC:: ROLLCONFIRM::", json(roll))
+                                                    controller:FireEvent("addRoll", roll)
                                                 end,
                                                 cancel = function()
                                                     -- cancel handler
@@ -902,6 +905,44 @@ function DTProjectEditor:_createRollsPanel()
                             },
                         }
                     },
+                }
+            },
+
+            -- Body - Scrollable rolls list
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                width = "98%",
+                height = "85%",
+                valign = "top",
+                vscroll = true,
+                borderColor = "red",
+                children = {
+                    gui.Panel {
+                        id = "rollScrollArea",
+                        classes = {"rollListController", "DTPanel", "DTBase"},
+                        width = "100%",
+                        height = "100%-6",
+                        flow = "vertical",
+                        valign = "top",
+                        borderColor = "blue",
+                        data = {
+                            getProject = function(element)
+                                local projectController = element:FindParentWithClass("projectController")
+                                if projectController then
+                                    return projectController.data.project
+                                end
+                                return nil
+                            end,
+                        },
+                        refreshToken = function(element)
+                            local project = element.data.getProject(element)
+                            if project then
+                                local rolls = project:GetRolls()
+                                -- element.children = DTProjectEditor._reconcileRollsList(element.children, rolls)
+                            end
+                        end,
+                        children = {}
+                    }
                 }
             }
         }
@@ -978,6 +1019,15 @@ function DTProjectEditor:CreateEditorPanel()
             DTSettings.Touch()
             element:FireEvent("refreshProject")
         end,
+        addRoll = function(element, newRoll)
+            print("THC:: CONTROLLER:: ADDROLL::", newRoll:GetID())
+            element.data.project:AddRoll(newRoll)
+            DTSettings.Touch()
+            element:FireEvent("refreshProject")
+        end,
+        deleteRoll = function(element, rollId)
+            print("THC:: CONTROLLER:: DELETEROLL::", rollId)
+        end,
         refreshProject = function(element)
             element:FireEventTree("refreshToken")
         end,
@@ -1023,7 +1073,6 @@ function DTProjectEditor:CreateEditorPanel()
         }
     }
 end
-
 
 --- Reconciles adjustment list panels with current data using efficient 3-step process
 --- @param adjustmentPanels table Existing array of adjustment panels

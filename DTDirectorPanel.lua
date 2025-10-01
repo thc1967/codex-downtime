@@ -1,5 +1,33 @@
 local mod = dmhub.GetModLoading()
-local DEBUG_MODE = false
+
+--- DESTRUCTIVE Clears all downtime data from network storage
+--- and characters!
+local function _clearAllData()
+
+    local function tokenHasDowntime(t)
+        if t.properties and t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
+            return true
+        end
+        return false
+    end
+
+    local heroes = DTUtils.GetAllHeroTokens(tokenHasDowntime)
+    for _, t in ipairs(heroes) do
+        chat.Send(string.format("Removing Downtime data from %s.", t.name))
+        t:ModifyProperties{
+            description = "Clear Downtime Info",
+            execute = function()
+                if t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
+                    t.properties.downtimeInfo = nil
+                end
+            end
+        }
+    end
+
+    chat.Send("Resetting Downtime settings.")
+    DTSettings:new():InitializeDocument()
+
+end
 
 -- Triangle icon styles for character expand/collapse (based on QuestTrackerPanel pattern)
 local characterTriangleStyles = {
@@ -248,7 +276,7 @@ function DTDirectorPanel:_buildHeaderPanel()
                             gui.Tooltip("Clear all data.")(element)
                         end,
                         click = function()
-                            self:_clearAllData()
+                            _clearAllData()
                         end
                     } or nil,
                     DTConstants.DEVMODE and gui.Button{
@@ -270,37 +298,6 @@ function DTDirectorPanel:_buildHeaderPanel()
             },
         }
     }
-end
-
---- DESTRUCTIVE Clears all downtime data from network storage
---- and characters!
-function DTDirectorPanel:_clearAllData()
-
-    local function tokenHasDowntime(t)
-        if t.properties and t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
-            return true
-        end
-        return false
-    end
-
-    local heroes = DTUtils.GetAllHeroTokens(tokenHasDowntime)
-    for _, t in ipairs(heroes) do
-        print("THC:: WIPEDOWNTIME::", t.name)
-        t:ModifyProperties{
-            description = "Clear Downtime Info",
-            execute = function()
-                if t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
-                    t.properties.downtimeInfo = nil
-                end
-                if t.properties:try_get("downtime_projects") then
-                    t.properties.downtime_projects = nil
-                end
-            end
-        }
-    end
-
-    self.downtimeSettings:InitializeDocument()
-
 end
 
 --- Shows the settings edit dialog for downtime configuration
@@ -1047,4 +1044,8 @@ end
 function DTDirectorPanel:_debugDocument()
     local doc = self.downtimeSettings.mod:GetDocumentSnapshot(self.downtimeSettings.documentName)
     print("THC:: PERSISTED::", json(doc.data))
+end
+
+Commands.wipealldowntimedata = function(args)
+    _clearAllData()
 end

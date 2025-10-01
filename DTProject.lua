@@ -218,6 +218,12 @@ function DTProject:SetEarnedBreakthroughs(count)
     return self
 end
 
+--- Determines whether the project is active / ready to roll
+--- @return boolean active True if active
+function DTProject:IsActive()
+    return self.status == DTConstants.STATUS.ACTIVE.key
+end
+
 --- Determines whether this project is in a valid state to roll
 --- @return boolean valid True if the project is in a valid state to roll
 --- @return table|nil reasons If the state is invalid, the list of reasons it's invalid
@@ -274,7 +280,7 @@ end
 
 --- Gets all project rolls
 --- @return table projectRolls Array of DTRoll instances
-function DTProject:GetProjectRolls()
+function DTProject:GetRolls()
     return self.projectRolls or {}
 end
 
@@ -287,67 +293,50 @@ function DTProject:_setStateFromProgressChange(item, direction)
     local function isRoll() return item.typeName == "DTRoll" end
     local function isAdjustment() return item.typeName == "DTAdjustment" end
 
+    if isRoll() then
+        if direction > 0 then -- Adding a roll
+            if item:GetBreakthrough() then
+                self:DecrementEarnedBreakthroughs()
+            end
+            if item:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
+                self:IncrementEarnedBreakthroughs()
+            end
+        else -- Removing a roll
+            if item:GetBreakthrough() then
+                self:IncrementEarnedBreakthroughs()
+            end
+            -- If the roll we are removing resulted in a breakthrough,
+            -- we are not going to try to find the breakthrough that was 
+            -- rolled as a result of that breakthrough. The user will need 
+            -- to find and delete that as well.
+        end
+    end
+
     local STATUS = DTConstants.STATUS
     local oldValue = self:GetProgress()
     local newValue = oldValue + (direction * item:GetAmount())
     local currentStatus = self:GetStatus()
+    local projectGoal = self:GetProjectGoal()
     local milestoneStop = self:GetMilestoneThreshold()
 
-    print(string.format("THC:: STATUS:: %s OLD:: %d NEW:: %d MILESTONE:: %d", currentStatus, oldValue, newValue, milestoneStop))
-    if direction == 1 then -- Adding the item
+    if newValue >= projectGoal then
+        self:SetStatus(DTConstants.STATUS.COMPLETE.key)
+            :SetStatusReason("Project complete.")
 
-        if isRoll() and item:GetBreakthrough() then
-            self:DecrementEarnedBreakthroughs()
+    elseif currentStatus == DTConstants.STATUS.COMPLETE.key then
+        if newValue < projectGoal then
+            self:SetStatus(STATUS.ACTIVE.key)
+                :SetStatusReason("")
         end
-
-        if isRoll() and item:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
-            self:IncrementEarnedBreakthroughs()
+    elseif currentStatus == DTConstants.STATUS.MILESTONE.key then
+        if newValue <= self:GetMilestoneThreshold() then
+            self:SetStatus(STATUS.ACTIVE.key)
+                :SetStatusReason("")
         end
-
-        if newValue >= self:GetProjectGoal() then
-            self:SetStatus(STATUS.COMPLETE.key)
-        elseif currentStatus == STATUS.MILESTONE.key then
-            -- If we're on a milestone, rolling should be paused for this
-            -- project, so we check for an adjustment that reduces our
-            -- total below the milestone value.
-            if newValue < milestoneStop and oldValue >= milestoneStop then
-                self:SetStatus(STATUS.ACTIVE.key)
-                    :SetStatusReason("")
-            end
-        else
-            if milestoneStop > 0 then
-                if newValue >= milestoneStop and oldValue < milestoneStop then
-                    self:SetStatus(STATUS.MILESTONE.key)
-                        :SetStatusReason("Milestone achieved! Consult with your Director.")
-                end
-            end
-        end
-    else -- Removing the item
-        if isRoll() and item:GetBreakthrough() then
-            self:IncrementEarnedBreakthroughs()
-        end
-
-        -- If the item (roll) we are removing resulted in a breakthrough,
-        -- we are not going to try to find the breakthrough that was 
-        -- rolled as a result of that breakthrough. The user will need 
-        -- to find and delete that as well.
-
-        if currentStatus == STATUS.COMPLETE.key then
-            if newValue < self:GetProjectGoal() then
-                self:SetStatus(STATUS.ACTIVE.key)
-                    :SetStatusReason("")
-            end
-        elseif currentStatus == STATUS.MILESTONE.key then
-            -- Removing an item that brought us into Milestone status
-            if oldValue >= milestoneStop and newValue < milestoneStop then
-                self:SetStatus(STATUS.ACTIVE.key)
-                    :SetStatusReason("")
-            end
-        elseif milestoneStop > 0 then
-            if newValue >= milestoneStop and oldValue < milestoneStop then
-                self:SetStatus(STATUS.MILESTONE.key)
-                    :SetStatusReason("Milestone achieved! Consult with your Director.")
-            end
+    else -- Active or Paused; same logic
+        if milestoneStop > 0 and newValue >= milestoneStop then
+            self:SetStatus(STATUS.MILESTONE.key)
+                :SetStatusReason("Milestone achieved! Consult with your Director.")
         end
     end
 end
@@ -356,7 +345,7 @@ end
 --- **NOTE:** This method automatically calculates status
 --- @param roll DTRoll|DTProgressItem The roll to add
 --- @return DTProject self For chaining
-function DTProject:AddProjectRoll(roll)
+function DTProject:AddRoll(roll)
     if not self:IsValidStateToRoll() then return self end
 
     if not self.projectRolls then
@@ -374,7 +363,7 @@ end
 --- **NOTE:** This method automatically calculates status
 --- @param rollId string The GUID of the roll to remove
 --- @return DTProject self For chaining
-function DTProject:RemoveProjectRoll(rollId)
+function DTProject:RemoveRoll(rollId)
     if not self.projectRolls or not rollId then
         return self
     end
@@ -452,7 +441,7 @@ function DTProject:GetProgress()
     local progress = 0
 
     -- Add all roll results
-    local rolls = self:GetProjectRolls()
+    local rolls = self:GetRolls()
     for _, roll in ipairs(rolls) do
         progress = progress + roll:GetAmount()
     end
