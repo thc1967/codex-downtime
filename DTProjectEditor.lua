@@ -759,7 +759,7 @@ function DTProjectEditor:_createAdjustmentsPanel()
                             local project = element.data.getProject(element)
                             if project then
                                 local adjustments = project:GetAdjustments()
-                                element.children = DTProjectEditor._reconcileAdjustmentsList(element.children, adjustments)
+                                element.children = DTProjectEditor._reconcileProgressItemsList(element.children, adjustments, "deleteAdjustment")
                             end
                         end,
                         children = {}
@@ -937,7 +937,7 @@ function DTProjectEditor:_createRollsPanel()
                             local project = element.data.getProject(element)
                             if project then
                                 local rolls = project:GetRolls()
-                                element.children = DTProjectEditor._reconcileRollsList(element.children, rolls)
+                                element.children = DTProjectEditor._reconcileProgressItemsList(element.children, rolls, "deleteRoll")
                             end
                         end,
                         children = {}
@@ -1084,20 +1084,21 @@ function DTProjectEditor:CreateEditorPanel()
     }
 end
 
---- Reconciles adjustment list panels with current data using efficient 3-step process
---- @param adjustmentPanels table Existing array of adjustment panels
---- @param adjustments table Array of DTAdjustment objects
+--- Reconciles progress item list panels with current data using efficient 3-step process
+--- @param panels table Existing array of item panels
+--- @param items table Array of DTProgressItem descendants
+--- @param deleteEvent string The event name to fire when deleting
 --- @return table panels The reconciled panel array
-function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments)
-    adjustmentPanels = adjustmentPanels or {}
-    if type(adjustmentPanels) ~= "table" then
-        adjustmentPanels = {}
+function DTProjectEditor._reconcileProgressItemsList(panels, items, deleteEvent)
+    panels = panels or {}
+    if type(panels) ~= "table" then
+        panels = {}
     end
 
-    adjustments = adjustments or {}
+    items = items or {}
 
-    -- Handle empty adjustments case
-    if not next(adjustments) then
+    -- Handle empty items case
+    if not next(items) then
         return {
             gui.Panel {
                 classes = {"DTPanel", "DTBase"},
@@ -1107,7 +1108,7 @@ function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments
                 valign = "top",
                 children = {
                     gui.Label {
-                        text = "No progress adjustments yet.",
+                        text = "There are no items yet.",
                         width = "96%",
                         height = "96%",
                         halign = "center",
@@ -1121,135 +1122,53 @@ function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments
         }
     end
 
-    -- Step 1: Remove panels that don't have corresponding adjustments (iterate backwards)
-    for i = #adjustmentPanels, 1, -1 do
-        local panel = adjustmentPanels[i]
-        local foundAdjustment = false
-        for _, adjustment in ipairs(adjustments) do
-            if adjustment:GetID() == panel.id then
-                foundAdjustment = true
+    -- Step 1: Remove panels that don't have corresponding items
+    for i = #panels, 1, -1 do
+        local panel = panels[i]
+        local foundItem = false
+        for _, item in ipairs(items) do
+            if item:GetID() == panel.id then
+                foundItem = true
                 break
             end
         end
-        if not foundAdjustment then
-            table.remove(adjustmentPanels, i)
+        if not foundItem then
+            table.remove(panels, i)
         end
     end
 
-    -- Step 2: Add panels for adjustments that don't have panels
-    for _, adjustment in ipairs(adjustments) do
+    -- Step 2: Add panels for items that don't have panels
+    for _, item in ipairs(items) do
         local foundPanel = false
-        for _, panel in ipairs(adjustmentPanels) do
-            if panel.id == adjustment:GetID() then
+        for _, panel in ipairs(panels) do
+            if panel.id == item:GetID() then
                 foundPanel = true
                 break
             end
         end
         if not foundPanel then
-            adjustmentPanels[#adjustmentPanels + 1] = DTProjectEditor._createProgressListItem(adjustment, "deleteAdjustment")
+            panels[#panels + 1] = DTProjectEditor._createProgressListItem(item, deleteEvent)
         end
     end
 
-    -- Step 3: Sort panels by reverse chronological order (newest first)
-    -- Build serverTime lookup table first
+    -- Step 3: Sort panels by reverse chronological order
     local serverTimeLookup = {}
-    for _, adjustment in ipairs(adjustments) do
-        serverTimeLookup[adjustment:GetID()] = adjustment:GetServerTime()
+    for _, item in ipairs(items) do
+        serverTimeLookup[item:GetID()] = item:GetServerTime()
     end
 
-    -- Reverse chronological sort
-    table.sort(adjustmentPanels, function(a, b)
+    table.sort(panels, function(a, b)
         local aTime = serverTimeLookup[a.id] or 0
         local bTime = serverTimeLookup[b.id] or 0
         return aTime > bTime
     end)
 
-    return adjustmentPanels
+    return panels
 end
 
---- Reconciles roll list panels with current data using efficient 3-step process
---- @param rollPanels table Existing array of roll panels
---- @param rolls table Array of DTRoll objects
---- @return table panels The reconciled panel array
-function DTProjectEditor._reconcileRollsList(rollPanels, rolls)
-    rollPanels = rollPanels or {}
-    if type(rollPanels) ~= "table" then
-        rollPanels = {}
-    end
-
-    rolls = rolls or {}
-
-    -- Handle empty rolls case
-    if not next(rolls) then
-        return {
-            gui.Panel {
-                classes = {"DTPanel", "DTBase"},
-                width = "100%",
-                height = "100%",
-                halign = "center",
-                valign = "top",
-                children = {
-                    gui.Label {
-                        text = "No rolls yet.",
-                        width = "96%",
-                        height = "96%",
-                        halign = "center",
-                        valign = "top",
-                        classes = {"DTLabel", "DTBase"},
-                        bold = false,
-                        color = "#888888"
-                    }
-                }
-            }
-        }
-    end
-
-    -- Step 1: Remove panels that don't have corresponding rolls (iterate backwards)
-    for i = #rollPanels, 1, -1 do
-        local panel = rollPanels[i]
-        local foundRoll = false
-        for _, roll in ipairs(rolls) do
-            if roll:GetID() == panel.id then
-                foundRoll = true
-                break
-            end
-        end
-        if not foundRoll then
-            table.remove(rollPanels, i)
-        end
-    end
-
-    -- Step 2: Add panels for rolls that don't have panels
-    for _, roll in ipairs(rolls) do
-        local foundPanel = false
-        for _, panel in ipairs(rollPanels) do
-            if panel.id == roll:GetID() then
-                foundPanel = true
-                break
-            end
-        end
-        if not foundPanel then
-            rollPanels[#rollPanels + 1] = DTProjectEditor._createProgressListItem(roll, "deleteRoll")
-        end
-    end
-
-    -- Step 3: Sort panels by reverse chronological order (newest first)
-    -- Build serverTime lookup table first
-    local serverTimeLookup = {}
-    for _, roll in ipairs(rolls) do
-        serverTimeLookup[roll:GetID()] = roll:GetServerTime()
-    end
-
-    -- Reverse chronological sort
-    table.sort(rollPanels, function(a, b)
-        local aTime = serverTimeLookup[a.id] or 0
-        local bTime = serverTimeLookup[b.id] or 0
-        return aTime > bTime
-    end)
-
-    return rollPanels
-end
-
+--- Creates a single progress item panel for list display
+--- @param item DTProgressItem The item data to display
+--- @return table panel The complete panel
 function DTProjectEditor._createProgressListItem(item, deleteEvent)
     if not item then return gui.Panel{} end
 
@@ -1347,222 +1266,6 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
                         valign = "top",
                         bold = false,
                         text = description,
-                    }
-                }
-            }
-        }
-    }
-end
-
---- Creates a single adjustment item panel for list display
---- @param adjustment DTAdjustment The adjustment data to display
---- @return table panel The complete adjustment item panel
-function DTProjectEditor.CreateAdjustmentListItem(adjustment)
-    if not adjustment then return gui.Panel{} end
-
-    -- Format timestamp for display (remove seconds and timezone)
-    local displayTime = adjustment:GetCommitDate()
-
-    -- Format amount with color coding
-    local amount = adjustment:GetAmount()
-    local amountText = string.format("%+d", amount)
-    local amountClass = amount >= 0 and "DTListAmountPositive" or "DTListAmountNegative"
-
-    -- Get user display name with color
-    local userDisplay = DTUtils.GetPlayerDisplayName(adjustment:GetCommitBy())
-
-    -- Get reason text
-    local reason = adjustment:GetReason()
-    if #reason > 60 then
-        reason = reason:sub(1, 77) .. "..."
-    end
-
-    return gui.Panel{
-        id = adjustment:GetID(),
-        classes = {"dtAdjustmentPanel", "DTListRow", "DTListBase"},
-        flow = "vertical",
-        data = {
-            serverTime = adjustment:GetServerTime(),
-        },
-        children = {
-            -- Top Row
-            gui.Panel {
-                classes = {"DTListDetail", "DTListBase"},
-                flow = "horizontal",
-                valign = "top",
-                height = "auto",
-                width = "100%",
-                children = {
-                    -- Top row
-                    gui.Panel{
-                        classes = {"DTListHeader", "DTListBase"},
-                        borderColor = "cyan",
-                        width = "100%-20",
-                        children = {
-                            gui.Label{
-                                classes = {"DTListTimestamp", "DTListBase"},
-                                text = displayTime,
-                            },
-                            gui.Label{
-                                classes = {"DTListAmount", "DTListBase", amountClass},
-                                text = amountText,
-                            },
-                            gui.Label{
-                                classes = {"DTListUser", "DTListBase"},
-                                text = userDisplay,
-                            },
-                        },
-                    },
-                    dmhub.isDM and gui.DeleteItemButton {
-                        width = 16,
-                        height = 16,
-                        halign = "right",
-                        valign = "center",
-                        click = function(element)
-                            local projectController = element:FindParentWithClass("projectController")
-                            if projectController then
-                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Adjustment", "this Adjustment", {
-                                    confirm = function()
-                                        projectController:FireEvent("deleteAdjustment", adjustment:GetID())
-                                    end,
-                                    cancel = function()
-                                        -- Optional cancel logic
-                                    end
-                                }))
-                            end
-                        end,
-                    } or nil
-                }
-            },
-            -- Bottom
-            gui.Panel {
-                classes = {"DTListDetail", "DTListBase"},
-                flow = "horizontal",
-                valign = "top",
-                height = "auto",
-                width = "100%",
-                borderColor = "cyan",
-                children = {
-                    gui.Label{
-                        classes = {"DTListReason", "DTListBase"},
-                        height = "auto",
-                        width = "98%",
-                        valign = "top",
-                        bold = false,
-                        text = reason,
-                    }
-                }
-            }
-        }
-    }
-end
-
---- Creates a single roll item panel for list display
---- @param roll DTRoll The roll data to display
---- @return table panel The complete roll item panel
-function DTProjectEditor.CreateRollListItem(roll)
-    if not roll then return gui.Panel{} end
-
-    -- Format timestamp for display (remove seconds and timezone)
-    local displayTime = roll:GetCommitDate()
-
-    -- Format amount with color coding
-    local amount = roll:GetAmount()
-    local amountText = string.format("%+d", amount)
-    local amountClass = amount >= 0 and "DTListAmountPositive" or "DTListAmountNegative"
-
-    -- Determine display name: prefer rolledBy (character/follower) over user display name
-    local displayName
-    local rolledBy = roll:GetRolledBy()
-    if rolledBy and #rolledBy > 0 then
-        -- Use character/follower name, formatted with committer's color
-        displayName = DTUtils.FormatNameWithUserColor(rolledBy, roll:GetCommitBy())
-    else
-        -- Use committer's user display name with their color
-        displayName = DTUtils.GetPlayerDisplayName(roll:GetCommitBy())
-    end
-    local userDisplay = displayName
-
-    -- Get audit text
-    local audit = roll:GetAudit()
-    if #audit > 60 then
-        audit = audit:sub(1, 77) .. "..."
-    end
-
-    return gui.Panel{
-        id = roll:GetID(),
-        classes = {"dtRollPanel", "DTListRow", "DTListBase"},
-        flow = "vertical",
-        data = {
-            serverTime = roll:GetServerTime(),
-        },
-        children = {
-            -- Top Row
-            gui.Panel {
-                classes = {"DTListDetail", "DTListBase"},
-                flow = "horizontal",
-                valign = "top",
-                height = "auto",
-                width = "100%",
-                -- borderColor = "yellow",
-                children = {
-                    -- Top row
-                    gui.Panel{
-                        classes = {"DTListHeader", "DTListBase"},
-                        borderColor = "cyan",
-                        width = "100%-20",
-                        children = {
-                            gui.Label{
-                                classes = {"DTListTimestamp", "DTListBase"},
-                                text = displayTime,
-                            },
-                            gui.Label{
-                                classes = {"DTListAmount", "DTListBase", amountClass},
-                                text = amountText,
-                            },
-                            gui.Label{
-                                classes = {"DTListUser", "DTListBase"},
-                                text = userDisplay,
-                            },
-                        },
-                    },
-                    dmhub.isDM and gui.DeleteItemButton {
-                        width = 16,
-                        height = 16,
-                        halign = "right",
-                        valign = "center",
-                        click = function(element)
-                            local projectController = element:FindParentWithClass("projectController")
-                            if projectController then
-                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Roll", "this Roll", {
-                                    confirm = function()
-                                        projectController:FireEvent("deleteRoll", roll:GetID())
-                                    end,
-                                    cancel = function()
-                                        -- Optional cancel logic
-                                    end
-                                }))
-                            end
-                        end,
-                    } or nil
-                }
-            },
-            -- Bottom
-            gui.Panel {
-                classes = {"DTListDetail", "DTListBase"},
-                flow = "horizontal",
-                valign = "top",
-                height = "auto",
-                width = "100%",
-                borderColor = "cyan",
-                children = {
-                    gui.Label{
-                        classes = {"DTListReason", "DTListBase"},
-                        height = "auto",
-                        width = "98%",
-                        valign = "top",
-                        bold = false,
-                        text = audit,
                     }
                 }
             }
