@@ -263,8 +263,8 @@ end
 --- @param rollId string GUID ID of the roll to find
 --- @return DTRoll|nil roll The roll object or nil if not found
 --- @return number|nil index The index of the roll in the projectRolls table or nil if not found
-function DTProject:GetProjectRoll(rollId)
-    if not rollId or type(rollId) ~= string or #rollId == 0 then
+function DTProject:GetRoll(rollId)
+    if not rollId or type(rollId) ~= "string" or #rollId == 0 then
         return nil, nil
     end
 
@@ -334,7 +334,7 @@ function DTProject:_setStateFromProgressChange(item, direction)
                 :SetStatusReason("")
         end
     else -- Active or Paused; same logic
-        if milestoneStop > 0 and newValue >= milestoneStop then
+        if milestoneStop > 0 and oldValue < milestoneStop and newValue >= milestoneStop then
             self:SetStatus(STATUS.MILESTONE.key)
                 :SetStatusReason("Milestone achieved! Consult with your Director.")
         end
@@ -368,7 +368,7 @@ function DTProject:RemoveRoll(rollId)
         return self
     end
 
-    local roll, index = self:GetProjectRoll(rollId)
+    local roll, index = self:GetRoll(rollId)
     if roll then
         self:_setStateFromProgressChange(roll, -1)
         table.remove(self.projectRolls, index)

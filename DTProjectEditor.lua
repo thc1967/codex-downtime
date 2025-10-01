@@ -743,7 +743,7 @@ function DTProjectEditor:_createAdjustmentsPanel()
                         id = "adjustmentScrollArea",
                         classes = {"adjustmentListController", "DTPanel", "DTBase"},
                         width = "100%",
-                        height = "100%-6",
+                        height = "auto",
                         flow = "vertical",
                         valign = "top",
                         data = {
@@ -891,7 +891,6 @@ function DTProjectEditor:_createRollsPanel()
                                             },
                                             callbacks = {
                                                 confirm = function(roll)
-                                                    print("THC:: ROLLCONFIRM::", json(roll))
                                                     controller:FireEvent("addRoll", roll)
                                                 end,
                                                 cancel = function()
@@ -921,7 +920,7 @@ function DTProjectEditor:_createRollsPanel()
                         id = "rollScrollArea",
                         classes = {"rollListController", "DTPanel", "DTBase"},
                         width = "100%",
-                        height = "100%-6",
+                        height = "auto",
                         flow = "vertical",
                         valign = "top",
                         borderColor = "blue",
@@ -938,7 +937,7 @@ function DTProjectEditor:_createRollsPanel()
                             local project = element.data.getProject(element)
                             if project then
                                 local rolls = project:GetRolls()
-                                -- element.children = DTProjectEditor._reconcileRollsList(element.children, rolls)
+                                element.children = DTProjectEditor._reconcileRollsList(element.children, rolls)
                             end
                         end,
                         children = {}
@@ -1009,28 +1008,39 @@ function DTProjectEditor:CreateEditorPanel()
         data = {
             project = self:GetProject()
         },
+
         addAdjustment = function(element, newAdjustment)
             element.data.project:AddAdjustment(newAdjustment)
             DTSettings.Touch()
             element:FireEvent("refreshProject")
         end,
+
         deleteAdjustment = function(element, adjustmentId)
             element.data.project:RemoveAdjustment(adjustmentId)
             DTSettings.Touch()
             element:FireEvent("refreshProject")
         end,
+
         addRoll = function(element, newRoll)
-            print("THC:: CONTROLLER:: ADDROLL::", newRoll:GetID())
-            element.data.project:AddRoll(newRoll)
-            DTSettings.Touch()
-            element:FireEvent("refreshProject")
+            local downtimeController = element:FindParentWithClass("downtimeController")
+            if downtimeController then
+                element.data.project:AddRoll(newRoll)
+                downtimeController:FireEvent("adjustRolls", -1)
+            end
         end,
+
         deleteRoll = function(element, rollId)
-            print("THC:: CONTROLLER:: DELETEROLL::", rollId)
+            local downtimeController = element:FindParentWithClass("downtimeController")
+            if downtimeController then
+                element.data.project:RemoveRoll(rollId)
+                downtimeController:FireEvent("adjustRolls", 1)
+            end
         end,
+
         refreshProject = function(element)
             element:FireEventTree("refreshToken")
         end,
+
         children = {
             gui.Panel{
                 width = "98%",
@@ -1136,7 +1146,7 @@ function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments
             end
         end
         if not foundPanel then
-            adjustmentPanels[#adjustmentPanels + 1] = DTProjectEditor.CreateAdjustmentListItem(adjustment)
+            adjustmentPanels[#adjustmentPanels + 1] = DTProjectEditor._createProgressListItem(adjustment, "deleteAdjustment")
         end
     end
 
@@ -1155,6 +1165,193 @@ function DTProjectEditor._reconcileAdjustmentsList(adjustmentPanels, adjustments
     end)
 
     return adjustmentPanels
+end
+
+--- Reconciles roll list panels with current data using efficient 3-step process
+--- @param rollPanels table Existing array of roll panels
+--- @param rolls table Array of DTRoll objects
+--- @return table panels The reconciled panel array
+function DTProjectEditor._reconcileRollsList(rollPanels, rolls)
+    rollPanels = rollPanels or {}
+    if type(rollPanels) ~= "table" then
+        rollPanels = {}
+    end
+
+    rolls = rolls or {}
+
+    -- Handle empty rolls case
+    if not next(rolls) then
+        return {
+            gui.Panel {
+                classes = {"DTPanel", "DTBase"},
+                width = "100%",
+                height = "100%",
+                halign = "center",
+                valign = "top",
+                children = {
+                    gui.Label {
+                        text = "No rolls yet.",
+                        width = "96%",
+                        height = "96%",
+                        halign = "center",
+                        valign = "top",
+                        classes = {"DTLabel", "DTBase"},
+                        bold = false,
+                        color = "#888888"
+                    }
+                }
+            }
+        }
+    end
+
+    -- Step 1: Remove panels that don't have corresponding rolls (iterate backwards)
+    for i = #rollPanels, 1, -1 do
+        local panel = rollPanels[i]
+        local foundRoll = false
+        for _, roll in ipairs(rolls) do
+            if roll:GetID() == panel.id then
+                foundRoll = true
+                break
+            end
+        end
+        if not foundRoll then
+            table.remove(rollPanels, i)
+        end
+    end
+
+    -- Step 2: Add panels for rolls that don't have panels
+    for _, roll in ipairs(rolls) do
+        local foundPanel = false
+        for _, panel in ipairs(rollPanels) do
+            if panel.id == roll:GetID() then
+                foundPanel = true
+                break
+            end
+        end
+        if not foundPanel then
+            rollPanels[#rollPanels + 1] = DTProjectEditor._createProgressListItem(roll, "deleteRoll")
+        end
+    end
+
+    -- Step 3: Sort panels by reverse chronological order (newest first)
+    -- Build serverTime lookup table first
+    local serverTimeLookup = {}
+    for _, roll in ipairs(rolls) do
+        serverTimeLookup[roll:GetID()] = roll:GetServerTime()
+    end
+
+    -- Reverse chronological sort
+    table.sort(rollPanels, function(a, b)
+        local aTime = serverTimeLookup[a.id] or 0
+        local bTime = serverTimeLookup[b.id] or 0
+        return aTime > bTime
+    end)
+
+    return rollPanels
+end
+
+function DTProjectEditor._createProgressListItem(item, deleteEvent)
+    if not item then return gui.Panel{} end
+
+    -- Format timestamp for display (remove seconds and timezone)
+    local displayTime = item:GetCommitDate()
+
+    -- Format amount with color coding
+    local amount = item:GetAmount()
+    local amountText = string.format("%+d", amount)
+    local amountClass = amount >= 0 and "DTListAmountPositive" or "DTListAmountNegative"
+
+    -- Get user display name with color
+    local commitBy, rollBy = item:GetCommitBy()
+    local userDisplay = DTUtils.GetPlayerDisplayName(commitBy)
+    if rollBy and #rollBy > 0 then
+        local rollDisplay = DTUtils.FormatNameWithUserColor(rollBy, commitBy)
+        userDisplay = string.format("%s (%s)", rollDisplay, userDisplay)
+    end
+
+    local description = item:GetDescription()
+    if #description > 80 then
+        description = description:sub(1, 77) .. "..."
+    end
+
+    return gui.Panel{
+        id = item:GetID(),
+        classes = {"DTListRow", "DTListBase"},
+        flow = "vertical",
+        data = {
+            serverTime = item:GetServerTime(),
+        },
+        children = {
+            -- Top Row
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "horizontal",
+                valign = "top",
+                height = "auto",
+                width = "100%",
+                children = {
+                    -- Top row
+                    gui.Panel{
+                        classes = {"DTListHeader", "DTListBase"},
+                        borderColor = "cyan",
+                        width = "100%-20",
+                        children = {
+                            gui.Label{
+                                classes = {"DTListTimestamp", "DTListBase"},
+                                text = displayTime,
+                            },
+                            gui.Label{
+                                classes = {"DTListAmount", "DTListBase", amountClass},
+                                text = amountText,
+                            },
+                            gui.Label{
+                                classes = {"DTListUser", "DTListBase"},
+                                text = userDisplay,
+                            },
+                        },
+                    },
+                    dmhub.isDM and gui.DeleteItemButton {
+                        width = 16,
+                        height = 16,
+                        halign = "right",
+                        valign = "center",
+                        click = function(element)
+                            local projectController = element:FindParentWithClass("projectController")
+                            if projectController then
+                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Item", "this Item", {
+                                    confirm = function()
+                                        projectController:FireEvent(deleteEvent, item:GetID())
+                                    end,
+                                    cancel = function()
+                                        -- Optional cancel logic
+                                    end
+                                }))
+                            end
+                        end,
+                    } or nil
+                }
+            },
+            -- Bottom
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "horizontal",
+                valign = "top",
+                height = "auto",
+                width = "100%",
+                borderColor = "cyan",
+                children = {
+                    gui.Label{
+                        classes = {"DTListReason", "DTListBase"},
+                        height = "auto",
+                        width = "98%",
+                        valign = "top",
+                        bold = false,
+                        text = description,
+                    }
+                }
+            }
+        }
+    }
 end
 
 --- Creates a single adjustment item panel for list display
@@ -1177,30 +1374,30 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
     -- Get reason text
     local reason = adjustment:GetReason()
     if #reason > 60 then
-        reason = reason:sub(1, 27) .. "..."
+        reason = reason:sub(1, 77) .. "..."
     end
 
     return gui.Panel{
         id = adjustment:GetID(),
         classes = {"dtAdjustmentPanel", "DTListRow", "DTListBase"},
-        borderColor = "white",
+        flow = "vertical",
         data = {
             serverTime = adjustment:GetServerTime(),
         },
         children = {
-            -- Left side - detail
+            -- Top Row
             gui.Panel {
                 classes = {"DTListDetail", "DTListBase"},
-                flow = "vertical",
+                flow = "horizontal",
                 valign = "top",
-                height = 45,
-                width = 280,
-                borderColor = "red",
+                height = "auto",
+                width = "100%",
                 children = {
-                    -- Header
+                    -- Top row
                     gui.Panel{
                         classes = {"DTListHeader", "DTListBase"},
-                        borderColor = "blue",
+                        borderColor = "cyan",
+                        width = "100%-20",
                         children = {
                             gui.Label{
                                 classes = {"DTListTimestamp", "DTListBase"},
@@ -1214,39 +1411,12 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
                                 classes = {"DTListUser", "DTListBase"},
                                 text = userDisplay,
                             },
-                        }
+                        },
                     },
-                    -- Detail
-                    gui.Panel{
-                        classes = {"DTListDetail", "DTListBase"},
-                        width = "98%",
-                        valign = "top",
-                        borderColor = "blue",
-                        children = {
-                            gui.Label{
-                                classes = {"DTListReason", "DTListBase"},
-                                height = "auto",
-                                width = "98%",
-                                valign = "top",
-                                text = reason,
-                            }
-                        }
-                    }
-                }
-            },
-            -- Right side - actions
-            gui.Panel {
-                classes = {"DTListDetail", "DTListBase"},
-                flow = "vertical",
-                valign = "top",
-                height = 45,
-                width = 45,
-                borderColor = "cyan",
-                children = {
                     dmhub.isDM and gui.DeleteItemButton {
-                        width = 20,
-                        height = 20,
-                        halign = "center",
+                        width = 16,
+                        height = 16,
+                        halign = "right",
                         valign = "center",
                         click = function(element)
                             local projectController = element:FindParentWithClass("projectController")
@@ -1262,6 +1432,138 @@ function DTProjectEditor.CreateAdjustmentListItem(adjustment)
                             end
                         end,
                     } or nil
+                }
+            },
+            -- Bottom
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "horizontal",
+                valign = "top",
+                height = "auto",
+                width = "100%",
+                borderColor = "cyan",
+                children = {
+                    gui.Label{
+                        classes = {"DTListReason", "DTListBase"},
+                        height = "auto",
+                        width = "98%",
+                        valign = "top",
+                        bold = false,
+                        text = reason,
+                    }
+                }
+            }
+        }
+    }
+end
+
+--- Creates a single roll item panel for list display
+--- @param roll DTRoll The roll data to display
+--- @return table panel The complete roll item panel
+function DTProjectEditor.CreateRollListItem(roll)
+    if not roll then return gui.Panel{} end
+
+    -- Format timestamp for display (remove seconds and timezone)
+    local displayTime = roll:GetCommitDate()
+
+    -- Format amount with color coding
+    local amount = roll:GetAmount()
+    local amountText = string.format("%+d", amount)
+    local amountClass = amount >= 0 and "DTListAmountPositive" or "DTListAmountNegative"
+
+    -- Determine display name: prefer rolledBy (character/follower) over user display name
+    local displayName
+    local rolledBy = roll:GetRolledBy()
+    if rolledBy and #rolledBy > 0 then
+        -- Use character/follower name, formatted with committer's color
+        displayName = DTUtils.FormatNameWithUserColor(rolledBy, roll:GetCommitBy())
+    else
+        -- Use committer's user display name with their color
+        displayName = DTUtils.GetPlayerDisplayName(roll:GetCommitBy())
+    end
+    local userDisplay = displayName
+
+    -- Get audit text
+    local audit = roll:GetAudit()
+    if #audit > 60 then
+        audit = audit:sub(1, 77) .. "..."
+    end
+
+    return gui.Panel{
+        id = roll:GetID(),
+        classes = {"dtRollPanel", "DTListRow", "DTListBase"},
+        flow = "vertical",
+        data = {
+            serverTime = roll:GetServerTime(),
+        },
+        children = {
+            -- Top Row
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "horizontal",
+                valign = "top",
+                height = "auto",
+                width = "100%",
+                -- borderColor = "yellow",
+                children = {
+                    -- Top row
+                    gui.Panel{
+                        classes = {"DTListHeader", "DTListBase"},
+                        borderColor = "cyan",
+                        width = "100%-20",
+                        children = {
+                            gui.Label{
+                                classes = {"DTListTimestamp", "DTListBase"},
+                                text = displayTime,
+                            },
+                            gui.Label{
+                                classes = {"DTListAmount", "DTListBase", amountClass},
+                                text = amountText,
+                            },
+                            gui.Label{
+                                classes = {"DTListUser", "DTListBase"},
+                                text = userDisplay,
+                            },
+                        },
+                    },
+                    dmhub.isDM and gui.DeleteItemButton {
+                        width = 16,
+                        height = 16,
+                        halign = "right",
+                        valign = "center",
+                        click = function(element)
+                            local projectController = element:FindParentWithClass("projectController")
+                            if projectController then
+                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Roll", "this Roll", {
+                                    confirm = function()
+                                        projectController:FireEvent("deleteRoll", roll:GetID())
+                                    end,
+                                    cancel = function()
+                                        -- Optional cancel logic
+                                    end
+                                }))
+                            end
+                        end,
+                    } or nil
+                }
+            },
+            -- Bottom
+            gui.Panel {
+                classes = {"DTListDetail", "DTListBase"},
+                flow = "horizontal",
+                valign = "top",
+                height = "auto",
+                width = "100%",
+                borderColor = "cyan",
+                children = {
+                    gui.Label{
+                        classes = {"DTListReason", "DTListBase"},
+                        height = "auto",
+                        width = "98%",
+                        valign = "top",
+                        bold = false,
+                        text = audit,
+                    }
                 }
             }
         }

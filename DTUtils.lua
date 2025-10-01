@@ -657,21 +657,35 @@ function DTUtils.GetDialogStyles()
     }
 end
 
+--- Formats any display name string with the specified user's color
+--- @param displayName string The name to format (character name, follower name, or user name)
+--- @param userId string The user ID to get color from
+--- @return string coloredDisplayName The name with HTML color tags, or plain name if color unavailable
+function DTUtils.FormatNameWithUserColor(displayName, userId)
+    if not displayName or #displayName == 0 then
+        return "{unknown}"
+    end
+
+    if userId and #userId > 0 then
+        local sessionInfo = dmhub.GetSessionInfo(userId)
+        if sessionInfo and sessionInfo.displayColor and sessionInfo.displayColor.tostring then
+            local colorCode = sessionInfo.displayColor.tostring
+            return string.format("<color=%s>%s</color>", colorCode, displayName)
+        end
+    end
+
+    -- Return plain name if no color available
+    return displayName
+end
+
 --- Gets player display name with color formatting from user ID
 --- @param userId string The user ID to look up
 --- @return string coloredDisplayName The player's display name with HTML color tags, or "{unknown}" if not found
 function DTUtils.GetPlayerDisplayName(userId)
-
     if userId and #userId > 0 then
         local sessionInfo = dmhub.GetSessionInfo(userId)
         if sessionInfo and sessionInfo.displayName then
-            local displayName = sessionInfo.displayName
-            if sessionInfo.displayColor and sessionInfo.displayColor.tostring then
-                local colorCode = sessionInfo.displayColor.tostring
-                return string.format("<color=%s>%s</color>", colorCode, displayName)
-            else
-                return displayName
-            end
+            return DTUtils.FormatNameWithUserColor(sessionInfo.displayName, userId)
         end
     end
 

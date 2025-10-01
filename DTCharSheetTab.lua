@@ -43,6 +43,13 @@ function DTCharSheetTab.CreateDowntimePanel()
             end
         end,
 
+        adjustRolls = function(element, amount)
+            local downtimeInfo = element.data.getDowntimeInfo()
+            downtimeInfo:SetAvailableRolls(downtimeInfo:GetAvailableRolls() + amount)
+            DTSettings.Touch()
+            element:FireEvent("refreshDowntime")
+        end,
+
         refreshDowntime = function(element)
             element:FireEventTree("refreshToken")
         end,

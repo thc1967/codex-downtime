@@ -56,6 +56,19 @@ function DTRoll:GetRolledBy()
     return self.rolledBy or ""
 end
 
+--- Custom format for our committed by - add roller if we have it
+--- @return string commitBy User GUID or nil if not committed
+--- @return string rolledBy Name of the entity responsible for the roll
+function DTRoll:GetCommitBy()
+    return DTProgressItem.GetCommitBy(self), self:GetRolledBy()
+end
+
+--- Returns audit detail
+--- @return string description Audit information
+function DTRoll:GetDescription()
+    return self:GetAudit()
+end
+
 --- Sets the natural (unmodified) roll result
 --- @param roll number The unmodified die roll result
 --- @return DTRoll self For chaining

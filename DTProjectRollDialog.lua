@@ -60,8 +60,12 @@ function DTProjectRollDialog._createPanel(roll, options)
             },
             roll = roll,
             project = options.data.project,
-            close = function()
-                resultPanel:DestroySelf()
+
+            isRolling = false,
+            close = function(element, force)
+                if force or not element.data.isRolling then
+                    resultPanel:DestroySelf()
+                end
             end,
             getProject = function(element)
                 return element.data.project
@@ -137,6 +141,13 @@ function DTProjectRollDialog._createPanel(roll, options)
 
             local token = CharacterSheet.instance.data.info.token
 
+            -- Prevent closing while rolling
+            element.data.isRolling = true
+            -- dmhub.Schedule(6, function()
+            --     print("THC:: SCHEDULED::")
+            --     if element and element.data then element.data.isRolling = false end
+            -- end)
+
             local rollGuid = dmhub.GenerateGuid()
             dmhub.Roll {
                 guid = rollGuid,
@@ -163,26 +174,26 @@ function DTProjectRollDialog._createPanel(roll, options)
                         rollStr = rollInfoArg.rollstr,
                         total = rollInfoArg.total,
                     }
-                    print("THC:: ROLLRESULT::",rollInfoArg, json(rollResult))
                     element.data.roll:SetAudit(audit)
                         :SetRollGuid(rollInfoArg.key)
                         :SetRollString(rollString)
                         :SetRolledBy(token.name or "(unnamed character)")
                         :SetNaturalRoll(rollInfoArg.naturalRoll)
                         :SetBreakthrough(rollInfoArg.naturalRoll >= DTConstants.BREAKTHROUGH_MIN)
-                        :SetAmount(rollInfoArg.total)
-                    print("THC:: ROLL::", json(element.data.roll))
+                        :SetAmount(math.max(1, rollInfoArg.total))
+                    element.data.isRolling = false
                     options.callbacks.confirmHandler(element.data.roll)
-                    element:FireEvent("close")
+                    element:FireEvent("close", true)
                 end,
             }
         end,
 
-        close = function(element)
-            element.data.close()
+        close = function(element, force)
+            element.data.close(element, force)
         end,
 
         escape = function(element)
+            if element.data.isRolling then return end
             options.callbacks.cancelHandler(element)
             element:FireEvent("close")
         end,

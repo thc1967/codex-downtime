@@ -30,3 +30,9 @@ end
 function DTAdjustment:GetReason()
     return self.reason or ""
 end
+
+--- Returns description info
+--- @return string description The reason value
+function DTAdjustment:GetDescription()
+    return self:GetReason()
+end

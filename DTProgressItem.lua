@@ -70,3 +70,8 @@ end
 function DTProgressItem:GetServerTime()
     return (self.serverTime and self.serverTime > 0) and self.serverTime or nil
 end
+
+function DTProgressItem:GetDescription()
+    -- Unimplemented method - Derivations should implement
+    return ""
+end
