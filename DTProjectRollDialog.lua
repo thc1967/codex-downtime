@@ -32,20 +32,32 @@ end
 --- @return table panel The GUI panel structure
 function DTProjectRollDialog._createPanel(roll, options)
     local resultPanel = nil
+
+    local character = CharacterSheet.instance.data.info.token.properties
+    local skillList = {{ id = "(none)", text = "(none)"}}
+    for _, skill in ipairs(Skill.SkillsInfo) do
+        if character:ProficientInSkill(skill) then
+            skillList[#skillList + 1] = { id = skill.name, text = skill.name}
+        end
+    end
+
     resultPanel = gui.Panel {
         classes = {"rollController", "DTDialog"},
         width = 800,
-        height = 600,
+        height = 500,
         styles = DTUtils.GetDialogStyles(),
         floating = true,
         escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
         captureEscape = true,
         data = {
             edges = 0,
-            edgeList = {},
             banes = 0,
-            baneList = {},
             bonuses = 0,
+            itemLists = {
+                edges = {},
+                banes = {},
+                bonuses = {},
+            },
             roll = roll,
             project = options.data.project,
             close = function()
@@ -54,8 +66,28 @@ function DTProjectRollDialog._createPanel(roll, options)
             getProject = function(element)
                 return element.data.project
             end,
-            getEdgeAndBaneLists = function(element)
-                return element.data.edgeList, element.data.baneList
+            getItemList = function(element, listName)
+                return element.data.itemLists[listName]
+            end,
+            calculateRoll = function(element)
+                local banes = math.min(2, element.data.banes) * -1
+                local edges = math.min(2, element.data.edges)
+                local edgeVsBane = edges + banes
+
+                print("THC:: BONUSES::", json(element.data.itemLists.bonuses))
+                local seen, bonuses = {}, 0
+                for _, item in pairs(element.data.itemLists.bonuses) do
+                    if not seen[item.description] then
+                        seen[item.description] = true
+                        bonuses = bonuses + item.value
+                    end
+                end
+                print("THC:: SEEN::", json(seen))
+
+                local totalBonus = (edgeVsBane * 2) + bonuses
+                local roll = string.format("2d10 %+d", totalBonus)
+
+                return roll
             end,
         },
 
@@ -63,46 +95,30 @@ function DTProjectRollDialog._createPanel(roll, options)
             element:FireEvent("updateForm")
         end,
 
-        addBane = function(element, item)
-            if item and type(item) == "table" then
-                element.data.baneList[item.id] = item
+        addItem = function(element, listName, item)
+            element.data.itemLists[listName][item.id] = item
+            element:FireEvent("updateForm")
+        end,
+
+        removeItem = function(element, listName, itemId)
+            if element.data.itemLists[listName][itemId] then
+                element.data.itemLists[listName][itemId] = nil
                 element:FireEvent("updateForm")
-            end
-        end,
-
-        removeBane = function(element, itemId)
-            if itemId and type(itemId) == "string" and #itemId > 0 then
-                if element.data.baneList[itemId] then
-                    element.data.baneList [itemId] = nil
-                    element:FireEvent("updateForm")
-                end
-            end
-        end,
-
-        addEdge = function(element, item)
-            if item and type(item) == "table" then
-                element.data.edgeList[item.id] = item
-                element:FireEvent("updateForm")
-            end
-        end,
-
-        removeEdge = function(element, itemId)
-            if itemId and type(itemId) == "string" and #itemId > 0 then
-                if element.data.edgeList[itemId] then
-                    element.data.edgeList [itemId] = nil
-                    element:FireEvent("updateForm")
-                end
             end
         end,
 
         updateForm = function(element)
             element.data.banes = 0
-            for _, item in pairs(element.data.baneList) do
+            for _, item in pairs(element.data.itemLists.banes) do
                 element.data.banes = element.data.banes + (item.value or 0)
             end
             element.data.edges = 0
-            for _, item in pairs(element.data.edgeList) do
+            for _, item in pairs(element.data.itemLists.edges) do
                 element.data.edges = element.data.edges + (item.value or 0)
+            end
+            element.data.bonuses = 0
+            for _, item in pairs(element.data.itemLists.bonuses) do
+                element.data.bonuses = element.data.bonuses + (item.value or 0)
             end
             element:FireEventTree("updateFields")
         end,
@@ -137,11 +153,11 @@ function DTProjectRollDialog._createPanel(roll, options)
                 vmargin = 10,
                 borderColor = "red",
                 children = {
-                    -- Top row
+                    -- Top row - Edges, Banes, Bonuses
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
                         width = "100%-10",
-                        height = "75%-7",
+                        height = "60%-7",
                         valign = "top",
                         flow = "horizontal",
                         borderColor = "blue",
@@ -177,8 +193,8 @@ function DTProjectRollDialog._createPanel(roll, options)
                                         flow = "vertical",
                                         borderColor = "cyan",
                                         children = {
-                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("edge"),
-                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("edge"),
+                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("edges"),
+                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("edges"),
                                         }
                                     }
                                 }
@@ -240,6 +256,7 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                             end
                                                         end
                                                     end
+                                                    element:FireEvent("change")
                                                     element.interactable = (element.data.banes ~= 0)
                                                 end,
                                                 change = function(element)
@@ -250,108 +267,20 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                     local rollController = element:FindParentWithClass("rollController")
                                                     if rollController then
                                                         if element.value then
-                                                            local baneItem = {
+                                                            local item = {
                                                                 id = element.id,
                                                                 value = element.data.banes,
                                                                 description = element.data.GetText(),
                                                             }
-                                                            rollController:FireEvent("addBane", baneItem)
+                                                            rollController:FireEvent("addItem", "banes", item)
                                                         else
-                                                            rollController:FireEvent("removeBane", element.id)
+                                                            rollController:FireEvent("removeItem", "banes", element.id)
                                                         end
                                                     end
                                                 end,
                                             },
-                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("bane"),
-                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("bane"),
-                                            -- gui.Panel {
-                                            --     classes = {"extraBaneController"},
-                                            --     width = "98%",
-                                            --     height = "auto",
-                                            --     flow = "vertical",
-                                            --     pad = 0,
-                                            --     margin = 0,
-                                            --     data = {
-                                            --         isChecked = false,
-                                            --         banes = 1,
-                                            --         description = "",
-                                            --     },
-                                            --     updateChecked = function(element, isChecked)
-                                            --         element.data.isChecked = isChecked
-                                            --         element:FireEvent("updateRollController")
-                                            --     end,
-                                            --     updateDescription = function(element, description)
-                                            --         local s1 = description or ""
-                                            --         if element.data.description ~= s1 then
-                                            --             element.data.description = s1
-                                            --         end
-                                            --     end,
-                                            --     updateFields = function(element)
-                                            --         element:FireEventTree("updateField", element)
-                                            --     end,
-                                            --     updateRollController = function(element)
-                                            --         local rollController = element:FindParentWithClass("rollController")
-                                            --         if rollController then
-                                            --             if not element.data.isChecked then
-                                            --                 rollController:FireEvent("removeBane", element.id)
-                                            --             else
-                                            --                 local baneItem = {
-                                            --                     id = element.id,
-                                            --                     value = element.data.banes,
-                                            --                     description = element.data.description
-                                            --                 }
-                                            --                 rollController:FireEvent("addBane", baneItem)
-                                            --             end
-                                            --         end
-                                            --     end,
-                                            --     children = {
-                                            --         gui.Check {
-                                            --             classes = {"DTCheck", "DTBase"},
-                                            --             width = "100%",
-                                            --             halign = "left",
-                                            --             value = false,
-                                            --             text = "Additional Bane (x1)",
-                                            --             placement = "left",
-                                            --             data = {
-                                            --                 banes = 1,
-                                            --             },
-                                            --             change = function(element)
-                                            --                 local fieldController = element:FindParentWithClass("extraBaneController")
-                                            --                 if fieldController then
-                                            --                     fieldController:FireEvent("updateChecked", element.value)
-                                            --                 end
-                                            --             end,
-                                            --         },
-                                            --         gui.Input {
-                                            --             classes = {"DTInput", "DTBase", "collapsed"},
-                                            --             width = "80%",
-                                            --             halign="right",
-                                            --             placeholderText = "Enter description...",
-                                            --             interactable = false,
-                                            --             style = {
-                                            --                 selectors = {"collapsed"},
-                                            --                 height = 0,
-                                            --                 hidden = 1
-                                            --             },
-                                            --             editlag = 0.5,
-                                            --             change = function(element)
-                                            --                 local fieldController = element:FindParentWithClass("extraBaneController")
-                                            --                 if fieldController then
-                                            --                     fieldController:FireEvent("updateDescription", element.text)
-                                            --                 end
-                                            --             end,
-                                            --             edit = function(element)
-                                            --                 element:FireEvent("change")
-                                            --             end,
-                                            --             updateField = function(element, controller)
-                                            --                 if controller then
-                                            --                     element.interactable = controller.data.isChecked
-                                            --                     element:SetClass("collapsed", not element.interactable)
-                                            --                 end
-                                            --             end
-                                            --         },
-                                            --     }
-                                            -- }
+                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("banes"),
+                                            DTProjectRollDialog._makeExtraAdjustmentCheckText("banes"),
                                         }
                                     }
                                 }
@@ -364,15 +293,6 @@ function DTProjectRollDialog._createPanel(roll, options)
                                 valign = "top",
                                 flow = "vertical",
                                 borderColor = "yellow",
-                                data = {
-                                    getBonuses = function(element)
-                                        local controller = element:FindParentWithClass("rollController")
-                                        if controller then
-                                            return controller.data.bonuses
-                                        end
-                                        return 0
-                                    end,
-                                },
                                 children = {
                                     gui.Label {
                                         classes = {"DTLabel", "DTBase"},
@@ -381,32 +301,103 @@ function DTProjectRollDialog._createPanel(roll, options)
                                         textAlignment = "center",
                                         valign = "top",
                                         updateFields = function(element)
-                                            local bonusesController = element:FindParentWithClass("bonusesController")
-                                            local bonuses = bonusesController and bonusesController.data.getBonuses(element) or 0
-                                            element.text = string.format("Bonuses: %+d", bonuses)
+                                            local controller = element:FindParentWithClass("rollController")
+                                            if controller then
+                                                local bonuses = controller.data.bonuses or 0
+                                                element.text = string.format("Bonuses: %+d", bonuses)
+                                            end
                                         end,
                                     },
                                     gui.Divider { width = "50%" },
                                     gui.Panel {
-                                        classes = {"DTPanel", "DTBase"},
+                                        classes = {"skillListController", "DTPanel", "DTBase"},
                                         width = "100%-8",
                                         height = "auto",
+                                        flow = "vertical",
                                         borderColor = "cyan",
-                                        children = {}
+                                        children = {
+                                            gui.Label {
+                                                classes = {"DTLabel", "DTBase"},
+                                                width = "100%-10",
+                                                height = "30",
+                                                textAlignment = "left",
+                                                hmargin = 2,
+                                                text = "+? (Attribute)",
+                                                create = function(element)
+                                                    local controller = element:FindParentWithClass("rollController")
+                                                    if controller then
+                                                        local project = controller.data.project
+                                                        local attrId = project:GetTestCharacteristic()
+                                                        local attrName = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, attrId)
+                                                        local attrVal = character:GetBaseAttribute(attrId).baseValue
+                                                        local text = string.format("Characteristic: %s (%+d)", attrName, attrVal)
+                                                        if text ~= element.text then
+                                                            element.text = text
+                                                            local item = {
+                                                                id = element.id,
+                                                                value = attrVal,
+                                                                description = text
+                                                            }
+                                                            controller:FireEvent("addItem", "bonuses", item)
+                                                        end
+                                                    end
+                                                end,
+                                            },
+                                            DTProjectRollDialog._makeSkillDropdown(skillList),
+                                            DTProjectRollDialog._makeSkillDropdown(skillList),
+                                            DTProjectRollDialog._makeSkillDropdown(skillList),
+                                        }
                                     }
                                 }
                             },
                         }
                     },
-                    -- Bottom row
+                    -- Bottom row - Summary
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},
                         width = "100%-10",
-                        height = "25%-7",
+                        height = "40%-7",
                         valign = "top",
-                        flow = "horizontal",
+                        flow = "vertical",
                         borderColor = "blue",
-                        children = {}
+                        children = {
+                            DTProjectRollDialog._makeExtraAdjustmentLabel("edges"),
+                            DTProjectRollDialog._makeExtraAdjustmentLabel("banes"),
+                            DTProjectRollDialog._makeExtraAdjustmentLabel("bonuses"),
+                            gui.Panel {
+                                classes = {"DTPanel", "DTBase"},
+                                width = "100%-10",
+                                height = "auto",
+                                valign = "top",
+                                flow = "horizontal",
+                                borderColor = "yellow",
+                                children = {
+                                    gui.Label {
+                                        classes = {"DTLabel", "DTBase"},
+                                        width = 64,
+                                        height = 30,
+                                        valign = "center",
+                                        textAlignment = "left",
+                                        text = "Roll:"
+                                    },
+                                    gui.Label {
+                                        classes = {"DTLabel", "DTBase"},
+                                        width = "100%-80",
+                                        height = 30,
+                                        valign = "center",
+                                        textAlignment = "left",
+                                        bold = false,
+                                        text = "Calculating...",
+                                        updateFields = function(element)
+                                            local controller = element:FindParentWithClass("rollController")
+                                            if controller then
+                                                element.text = controller.data.calculateRoll(controller)
+                                            end
+                                        end,
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -442,7 +433,6 @@ function DTProjectRollDialog._createPanel(roll, options)
                         click = function(element)
                             local controller = element:FindParentWithClass("rollController")
                             if controller then
-                                print("THC:: ROLLING::")
                                 local rollGuid = dmhub.GenerateGuid()
                                 local result = dmhub.Roll {
                                     guid = rollGuid,
@@ -489,14 +479,102 @@ function DTProjectRollDialog._createPanel(roll, options)
     return resultPanel
 end
 
+--- Create a Select Skill dropdown for the bonus section
+--- @param skillList table The list of skills to show in the dropdown
+--- @return Dropdown dropdown The dropdown
+function DTProjectRollDialog._makeSkillDropdown(skillList)
+    local uniqueSkillList = shallow_copy_list(skillList)
+
+    return gui.Dropdown {
+        classes = {"DTDropdown", "DTBase"},
+        width = "98%",
+        halign = "left",
+        vmargin = 4,
+        options = uniqueSkillList,
+        textDefault = "Select a skill...",
+        sort = true,
+        data = {
+            skillSelected = "",
+        },
+        change = function(element)
+            if element.idChosen ~= element.data.skillSelected then
+                local rollController = element:FindParentWithClass("rollController")
+                if rollController then
+                    rollController:FireEvent("removeItem", "bonuses", element.id)
+                    element.data.skillSelected = ""
+
+                    if element.idChosen:lower() ~= "(none)" then
+                        local item = {
+                            id = element.id,
+                            value = 2,
+                            description = string.format("Skill: %s (%+d)", element.idChosen, 2)
+                        }
+                        element.data.skillSelected = element.idChosen
+                        rollController:FireEvent("addItem", "bonuses", item)
+                    end
+                end
+            end
+        end,
+    }
+end
+
+--- Create a row showing either Edges or Banes descriptions
+--- @param adjustType string Bane or Edge, either case is fine
+--- @return Panel panel The panel containing the description
+function DTProjectRollDialog._makeExtraAdjustmentLabel(adjustType)
+
+    local lower, proper = adjustType:lower(), adjustType:sub(1, 1):upper() .. adjustType:sub(2):lower()
+    local defaultLabel = string.format("No %s selected.", proper)
+
+    return gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "100%-10",
+        height = "auto",
+        valign = "top",
+        flow = "horizontal",
+        borderColor = "yellow",
+        children = {
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = 64,
+                height = 30,
+                valign = "center",
+                textAlignment = "left",
+                text = proper .. ":"
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "100%-80",
+                height = 30,
+                valign = "center",
+                textAlignment = "left",
+                bold = false,
+                text = defaultLabel,
+                updateFields = function(element)
+                    local controller = element:FindParentWithClass("rollController")
+                    if controller then
+                        local items = controller.data.getItemList(controller, lower)
+                        local text = ""
+                        for _, item in pairs(items) do
+                            local description = #item.description > 0 and item.description or "(no description)"
+                            if #text > 0 then text = text .. ", " end
+                            text = string.format("%s%s", text, description)
+                        end
+                        if #text == 0 then text = defaultLabel end
+                        if text ~= element.text then element.text = text end
+                    end
+                end,
+            }
+        }
+    }
+end
+
 --- Create a field with a checkbox on top and hidden text on bottom
 --- such that when checked, it shows the field
 --- @param adjustType string Bane or Edge, either case is fine
 --- @return Panel panel The panel containing the control
 function DTProjectRollDialog._makeExtraAdjustmentCheckText(adjustType)
-    local proper = adjustType:sub(1, 1):upper() .. adjustType:sub(2):lower()
-    local removeEvent = "remove" .. proper
-    local addEvent = "add" .. proper
+    local lower, proper = adjustType:lower(), adjustType:sub(1, 1):upper() .. adjustType:sub(2):lower()
 
     return gui.Panel {
         classes = {"extraBaneEdgeController"},
@@ -518,6 +596,7 @@ function DTProjectRollDialog._makeExtraAdjustmentCheckText(adjustType)
             local s1 = description or ""
             if element.data.description ~= s1 then
                 element.data.description = s1
+                element:FireEvent("updateRollController")
             end
         end,
         updateFields = function(element)
@@ -527,14 +606,14 @@ function DTProjectRollDialog._makeExtraAdjustmentCheckText(adjustType)
             local rollController = element:FindParentWithClass("rollController")
             if rollController then
                 if not element.data.isChecked then
-                    rollController:FireEvent(removeEvent, element.id)
+                    rollController:FireEvent("removeItem", lower, element.id)
                 else
                     local item = {
                         id = element.id,
                         value = element.data.value,
-                        description = element.data.description
+                        description = string.format("%s (x%d)", #element.data.description > 0 and element.data.description or "(no description)" , element.data.value)
                     }
-                    rollController:FireEvent(addEvent, item)
+                    rollController:FireEvent("addItem", lower, item)
                 end
             end
         end,

@@ -4,7 +4,7 @@
 DTConstants = RegisterGameType("DTConstants")
 
 DTConstants.DEVMODE = true
-DTConstants.DEVUI = true
+DTConstants.DEVUI = false
 
 --- The location on the character we're storing the downtime
 DTConstants.CHARACTER_STORAGE_KEY = "downtimeInfo"
@@ -21,11 +21,11 @@ DTConstants.LANGUAGE_PENALTY = {
 
 --- Valid test characteristics used in downtime projects
 DTConstants.CHARACTERISTICS = {
-    DTConstant:new("MIGHT", 1, "Might"),
-    DTConstant:new("AGILITY", 2, "Agility"),
-    DTConstant:new("REASON", 3, "Reason"),
-    DTConstant:new("INTUITION", 4, "Intuition"),
-    DTConstant:new("PRESENCE", 5, "Presence")
+    DTConstant:new("mgt", 1, "Might"),
+    DTConstant:new("agl", 2, "Agility"),
+    DTConstant:new("rea", 3, "Reason"),
+    DTConstant:new("inu", 4, "Intuition"),
+    DTConstant:new("prs", 5, "Presence")
 }
 
 --- Valid status values for downtime projects
