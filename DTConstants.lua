@@ -3,8 +3,8 @@
 --- @class DTConstants
 DTConstants = RegisterGameType("DTConstants")
 
-DTConstants.DEVMODE = true
-DTConstants.DEVUI = true
+DTConstants.DEVMODE = false
+DTConstants.DEVUI = false
 
 --- The location on the character we're storing the downtime
 DTConstants.CHARACTER_STORAGE_KEY = "downtimeInfo"

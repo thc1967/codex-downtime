@@ -143,10 +143,6 @@ function DTProjectRollDialog._createPanel(roll, options)
 
             -- Prevent closing while rolling
             element.data.isRolling = true
-            -- dmhub.Schedule(6, function()
-            --     print("THC:: SCHEDULED::")
-            --     if element and element.data then element.data.isRolling = false end
-            -- end)
 
             local rollGuid = dmhub.GenerateGuid()
             dmhub.Roll {
