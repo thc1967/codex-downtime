@@ -866,7 +866,7 @@ function DTProjectEditor:_createRollsPanel()
                                         if validState then
                                             local downtimeInfo = element.data.getDowntimeInfo(element)
                                             if downtimeInfo then
-                                                if downtimeInfo:GetAvailableRolls() > 0 then
+                                                if downtimeInfo:GetAvailableRolls() > 0 or project:GetEarnedBreakthroughs() > 0 then
                                                     local settings = DTSettings:new()
                                                     if settings then
                                                         if settings:GetPauseRolls() then
@@ -895,6 +895,7 @@ function DTProjectEditor:_createRollsPanel()
                                     end
                                 end,
                                 click = function(element)
+                                    print("THC::", element)
                                     if not element.interactable then return end
                                     local project = element.data.getProject(element)
                                     local controller = element:FindParentWithClass("projectController")

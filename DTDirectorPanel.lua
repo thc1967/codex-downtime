@@ -1047,5 +1047,7 @@ function DTDirectorPanel:_debugDocument()
 end
 
 Commands.wipealldowntimedata = function(args)
-    _clearAllData()
+    if dmhub.isDM then
+        _clearAllData()
+    end
 end

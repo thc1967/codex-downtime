@@ -34,7 +34,7 @@ function DTProjectRollDialog._createPanel(roll, options)
     local resultPanel = nil
 
     local character = CharacterSheet.instance.data.info.token.properties
-    local skillList = {{ id = "(none)", text = "(none)"}}
+    local skillList = {}
     for _, skill in ipairs(Skill.SkillsInfo) do
         if character:ProficientInSkill(skill) then
             skillList[#skillList + 1] = { id = skill.name, text = skill.name}
@@ -405,9 +405,44 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                     end
                                                 end,
                                             },
-                                            DTProjectRollDialog._makeSkillDropdown(skillList),
-                                            DTProjectRollDialog._makeSkillDropdown(skillList),
-                                            DTProjectRollDialog._makeSkillDropdown(skillList),
+                                            DTUtils.Multiselect{
+                                                options = skillList,
+                                                classes = {"DTDropdown", "DTBase"},
+                                                width = "98%",
+                                                halign = "left",
+                                                vmargin = 4,
+                                                textDefault = "Select a skill...",
+                                                sort = true,
+                                                data = {
+                                                    skillsSelected = {},
+                                                },
+                                                change = function(element)
+                                                    local newSelected = element.value
+                                                    local curSelected = element.data.skillsSelected or {}
+                                                    local changed = DTUtils.SyncArrays(curSelected, newSelected, function(item) return item.id end)
+                                                    element.data.skillsSelected = curSelected
+                                                    if changed then
+                                                        local rollController = element:FindParentWithClass("rollController")
+                                                        if rollController then
+                                                            rollController:FireEvent("removeItem", "bonuses", element.id)
+                                                            if #curSelected > 0 then
+                                                                local description = curSelected[1].text
+                                                                for i = 2, #curSelected do
+                                                                    description = description .. ", " .. curSelected[i].text
+                                                                end
+                                                                local value = 2 * #curSelected
+
+                                                                local item = {
+                                                                    id = element.id,
+                                                                    value = value,
+                                                                    description = string.format("Skill%s: %s (%+d)", #curSelected > 0 and "s" or "", description, value)
+                                                                }
+                                                                rollController:FireEvent("addItem", "bonuses", item)
+                                                            end
+                                                        end
+                                                    end
+                                                end,
+                                            },
                                         }
                                     }
                                 }
@@ -505,45 +540,6 @@ function DTProjectRollDialog._createPanel(roll, options)
     }
 
     return resultPanel
-end
-
---- Create a Select Skill dropdown for the bonus section
---- @param skillList table The list of skills to show in the dropdown
---- @return Dropdown dropdown The dropdown
-function DTProjectRollDialog._makeSkillDropdown(skillList)
-    local uniqueSkillList = shallow_copy_list(skillList)
-
-    return gui.Dropdown {
-        classes = {"DTDropdown", "DTBase"},
-        width = "98%",
-        halign = "left",
-        vmargin = 4,
-        options = uniqueSkillList,
-        textDefault = "Select a skill...",
-        sort = true,
-        data = {
-            skillSelected = "",
-        },
-        change = function(element)
-            if element.idChosen ~= element.data.skillSelected then
-                local rollController = element:FindParentWithClass("rollController")
-                if rollController then
-                    rollController:FireEvent("removeItem", "bonuses", element.id)
-                    element.data.skillSelected = ""
-
-                    if element.idChosen:lower() ~= "(none)" then
-                        local item = {
-                            id = element.id,
-                            value = 2,
-                            description = string.format("Skill: %s (%+d)", element.idChosen, 2)
-                        }
-                        element.data.skillSelected = element.idChosen
-                        rollController:FireEvent("addItem", "bonuses", item)
-                    end
-                end
-            end
-        end,
-    }
 end
 
 --- Create a row showing either Edges or Banes descriptions

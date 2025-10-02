@@ -713,3 +713,205 @@ function DTUtils.ListToDropdownOptions(sourceList)
     return destList
 end
 
+--- Transform the target to the source, returning true if we changed anything in the process
+--- @param target table The destination array
+--- @param source table The source array
+--- @param keyFn? function A function used to extract the comparator; compares literal equality otherwise
+--- @return boolean changed Whether we changed the destination array
+function DTUtils.SyncArrays(target, source, keyFn)
+    local changed = false
+
+    keyFn = keyFn or function(item) return item end
+
+    -- Build a lookup table for fast checking
+    local newKeys = {}
+    for _, item in ipairs(source) do
+        local key = keyFn(item)
+        newKeys[key] = true
+    end
+    
+    -- Remove items not in source
+    for i = #target, 1, -1 do
+        if not newKeys[keyFn(target[i])] then
+            table.remove(target, i)
+            changed = true
+        end
+    end
+    
+    -- Build lookup of current keys
+    local currentKeys = {}
+    for _, item in ipairs(target) do
+        currentKeys[keyFn(item)] = true
+    end
+    
+    -- Add items from source that aren't in target
+    for _, item in ipairs(source) do
+        if not currentKeys[keyFn(item)] then
+            target[#target + 1] = item
+            changed = true
+        end
+    end
+
+    return changed
+end
+
+--- Creates a generic multiselect control for selecting multiple items from a list
+--- Displays selected items as removable chips with a dropdown to add more items
+--- @return table panel The multiselect panel with "change" event support
+function DTUtils.Multiselect(args)
+    args = args or {}
+    args.classes = args.classes or {}
+
+    local m_selected = {}
+
+    local fnChange = nil
+    if args.change then
+        fnChange = args.change
+        args.change = nil
+    end
+
+    local controllerClasses = {"multiselectController"}
+    table.move(args.classes, 1, #args.classes, #controllerClasses + 1, controllerClasses)
+
+    local panelOpts = {
+        classes = controllerClasses,
+        width = args.width or "100%",
+        height = args.height or "auto",
+        flow = "vertical",
+        data = {
+            selected = m_selected,
+        },
+        change = function(element, ...)
+            if fnChange then
+                fnChange(element, element.data.selected, ...)
+            end
+        end,
+        addSelected = function(element, item)
+            local selected = element.data.selected
+            local found = false
+            for _, v in ipairs(selected) do
+                if v == item then
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                selected[#selected + 1] = item
+            end
+            element:FireEvent("change")
+        end,
+        removeSelected = function(element, item)
+            local selected = element.data.selected
+            for i, v in ipairs(selected) do
+                if v == item then
+                    table.remove(selected, i)
+                    break
+                end
+            end
+            element:FireEvent("change")
+        end,
+        GetValue = function()
+            return m_selected
+        end,
+        children = {
+            gui.Panel {
+                width = "100%",
+                height = "auto",
+                flow = "horizontal",
+                wrap = true,
+                children = {},
+                addSelected = function(element, item)
+                    local controller = element:FindParentWithClass("multiselectController")
+                    element:AddChild(gui.Label{
+                        id = item.id,
+                        classes = { item.id },
+                        data = {
+                            item = item
+                        },
+                        height = "auto",
+                        width = "auto",
+                        pad = 4,
+                        margin = 4,
+                        fontSize = 14,
+                        text = item.text,
+                        bgimage = "panels/square.png",
+                        borderColor = Styles.textColor,
+                        border = 1,
+                        cornerRadius = 2,
+                        bgcolor = "#444444",
+                        click = function(element)
+                            if controller then
+                                controller:FireEventTree("removeSelected", element.data.item)
+                                dmhub.Schedule(0.3, function()
+                                    element:DestroySelf()
+                                end)
+                            end
+                        end,
+                    })
+                end,
+                removeSelected = function(element, item)
+                    -- They're kind enough to destroy themselves
+                end
+            }
+        }
+    }
+    args.flow = nil
+    args.width = nil
+    args.height = nil
+    args.children = nil
+
+    local dropdownOpts = {
+        width = "100%",
+        options = args.options or {},
+
+        change = function(element, ...)
+            local controller = element:FindParentWithClass("multiselectController")
+            if controller then
+                if element.idChosen then
+                    for _, item in ipairs(element.options) do
+                        if item.id == element.idChosen then
+                            controller:FireEventTree("addSelected", item)
+                            break
+                        end
+                    end
+                end
+            end
+        end,
+
+        -- Adding to the selected list = removing from dropdown
+        addSelected = function(element, item)
+            local options = element.options
+            for i, option in ipairs(options) do
+                if option == item then
+                    element.idChosen = nil
+                    table.remove(options, i)
+                    element.options = options
+                    break
+                end
+            end
+        end,
+
+        -- Removing from the selected list = returning to the dropdown
+        removeSelected = function(element, item)
+            local listOptions = element.options
+            local insertPos = #listOptions + 1
+            for i, option in ipairs(listOptions) do
+                if item.text < option.text then
+                    insertPos = i
+                    break
+                end
+            end
+            table.insert(listOptions, insertPos, item)
+        end
+    }
+    args.options = nil
+    args.change = nil
+    for k, v in pairs(args) do
+        dropdownOpts[k] = v
+    end
+
+    panelOpts.children[#panelOpts.children + 1] = gui.Dropdown(dropdownOpts)
+
+    return gui.Panel(panelOpts)
+end
+
