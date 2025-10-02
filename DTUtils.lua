@@ -762,22 +762,117 @@ function DTUtils.Multiselect(args)
     args = args or {}
     args.classes = args.classes or {}
 
+    -- Retain the original list of options
+    local m_options = shallow_copy_list(args.options or {})
+    args.options = nil
+
+    -- For later value setting
+    local optionsById = {}
+    for _, opt in ipairs(m_options) do
+        optionsById[opt.id] = opt
+    end
+
+    -- For the value property
     local m_selected = {}
 
+    -- Reference to ourself
+    local m_panel = nil
+
+    -- Store the caller's callback for forwarding
     local fnChange = nil
     if args.change then
         fnChange = args.change
         args.change = nil
     end
 
+    -- Guarantee a layout we know how to use.
+    local flow = string.lower(args.flow or "vertical")
+    if flow ~= "horizontal" and flow ~= "vertical" then
+        flow = "vertical"
+    end
+    args.flow = nil
+    local layoutVertical = flow == "vertical"
+    if layoutVertical then
+        args.height = "auto"
+    else
+        args.width = "auto"
+    end
+
     local controllerClasses = {"multiselectController"}
     table.move(args.classes, 1, #args.classes, #controllerClasses + 1, controllerClasses)
+
+    local chipsPanel = gui.Panel {
+        width = flow == "vertical" and "100%" or "50%",
+        height = "auto",
+        flow = "horizontal",
+        wrap = true,
+        children = {},
+        addSelected = function(element, item)
+            element:AddChild(gui.Label{
+                id = item.id,
+                classes = { item.id },
+                data = {
+                    item = item
+                },
+                height = "auto",
+                width = "auto",
+                pad = 4,
+                margin = 4,
+                fontSize = 14,
+                text = item.text,
+                bgimage = "panels/square.png",
+                borderColor = Styles.textColor,
+                border = 1,
+                cornerRadius = 2,
+                bgcolor = "#444444",
+                click = function(element)
+                    local controller = element:FindParentWithClass("multiselectController")
+                    if controller then
+                        controller:FireEventTree("removeSelected", element.data.item)
+                        dmhub.Schedule(0.1, function()
+                            element:DestroySelf()
+                        end)
+                    end
+                end,
+            })
+        end,
+        repaint = function(element, selections)
+            -- Build lookup of selection IDs
+            local selectionIds = {}
+            for _, item in ipairs(selections) do
+                selectionIds[item.id] = true
+            end
+
+            -- Remove children not in selections (iterate backwards)
+            for i = #element.children, 1, -1 do
+                if not selectionIds[element.children[i].id] then
+                    element.children[i]:DestroySelf()
+                end
+            end
+
+            -- Build lookup of current child IDs
+            local childIds = {}
+            for _, child in ipairs(element.children) do
+                childIds[child.id] = true
+            end
+
+            -- Add selections that aren't in children
+            for _, item in ipairs(selections) do
+                if not childIds[item.id] then
+                    element:FireEvent("addSelected", item)
+                end
+            end
+        end,
+        removeSelected = function(element, item)
+            -- They're kind enough to destroy themselves
+        end
+    }
 
     local panelOpts = {
         classes = controllerClasses,
         width = args.width or "100%",
         height = args.height or "auto",
-        flow = "vertical",
+        flow = flow,
         data = {
             selected = m_selected,
         },
@@ -813,47 +908,30 @@ function DTUtils.Multiselect(args)
         GetValue = function()
             return m_selected
         end,
-        children = {
-            gui.Panel {
-                width = "100%",
-                height = "auto",
-                flow = "horizontal",
-                wrap = true,
-                children = {},
-                addSelected = function(element, item)
-                    local controller = element:FindParentWithClass("multiselectController")
-                    element:AddChild(gui.Label{
-                        id = item.id,
-                        classes = { item.id },
-                        data = {
-                            item = item
-                        },
-                        height = "auto",
-                        width = "auto",
-                        pad = 4,
-                        margin = 4,
-                        fontSize = 14,
-                        text = item.text,
-                        bgimage = "panels/square.png",
-                        borderColor = Styles.textColor,
-                        border = 1,
-                        cornerRadius = 2,
-                        bgcolor = "#444444",
-                        click = function(element)
-                            if controller then
-                                controller:FireEventTree("removeSelected", element.data.item)
-                                dmhub.Schedule(0.3, function()
-                                    element:DestroySelf()
-                                end)
-                            end
-                        end,
-                    })
-                end,
-                removeSelected = function(element, item)
-                    -- They're kind enough to destroy themselves
+        SetValue = function(v)
+            local newSelection = {}
+            local function addById(id)
+                if optionsById[id] then
+                    newSelection[#newSelection + 1] = optionsById[id]
                 end
-            }
-        }
+            end
+            if v then
+                if type(v) == "string" and #v > 0 then
+                    addById(v)
+                elseif type(v) == "table" then
+                    for _, item in ipairs(v) do
+                        if type(item) == "string" and #item > 0 then
+                            addById(item)
+                        elseif type(item) == "table" and item.id and type(item.id) == "string" and #item.id > 0 then
+                            addById(item.id)
+                        end
+                    end
+                end
+            end
+            m_selected = newSelection
+            m_panel:FireEventTree("repaint", newSelection)
+        end,
+        children = {}
     }
     args.flow = nil
     args.width = nil
@@ -861,8 +939,8 @@ function DTUtils.Multiselect(args)
     args.children = nil
 
     local dropdownOpts = {
-        width = "100%",
-        options = args.options or {},
+        width = flow == "vertical" and "100%" or "50%",
+        options = shallow_copy_list(m_options),
 
         change = function(element, ...)
             local controller = element:FindParentWithClass("multiselectController")
@@ -902,16 +980,36 @@ function DTUtils.Multiselect(args)
                 end
             end
             table.insert(listOptions, insertPos, item)
-        end
+        end,
+
+        repaint = function(element, selections)
+            -- Remove everything from the original options list that
+            -- is selected now.
+            local options = shallow_copy_list(m_options)
+            for i = #options, 1, -1 do
+                for _, item in ipairs(selections) do
+                    if options[i].id == item.id then
+                        table.remove(options, i)
+                        break
+                    end
+                end
+            end
+            element.options = options
+        end,
     }
     args.options = nil
     args.change = nil
     for k, v in pairs(args) do
         dropdownOpts[k] = v
     end
+    local dropdownPanel = gui.Dropdown(dropdownOpts)
 
-    panelOpts.children[#panelOpts.children + 1] = gui.Dropdown(dropdownOpts)
+    panelOpts.children = flow == "vertical"
+        and {chipsPanel, dropdownPanel}
+        or {dropdownPanel, chipsPanel}
 
-    return gui.Panel(panelOpts)
+    m_panel = gui.Panel(panelOpts)
+
+    return m_panel
 end
 
