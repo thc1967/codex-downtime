@@ -372,9 +372,20 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                     local controller = element:FindParentWithClass("rollController")
                                                     if controller then
                                                         local project = controller.data.project
-                                                        local attrId = project:GetTestCharacteristic()
+                                                        local characteristics = project:GetTestCharacteristics()
+
+                                                        -- Find characteristic with highest base value
+                                                        local attrId = nil
+                                                        local attrVal = -100
+                                                        for _, charId in ipairs(characteristics) do
+                                                            local baseAttr = character:GetBaseAttribute(charId)
+                                                            if baseAttr and baseAttr.baseValue > attrVal then
+                                                                attrId = charId
+                                                                attrVal = baseAttr.baseValue
+                                                            end
+                                                        end
+
                                                         local attrName = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, attrId)
-                                                        local attrVal = character:GetBaseAttribute(attrId).baseValue
                                                         local text = string.format("Characteristic: %s (%+d)", attrName, attrVal)
                                                         if text ~= element.text then
                                                             element.text = text

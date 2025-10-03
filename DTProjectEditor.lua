@@ -268,32 +268,32 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
             },
-            gui.Dropdown {
-                width = "100%-4",
-                classes = {"DTDropdown", "DTBase"},
-                options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
-                data = {
-                    getProject = function(element)
-                        local projectController = element:FindParentWithClass("projectController")
-                        if projectController then
-                            return projectController.data.project
-                        end
-                        return nil
-                    end
-                },
-                refreshToken = function(element, info)
-                    local project = element.data.getProject(element)
-                    if project and element.idChosen ~= project:GetTestCharacteristic() then
-                        element.idChosen = project:GetTestCharacteristic()
-                    end
-                end,
-                change = function(element)
-                    local project = element.data.getProject(element)
-                    if project and element.idChosen ~= project:GetTestCharacteristic() then
-                        project:SetTestCharacteristic(element.idChosen)
-                    end
-                end
-            },
+            -- gui.Dropdown {
+            --     width = "100%-4",
+            --     classes = {"DTDropdown", "DTBase"},
+            --     options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
+            --     data = {
+            --         getProject = function(element)
+            --             local projectController = element:FindParentWithClass("projectController")
+            --             if projectController then
+            --                 return projectController.data.project
+            --             end
+            --             return nil
+            --         end
+            --     },
+            --     refreshToken = function(element, info)
+            --         local project = element.data.getProject(element)
+            --         if project and element.idChosen ~= project:GetTestCharacteristic() then
+            --             element.idChosen = project:GetTestCharacteristic()
+            --         end
+            --     end,
+            --     change = function(element)
+            --         local project = element.data.getProject(element)
+            --         if project and element.idChosen ~= project:GetTestCharacteristic() then
+            --             project:SetTestCharacteristic(element.idChosen)
+            --         end
+            --     end
+            -- },
             DTUtils.Multiselect {
                 classes = {"DTPanel", "DTBase"},
                 flow = "horizontal",
@@ -320,15 +320,33 @@ function DTProjectEditor:_createProjectForm()
                 create = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        local c = project:GetTestCharacteristic()
+                        local c = project:GetTestCharacteristics()
                         element.value = c
                     end
                 end,
                 refreshToken = function(element)
-                    print("THC:: REFRESHTOKEN::")
+                    local uiValues = element.value
+                    local project = element.data.getProject(element)
+                    if project then
+                        local storageValues = project:GetTestCharacteristics()
+                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                            element.value = storageValues
+                        end
+                    end
                 end,
                 change = function(element)
-                    print("THC:: CHANGE::", element.value)
+                    local uiValues = element.value
+                    local project = element.data.getProject(element)
+                    if project then
+                        local storageValues = project:GetTestCharacteristics()
+                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                            project:SetTestCharacteristics(uiValues)
+                            local projectController = element:FindParentWithClass("projectController")
+                            if projectController then
+                                projectController:FireEventTree("refreshToken")
+                            end
+                        end
+                    end
                 end
             }
         }
@@ -932,7 +950,6 @@ function DTProjectEditor:_createRollsPanel()
                                     end
                                 end,
                                 click = function(element)
-                                    print("THC::", element)
                                     if not element.interactable then return end
                                     local project = element.data.getProject(element)
                                     local controller = element:FindParentWithClass("projectController")

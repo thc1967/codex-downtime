@@ -8,6 +8,7 @@
 --- @field projectSource string The lore source (book, tutor, etc.) enabling this project
 --- @field projectSourceLanguagePenalty string The character's language relationship to the project source language
 --- @field testCharacteristic string The characteristic used for project rolls
+--- @field testCharacteristics {} The list of potential test characteristics for project rolls
 --- @field projectGoal number The total project points needed to complete the project
 --- @field status string Current state of the project
 --- @field statusReason string Explanation for why the project is paused (if applicable)
@@ -20,7 +21,7 @@ DTProject = RegisterGameType("DTProject")
 DTProject.__index = DTProject
 
 local DEFAULT_LANG_PENALTY = DTConstants.LANGUAGE_PENALTY.NONE.key
-local DEFAULT_CHARACTERISTIC = DTConstants.CHARACTERISTICS.REASON.key
+-- local DEFAULT_CHARACTERISTIC = DTConstants.CHARACTERISTICS.REASON.key
 local DEFAULT_STATUS = DTConstants.STATUS.PAUSED.key
 
 --- Creates a new downtime project instance
@@ -35,7 +36,8 @@ function DTProject:new(sortOrder)
     instance.itemPrerequisite = ""
     instance.projectSource = ""
     instance.projectSourceLanguagePenalty = DEFAULT_LANG_PENALTY
-    instance.testCharacteristic = DEFAULT_CHARACTERISTIC
+    -- instance.testCharacteristic = DEFAULT_CHARACTERISTIC
+    instance.testCharacteristics = {}
     instance.projectGoal = 1
     instance.status = DEFAULT_STATUS
     instance.statusReason = "New Project"
@@ -114,17 +116,47 @@ end
 
 --- Gets the test characteristic
 --- @return string characteristic One of DTConstants.CHARACTERISTICS values
-function DTProject:GetTestCharacteristic()
-    return self.testCharacteristic or DEFAULT_CHARACTERISTIC
-end
+-- function DTProject:GetTestCharacteristic()
+--     return self.testCharacteristic or DEFAULT_CHARACTERISTIC
+-- end
 
 --- Sets the test characteristic
 --- @param characteristic string One of DTConstants.CHARACTERISTICS values
 --- @return DTProject self For chaining
-function DTProject:SetTestCharacteristic(characteristic)
-    if self:_isValidTestCharacteristic(characteristic) then
-        self.testCharacteristic = characteristic
+-- function DTProject:SetTestCharacteristic(characteristic)
+--     if self:_isValidTestCharacteristic(characteristic) then
+--         self.testCharacteristic = characteristic
+--     end
+--     return self
+-- end
+
+--- Gets the list of test characteristics for this project
+--- Falls back to legacy single characteristic if list is empty/nil
+--- @return table characteristics Array of characteristic keys from DTConstants.CHARACTERISTICS
+function DTProject:GetTestCharacteristics()
+    if self:try_get("testCharacteristics") and #self.testCharacteristics > 0 then
+        return self.testCharacteristics
     end
+
+    local legacy = self:try_get("testCharacteristic")
+    if legacy and legacy ~= "" then
+        local newValue = {legacy}
+        
+        local current = self:get_or_add("testCharacteristics", newValue)
+        current = legacy
+
+        return newValue
+    end
+
+    return {}
+end
+
+--- Sets the list of test characteristics for this project
+--- Validates and filters to only valid characteristics
+--- @param characteristics table Array of characteristic keys from DTConstants.CHARACTERISTICS
+--- @return DTProject self For chaining
+function DTProject:SetTestCharacteristics(characteristics)
+    self.testCharacteristics = self:_ensureValidCharacteristics(characteristics)
     return self
 end
 
@@ -241,8 +273,8 @@ function DTProject:IsValidStateToRoll()
         isValid = false
     end
 
-    if not self:_isValidTestCharacteristic(self:GetTestCharacteristic()) then
-        table.insert(reasons, "Test Characteristic is not set or invalid.")
+    if not self:_isValidTestCharacteristics(self:GetTestCharacteristics()) then
+        table.insert(reasons, "Test Characteristics are not set or invalid.")
         isValid = false
     end
 
@@ -482,11 +514,41 @@ end
 --- Validates if the given test characteristic is valid
 --- @param characteristic string The characteristic to validate
 --- @return boolean valid True if the characteristic is valid
-function DTProject:_isValidTestCharacteristic(characteristic)
-    for _, validCharacteristic in pairs(DTConstants.CHARACTERISTICS) do
-        if characteristic == validCharacteristic.key then
-            return true
+-- function DTProject:_isValidTestCharacteristic(characteristic)
+--     for _, validCharacteristic in pairs(DTConstants.CHARACTERISTICS) do
+--         if characteristic == validCharacteristic.key then
+--             return true
+--         end
+--     end
+--     return false
+-- end
+
+--- Validates if the project has at least one valid test characteristic
+--- @param characteristics table The characteristics list to validate
+--- @return boolean valid True if at least one valid characteristic exists
+function DTProject:_isValidTestCharacteristics(characteristics)
+    local c = self:_ensureValidCharacteristics(self:GetTestCharacteristics())
+    return #c > 0
+end
+
+--- Validates and filters a characteristics list to only valid entries
+--- @param characteristics table Array of characteristic keys to validate
+--- @return table validCharacteristics Filtered array containing only valid characteristic keys
+function DTProject:_ensureValidCharacteristics(characteristics)
+    local validList = {}
+
+    if type(characteristics) ~= "table" then
+        return validList
+    end
+
+    for _, char in ipairs(characteristics) do
+        for _, validChar in pairs(DTConstants.CHARACTERISTICS) do
+            if char == validChar.key then
+                table.insert(validList, char)
+                break
+            end
         end
     end
-    return false
+
+    return validList
 end

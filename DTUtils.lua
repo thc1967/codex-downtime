@@ -6,6 +6,43 @@ DTUtils = RegisterGameType("DTUtils")
 -- Turn on the background to see lines around the downtime tab panels
 local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
 
+
+--- Compares two arrays to determine if they contain the same values
+--- Handles both simple arrays and arrays of objects using reference equality
+--- @param a1 table First array to compare
+--- @param a2 table Second array to compare
+--- @return boolean same True if arrays contain the same values, false otherwise
+function DTUtils.ListsHaveSameValues(a1, a2)
+    -- Handle nil cases
+    if not a1 and not a2 then return true end
+    if not a1 or not a2 then return false end
+
+    -- Convert to simple arrays (handle both keyed and simple arrays)
+    local arr1 = {}
+    local arr2 = {}
+    for _, v in ipairs(a1) do arr1[#arr1 + 1] = v end
+    for _, v in ipairs(a2) do arr2[#arr2 + 1] = v end
+
+    -- Quick length check
+    if #arr1 ~= #arr2 then return false end
+
+    -- Build frequency map for arr1
+    local freq = {}
+    for _, v in ipairs(arr1) do
+        freq[v] = (freq[v] or 0) + 1
+    end
+
+    -- Verify arr2 matches frequency map
+    for _, v in ipairs(arr2) do
+        if not freq[v] or freq[v] == 0 then
+            return false
+        end
+        freq[v] = freq[v] - 1
+    end
+
+    return true
+end
+
 --- Creates a labeled checkbox with consistent styling
 --- @param checkboxOptions table Options for the checkbox (text, value, change, etc.)
 --- @param panelOptions? table Optional panel options (width, height, etc.)
@@ -904,9 +941,6 @@ function DTUtils.Multiselect(args)
                     end)
                 end
             end
-            opts.press = function(element)
-                element:FireEvent("click")
-            end
             element:AddChild(gui.Label(opts))
         end
         chipPanelOpts.repaint = function(element, selections)
@@ -1004,7 +1038,6 @@ function DTUtils.Multiselect(args)
             return ids --element.data.selected
         end
         panelOpts.SetValue = function(element, v)
-            print("THC:: SETVALUE::", v)
             local newSelection = {}
             local function addById(id)
                 if optionsById[id] then
