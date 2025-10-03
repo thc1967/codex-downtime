@@ -407,7 +407,10 @@ function DTProjectRollDialog._createPanel(roll, options)
                                             },
                                             DTUtils.Multiselect{
                                                 options = skillList,
-                                                classes = {"DTDropdown", "DTBase"},
+                                                classes = {"DTPanel", "DTBase"},
+                                                dropdown = {
+                                                    classes = {"DTDropdown", "DTBase"},
+                                                },
                                                 width = "98%",
                                                 halign = "left",
                                                 vmargin = 4,
@@ -420,8 +423,8 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                     local newSelected = element.value
                                                     local curSelected = element.data.skillsSelected or {}
                                                     local changed = DTUtils.SyncArrays(curSelected, newSelected, function(item) return item.id end)
-                                                    element.data.skillsSelected = curSelected
                                                     if changed then
+                                                        element.data.skillsSelected = curSelected
                                                         local rollController = element:FindParentWithClass("rollController")
                                                         if rollController then
                                                             rollController:FireEvent("removeItem", "bonuses", element.id)
