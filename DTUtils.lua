@@ -714,40 +714,36 @@ function DTUtils.ListToDropdownOptions(sourceList)
 end
 
 --- Transform the target to the source, returning true if we changed anything in the process
---- @param target table The destination array
---- @param source table The source array
---- @param keyFn? function A function used to extract the comparator; compares literal equality otherwise
+--- @param target table The destination array of strings
+--- @param source table The source array of strings
 --- @return boolean changed Whether we changed the destination array
-function DTUtils.SyncArrays(target, source, keyFn)
+function DTUtils.SyncArrays(target, source)
     local changed = false
 
-    keyFn = keyFn or function(item) return item end
-
     -- Build a lookup table for fast checking
-    local newKeys = {}
-    for _, item in ipairs(source) do
-        local key = keyFn(item)
-        newKeys[key] = true
+    local sourceSet = {}
+    for _, str in ipairs(source) do
+        sourceSet[str] = true
     end
     
     -- Remove items not in source
     for i = #target, 1, -1 do
-        if not newKeys[keyFn(target[i])] then
+        if not sourceSet[target[i]] then
             table.remove(target, i)
             changed = true
         end
     end
     
-    -- Build lookup of current keys
-    local currentKeys = {}
-    for _, item in ipairs(target) do
-        currentKeys[keyFn(item)] = true
+    -- Build lookup of current strings
+    local targetSet = {}
+    for _, str in ipairs(target) do
+        targetSet[str] = true
     end
     
     -- Add items from source that aren't in target
-    for _, item in ipairs(source) do
-        if not currentKeys[keyFn(item)] then
-            target[#target + 1] = item
+    for _, str in ipairs(source) do
+        if not targetSet[str] then
+            target[#target + 1] = str
             changed = true
         end
     end
@@ -771,9 +767,6 @@ function DTUtils.Multiselect(args)
     for _, opt in ipairs(m_options) do
         optionsById[opt.id] = opt
     end
-
-    -- For the value property
-    local m_selected = {}
 
     -- Reference to ourself
     local m_panel = nil
@@ -959,7 +952,7 @@ function DTUtils.Multiselect(args)
             args.classes = nil
         end
 
-        local panelData = { selected = m_selected }
+        local panelData = { selected = {} }
         if args.data then
             for k, v in pairs(args.data) do
                 if k ~= "selected" then
@@ -1003,8 +996,12 @@ function DTUtils.Multiselect(args)
             end
             element:FireEvent("change")
         end
-        panelOpts.GetValue = function()
-            return m_selected
+        panelOpts.GetValue = function(element)
+            local ids = {}
+            for _, item in ipairs(element.data.selected) do
+                ids[#ids + 1] = item.id
+            end
+            return ids --element.data.selected
         end
         panelOpts.SetValue = function(element, v)
             print("THC:: SETVALUE::", v)
@@ -1027,8 +1024,8 @@ function DTUtils.Multiselect(args)
                     end
                 end
             end
-            m_selected = newSelection
-            m_panel:FireEventTree("repaint", newSelection)
+            element.data.selected = newSelection
+            element:FireEventTree("repaint", newSelection)
         end
         panelOpts.children = flow == "vertical"
             and {chipsPanel, dropdownPanel}

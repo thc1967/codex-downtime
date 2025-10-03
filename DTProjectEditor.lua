@@ -321,7 +321,6 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project then
                         local c = project:GetTestCharacteristic()
-                        print("THC:: CREATE:: GOTPROJECT::", c)
                         element.value = c
                     end
                 end,
@@ -329,7 +328,7 @@ function DTProjectEditor:_createProjectForm()
                     print("THC:: REFRESHTOKEN::")
                 end,
                 change = function(element)
-                    print("THC:: CHANGE::", element)
+                    print("THC:: CHANGE::", element.value)
                 end
             }
         }

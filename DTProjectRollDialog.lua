@@ -35,9 +35,11 @@ function DTProjectRollDialog._createPanel(roll, options)
 
     local character = CharacterSheet.instance.data.info.token.properties
     local skillList = {}
+    local skillLookup = {}
     for _, skill in ipairs(Skill.SkillsInfo) do
         if character:ProficientInSkill(skill) then
             skillList[#skillList + 1] = { id = skill.name, text = skill.name}
+            skillLookup[skill.name] = skill.name
         end
     end
 
@@ -148,28 +150,9 @@ function DTProjectRollDialog._createPanel(roll, options)
             dmhub.Roll {
                 guid = rollGuid,
                 roll = rollString,
-                -- numKeep = 2,
                 description = "Making a Project Roll",
                 tokenid = token,
                 complete = function(rollInfoArg)
-                    local rollResult = {
-                        banes = rollInfoArg.banes,
-                        description = rollInfoArg.description,
-                        edges = rollInfoArg.boons,
-                        formattedText = rollInfoArg.formattedText,
-                        key = rollInfoArg.key,
-                        message = rollInfoArg.message,
-                        naturalRoll = rollInfoArg.naturalRoll,
-                        nick = rollInfoArg.nick,
-                        nickColor = rollInfoArg.nickColor,
-                        playerColor = rollInfoArg.playerColor,
-                        playerName = rollInfoArg.playerName,
-                        result = rollInfoArg.result,
-                        resultInfo = rollInfoArg.resultInfo,
-                        rolls = rollInfoArg.rolls,
-                        rollStr = rollInfoArg.rollstr,
-                        total = rollInfoArg.total,
-                    }
                     element.data.roll:SetAudit(audit)
                         :SetRollGuid(rollInfoArg.key)
                         :SetRollString(rollString)
@@ -417,21 +400,23 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                 textDefault = "Select a skill...",
                                                 sort = true,
                                                 data = {
+                                                    skillLookup = skillLookup,
                                                     skillsSelected = {},
                                                 },
                                                 change = function(element)
                                                     local newSelected = element.value
                                                     local curSelected = element.data.skillsSelected or {}
-                                                    local changed = DTUtils.SyncArrays(curSelected, newSelected, function(item) return item.id end)
+                                                    local skillLookup = element.data.skillLookup
+                                                    local changed = DTUtils.SyncArrays(curSelected, newSelected)
                                                     if changed then
                                                         element.data.skillsSelected = curSelected
                                                         local rollController = element:FindParentWithClass("rollController")
                                                         if rollController then
                                                             rollController:FireEvent("removeItem", "bonuses", element.id)
                                                             if #curSelected > 0 then
-                                                                local description = curSelected[1].text
+                                                                local description = skillLookup[curSelected[1]]
                                                                 for i = 2, #curSelected do
-                                                                    description = description .. ", " .. curSelected[i].text
+                                                                    description = description .. ", " .. skillLookup[curSelected[i]] --curSelected[i].text
                                                                 end
                                                                 local value = 2 * #curSelected
 
