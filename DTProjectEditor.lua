@@ -293,6 +293,24 @@ function DTProjectEditor:_createProjectForm()
                         project:SetTestCharacteristic(element.idChosen)
                     end
                 end
+            },
+            DTUtils.Multiselect {
+                classes = {"DTPanel", "DTBase"},
+                flow = "horizontal",
+                dropdown = {
+                    classes = {"DTDropdown", "DTBase"},
+                    width = "33%",
+                },
+                chipPanel = {
+                    width = "67%",
+                },
+                chips = {},
+                options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
+                sort = true,
+                textDefault = "Characteristics...",
+                change = function(element)
+                    print("THC:: CHANGE::", element)
+                end
             }
         }
     }

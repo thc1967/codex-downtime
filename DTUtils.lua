@@ -859,7 +859,6 @@ function DTUtils.Multiselect(args)
         end
         args.sort = nil
         args.textDefault = nil
-        print("THC:: LIST::", dropdownOpts)
         return gui.Dropdown(dropdownOpts)
     end
     local dropdownPanel = buildDropdown()
@@ -878,68 +877,133 @@ function DTUtils.Multiselect(args)
             cornerRadius = 2,
             bgcolor = "#444444",
         }
-        local chipsClasses = args.chipsClasses or {}
-        args.chipsClasses = nil
 
-        local chipOpts = {
-            width = flow == "vertical" and "100%" or "50%",
-            height = "auto",
-            flow = "horizontal",
-            wrap = true,
-            children = {},
-            addSelected = function(element, item)
-                element:AddChild(gui.Label{
-                    id = item.id,
-                    styles = { chipsStyle },
-                    classes = table.move({ item.id, "multiselect-chip" }, 1, 2, #chipsClasses + 1, chipsClasses),
-                    data = {
-                        item = item
-                    },
-                    text = item.text,
-                    click = function(element)
-                        local controller = element:FindParentWithClass("multiselectController")
-                        if controller then
-                            controller:FireEventTree("removeSelected", element.data.item)
-                            dmhub.Schedule(0.1, function()
-                                element:DestroySelf()
-                            end)
-                        end
-                    end,
-                })
-            end,
-            repaint = function(element, selections)
-                -- Build lookup of selection IDs
-                local selectionIds = {}
-                for _, item in ipairs(selections) do
-                    selectionIds[item.id] = true
-                end
+        -- Calculate for individual chips
+        local chipsOpts = args.chips or {}
+        args.chips = nil
+        local chipsClasses = chipsOpts.classes or {}
+        local chipsStyles = chipsOpts.styles or {}
+        args.chips = nil
+        chipsOpts.styles = table.move(chipsStyles, 1, #chipsStyles, #chipsStyle, chipsStyle)
 
-                -- Remove children not in selections (iterate backwards)
-                for i = #element.children, 1, -1 do
-                    if not selectionIds[element.children[i].id] then
-                        element.children[i]:DestroySelf()
-                    end
+        -- Calculate for the panel
+        local chipPanelOpts = args.chipPanel or {}
+        args.chipPanel = nil
+        chipPanelOpts.width = chipPanelOpts.width or flow == "vertical" and "100%" or "auto"
+        chipPanelOpts.height = "auto"
+        chipPanelOpts.flow = chipPanelOpts.flow or "horizontal"
+        chipPanelOpts.wrap = true
+        chipPanelOpts.children = {}
+        chipPanelOpts.borderColor = "#98F347"
+        chipPanelOpts.addSelected = function(element, item)
+            local baseClasses = { item.id, "multiselect-chip" }
+            local opts = chipsOpts
+            opts.id = item.id
+            opts.data = { item = item }
+            opts.text = item.text
+            opts.classes = table.move(chipsClasses, 1, #chipsClasses, #baseClasses + 1, baseClasses)
+            opts.click = function(element)
+                local controller = element:FindParentWithClass("multiselectController")
+                if controller then
+                    controller:FireEventTree("removeSelected", element.data.item)
+                    dmhub.Schedule(0.1, function()
+                        element:DestroySelf()
+                    end)
                 end
-
-                -- Build lookup of current child IDs
-                local childIds = {}
-                for _, child in ipairs(element.children) do
-                    childIds[child.id] = true
-                end
-
-                -- Add selections that aren't in children
-                for _, item in ipairs(selections) do
-                    if not childIds[item.id] then
-                        element:FireEvent("addSelected", item)
-                    end
-                end
-            end,
-            removeSelected = function(element, item)
-                -- They're kind enough to destroy themselves
             end
-        }
+            opts.press = function(element)
+                element:FireEvent("click")
+            end
+            element:AddChild(gui.Label(opts))
+        end
+        chipPanelOpts.repaint = function(element, selections)
+            -- Build lookup of selection IDs
+            local selectionIds = {}
+            for _, item in ipairs(selections) do
+                selectionIds[item.id] = true
+            end
 
-        return gui.Panel(chipOpts)
+            -- Remove children not in selections (iterate backwards)
+            for i = #element.children, 1, -1 do
+                if not selectionIds[element.children[i].id] then
+                    element.children[i]:DestroySelf()
+                end
+            end
+
+            -- Build lookup of current child IDs
+            local childIds = {}
+            for _, child in ipairs(element.children) do
+                childIds[child.id] = true
+            end
+
+            -- Add selections that aren't in children
+            for _, item in ipairs(selections) do
+                if not childIds[item.id] then
+                    element:FireEvent("addSelected", item)
+                end
+            end
+        end
+        chipPanelOpts.removeSelected = function(element, item)
+            -- They're kind enough to destroy themselves
+        end
+
+        -- local chipPanelOpts = {
+        --     width = flow == "vertical" and "100%" or "auto",
+        --     height = "auto",
+        --     flow = "horizontal",
+        --     wrap = true,
+        --     children = {},
+        --     addSelected = function(element, item)
+        --         local baseClasses = { item.id, "multiselect-chip" }
+        --         local opts = chipsOpts
+        --         opts.id = item.id
+        --         opts.data = { item = item }
+        --         opts.text = item.text
+        --         opts.classes = table.move(chipsClasses, 1, #chipsClasses, #baseClasses + 1, baseClasses)
+        --         opts.click = function(element)
+        --             local controller = element:FindParentWithClass("multiselectController")
+        --             if controller then
+        --                 controller:FireEventTree("removeSelected", element.data.item)
+        --                 dmhub.Schedule(0.1, function()
+        --                     element:DestroySelf()
+        --                 end)
+        --             end
+        --         end
+        --         element:AddChild(gui.Label(opts))
+        --     end,
+        --     repaint = function(element, selections)
+        --         -- Build lookup of selection IDs
+        --         local selectionIds = {}
+        --         for _, item in ipairs(selections) do
+        --             selectionIds[item.id] = true
+        --         end
+
+        --         -- Remove children not in selections (iterate backwards)
+        --         for i = #element.children, 1, -1 do
+        --             if not selectionIds[element.children[i].id] then
+        --                 element.children[i]:DestroySelf()
+        --             end
+        --         end
+
+        --         -- Build lookup of current child IDs
+        --         local childIds = {}
+        --         for _, child in ipairs(element.children) do
+        --             childIds[child.id] = true
+        --         end
+
+        --         -- Add selections that aren't in children
+        --         for _, item in ipairs(selections) do
+        --             if not childIds[item.id] then
+        --                 element:FireEvent("addSelected", item)
+        --             end
+        --         end
+        --     end,
+        --     removeSelected = function(element, item)
+        --         -- They're kind enough to destroy themselves
+        --     end
+        -- }
+
+        return gui.Panel(chipPanelOpts)
     end
     local chipsPanel = buildChips()
 
@@ -1032,7 +1096,6 @@ function DTUtils.Multiselect(args)
             and {chipsPanel, dropdownPanel}
             or {dropdownPanel, chipsPanel}
 
-        print("THC:: PANEL::", panelOpts)
 
         return gui.Panel(panelOpts)
     end
