@@ -307,7 +307,27 @@ function DTProjectEditor:_createProjectForm()
                 chips = {},
                 options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
                 sort = true,
-                textDefault = "Characteristics...",
+                textDefault = "Select...",
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                create = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        local c = project:GetTestCharacteristic()
+                        print("THC:: CREATE:: GOTPROJECT::", c)
+                        element.value = c
+                    end
+                end,
+                refreshToken = function(element)
+                    print("THC:: REFRESHTOKEN::")
+                end,
                 change = function(element)
                     print("THC:: CHANGE::", element)
                 end

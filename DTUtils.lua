@@ -947,155 +947,92 @@ function DTUtils.Multiselect(args)
             -- They're kind enough to destroy themselves
         end
 
-        -- local chipPanelOpts = {
-        --     width = flow == "vertical" and "100%" or "auto",
-        --     height = "auto",
-        --     flow = "horizontal",
-        --     wrap = true,
-        --     children = {},
-        --     addSelected = function(element, item)
-        --         local baseClasses = { item.id, "multiselect-chip" }
-        --         local opts = chipsOpts
-        --         opts.id = item.id
-        --         opts.data = { item = item }
-        --         opts.text = item.text
-        --         opts.classes = table.move(chipsClasses, 1, #chipsClasses, #baseClasses + 1, baseClasses)
-        --         opts.click = function(element)
-        --             local controller = element:FindParentWithClass("multiselectController")
-        --             if controller then
-        --                 controller:FireEventTree("removeSelected", element.data.item)
-        --                 dmhub.Schedule(0.1, function()
-        --                     element:DestroySelf()
-        --                 end)
-        --             end
-        --         end
-        --         element:AddChild(gui.Label(opts))
-        --     end,
-        --     repaint = function(element, selections)
-        --         -- Build lookup of selection IDs
-        --         local selectionIds = {}
-        --         for _, item in ipairs(selections) do
-        --             selectionIds[item.id] = true
-        --         end
-
-        --         -- Remove children not in selections (iterate backwards)
-        --         for i = #element.children, 1, -1 do
-        --             if not selectionIds[element.children[i].id] then
-        --                 element.children[i]:DestroySelf()
-        --             end
-        --         end
-
-        --         -- Build lookup of current child IDs
-        --         local childIds = {}
-        --         for _, child in ipairs(element.children) do
-        --             childIds[child.id] = true
-        --         end
-
-        --         -- Add selections that aren't in children
-        --         for _, item in ipairs(selections) do
-        --             if not childIds[item.id] then
-        --                 element:FireEvent("addSelected", item)
-        --             end
-        --         end
-        --     end,
-        --     removeSelected = function(element, item)
-        --         -- They're kind enough to destroy themselves
-        --     end
-        -- }
-
         return gui.Panel(chipPanelOpts)
     end
     local chipsPanel = buildChips()
 
     local function buildController()
+
         local controllerClasses = {"multiselectController"}
         if args.classes then
             table.move(args.classes, 1, #args.classes, #controllerClasses + 1, controllerClasses)
             args.classes = nil
         end
 
-        local panelOpts = {
-            classes = controllerClasses,
-            width = args.width or "100%",
-            height = args.height or "auto",
-            flow = flow,
-            data = {
-                selected = m_selected,
-            },
-            change = function(element, ...)
-                if fnChange then
-                    fnChange(element, element.data.selected, ...)
-                end
-            end,
-            addSelected = function(element, item)
-                local selected = element.data.selected
-                local found = false
-                for _, v in ipairs(selected) do
-                    if v == item then
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    selected[#selected + 1] = item
-                end
-                element:FireEvent("change")
-            end,
-            removeSelected = function(element, item)
-                local selected = element.data.selected
-                for i, v in ipairs(selected) do
-                    if v == item then
-                        table.remove(selected, i)
-                        break
-                    end
-                end
-                element:FireEvent("change")
-            end,
-            GetValue = function()
-                return m_selected
-            end,
-            SetValue = function(v)
-                local newSelection = {}
-                local function addById(id)
-                    if optionsById[id] then
-                        newSelection[#newSelection + 1] = optionsById[id]
-                    end
-                end
-                if v then
-                    if type(v) == "string" and #v > 0 then
-                        addById(v)
-                    elseif type(v) == "table" then
-                        for _, item in ipairs(v) do
-                            if type(item) == "string" and #item > 0 then
-                                addById(item)
-                            elseif type(item) == "table" and item.id and type(item.id) == "string" and #item.id > 0 then
-                                addById(item.id)
-                            end
-                        end
-                    end
-                end
-                m_selected = newSelection
-                m_panel:FireEventTree("repaint", newSelection)
-            end,
-            children = {}
-        }
-        args.flow = nil
-        args.width = nil
-        args.height = nil
-        args.children = nil
+        local panelData = { selected = m_selected }
         if args.data then
             for k, v in pairs(args.data) do
                 if k ~= "selected" then
-                    panelOpts.data[k] = v
+                    panelData[k] = v
                 end
             end
-            args.data = nil
         end
 
+        local panelOpts = args or {}
+        panelOpts.classes = controllerClasses
+        panelOpts.width = panelOpts.width or "100%"
+        panelOpts.height = panelOpts.height or "auto"
+        panelOpts.flow = flow
+        panelOpts.data = panelData
+        panelOpts.change = function(element, ...)
+            if fnChange then
+                fnChange(element, element.data.selected, ...)
+            end
+        end
+        panelOpts.addSelected = function(element, item)
+            local selected = element.data.selected
+            local found = false
+            for _, v in ipairs(selected) do
+                if v == item then
+                    found = true
+                    break
+                end
+            end
+            if not found then
+                selected[#selected + 1] = item
+            end
+            element:FireEvent("change")
+        end
+        panelOpts.removeSelected = function(element, item)
+            local selected = element.data.selected
+            for i, v in ipairs(selected) do
+                if v == item then
+                    table.remove(selected, i)
+                    break
+                end
+            end
+            element:FireEvent("change")
+        end
+        panelOpts.GetValue = function()
+            return m_selected
+        end
+        panelOpts.SetValue = function(element, v)
+            print("THC:: SETVALUE::", v)
+            local newSelection = {}
+            local function addById(id)
+                if optionsById[id] then
+                    newSelection[#newSelection + 1] = optionsById[id]
+                end
+            end
+            if v then
+                if type(v) == "string" and #v > 0 then
+                    addById(v)
+                elseif type(v) == "table" then
+                    for _, item in ipairs(v) do
+                        if type(item) == "string" and #item > 0 then
+                            addById(item)
+                        elseif type(item) == "table" and item.id and type(item.id) == "string" and #item.id > 0 then
+                            addById(item.id)
+                        end
+                    end
+                end
+            end
+            m_selected = newSelection
+            m_panel:FireEventTree("repaint", newSelection)
+        end
         panelOpts.children = flow == "vertical"
             and {chipsPanel, dropdownPanel}
             or {dropdownPanel, chipsPanel}
-
 
         return gui.Panel(panelOpts)
     end
@@ -1103,4 +1040,3 @@ function DTUtils.Multiselect(args)
 
     return m_panel
 end
-
