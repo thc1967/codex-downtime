@@ -1051,9 +1051,51 @@ function DTProjectEditor:CreateEditorPanel()
                 hmargin = 5,
                 vmargin = 5,
                 border = 0,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end,
+                },
                 click = function(element)
                     print("THC:: SHARE:: CLICK")
-                end
+                    if not element.interactable then return end
+
+                    local project = element.data.getProject(element)
+                    local controller = element:FindParentWithClass("projectController")
+                    if project and controller then
+
+                        -- Build the list of characters to show
+                        local me = CharacterSheet.instance.data.info.token
+                        local function inPartyAndNotMe(t)
+                            return t.id ~= me.id and t.partyId == me.partyId
+                        end
+                        local showList = DTUtils.GetAllHeroTokens(inPartyAndNotMe)
+
+                        local options = {
+                            showList = showList,
+                            callbacks = {
+                                confirm = function(selectedTokens)
+                                    print("THC:: SHAREDLG:: CONFIRM::", selectedTokens)
+                                    local shareData = DTShares:new()
+                                    if shareData then
+                                        shareData:Share(me.id, project:GetID(), selectedTokens)
+                                    end
+                                end,
+                                cancel = function()
+                                    -- cancel handler
+                                end
+                            }
+                        }
+                        CharacterSheet.instance:AddChild(DTShareDialog.CreateAsChild(options))
+                    end
+                end,
+                linger = function(element)
+                    gui.Tooltip("Share this project with other characters to request rolls.")(element)
+                end,
             }
         }
     }

@@ -801,24 +801,15 @@ function DTUtils.CharacterSelector(args)
     args = args or {}
 
     if not args.allTokens or type(args.allTokens) ~= "table" then
-        error("DTUtils.CharacterSelector requires args.allTokens")
+        error("CharacterSelector requires args.allTokens")
     end
 
-    -- Extract minimal data from tokens
-    local m_tokenData = {}
+    -- Store reference to token list and build ID lookup for SetValue validation
+    local m_allTokens = args.allTokens
     local m_validTokenIds = {}
-
-    for _, token in ipairs(args.allTokens) do
-        local tokenInfo = {
-            id = token.id,
-            description = token.description,
-            isHero = token.properties and token.properties:IsHero() or false,
-            token = token  -- For gui.CreateTokenImage()
-        }
-        m_tokenData[#m_tokenData + 1] = tokenInfo
+    for _, token in ipairs(m_allTokens) do
         m_validTokenIds[token.id] = true
     end
-
     args.allTokens = nil
 
     local fnChange = args.change
@@ -845,14 +836,14 @@ function DTUtils.CharacterSelector(args)
 
     local function _buildTokenPanels()
         local panels = {}
-        for _, tokenInfo in ipairs(m_tokenData) do
+        for _, token in ipairs(m_allTokens) do
             panels[#panels + 1] = gui.Panel{
                 bgimage = "panels/square.png",
                 classes = {"token-panel"},
-                data = { tokenInfo = tokenInfo },
-                children = { gui.CreateTokenImage(tokenInfo.token) },
+                data = { token = token },
+                children = { gui.CreateTokenImage(token) },
                 linger = function(element)
-                    gui.Tooltip(element.data.tokenInfo.description)(element)
+                    gui.Tooltip(element.data.token.description)(element)
                 end,
                 press = function(element)
                     element:SetClass("selected", not element:HasClass("selected"))
@@ -965,8 +956,7 @@ function DTUtils.CharacterSelector(args)
                     text = 'Party',
                     click = function(element)
                         for _, panel in ipairs(tokenPanels) do
-                            local isHero = panel.data.tokenInfo.isHero
-                            panel:SetClass('selected', isHero == true)
+                            panel:SetClass('selected', true)
                         end
                         local controller = element:FindParentWithClass("characterSelectorController")
                         if controller then controller:FireEvent("updateSelection") end
@@ -997,95 +987,95 @@ function DTUtils.CharacterSelector(args)
     end
 
     local controllerClasses = {"characterSelectorController"}
-    for _, cls in ipairs(additionalClasses) do
-        controllerClasses[#controllerClasses + 1] = cls
-    end
+    table.move(additionalClasses, 1, #additionalClasses, #controllerClasses + 1, controllerClasses)
 
     local controllerData = {selectedTokenIds = {}}
+    additionalData.selectedTokenIds = nil
     for k, v in pairs(additionalData) do
         controllerData[k] = v
     end
 
-    return gui.Panel {
-        classes = controllerClasses,
-        width = gridWidth,
-        height = "auto",
-        flow = "vertical",
-        data = controllerData,
+    local panelOpts = args or {}
+    panelOpts.classes = controllerClasses
+    panelOpts.width = gridWidth
+    panelOpts.height = "auto"
+    panelOpts.flow = "vertical"
+    panelOpts.data = controllerData
 
-        create = function(element)
-            if initialSelection and #initialSelection > 0 then
-                element:FireEvent("SetValue", initialSelection)
+    panelOpts.create = function(element)
+        if initialSelection and #initialSelection > 0 then
+            element:FireEvent("SetValue", initialSelection)
+        end
+    end
+
+    panelOpts.GetValue = function(element)
+        return shallow_copy_list(element.data.selectedTokenIds)
+    end
+
+    panelOpts.SetValue = function(element, v)
+        local newSelection = {}
+
+        local function addTokenId(tokenId)
+            if type(tokenId) == "string" and #tokenId > 0 and m_validTokenIds[tokenId] then
+                newSelection[#newSelection + 1] = tokenId
             end
-        end,
+        end
 
-        GetValue = function(element)
-            return shallow_copy_list(element.data.selectedTokenIds)
-        end,
-
-        SetValue = function(element, v)
-            local newSelection = {}
-
-            local function addTokenId(tokenId)
-                if type(tokenId) == "string" and #tokenId > 0 and m_validTokenIds[tokenId] then
-                    newSelection[#newSelection + 1] = tokenId
+        if v == nil then
+            -- clear selection
+        elseif type(v) == "string" then
+            addTokenId(v)
+        elseif type(v) == "table" then
+            for _, item in ipairs(v) do
+                if type(item) == "string" then
+                    addTokenId(item)
                 end
             end
+        end
 
-            if v == nil then
-                -- clear selection
-            elseif type(v) == "string" then
-                addTokenId(v)
-            elseif type(v) == "table" then
-                for _, item in ipairs(v) do
-                    if type(item) == "string" then
-                        addTokenId(item)
-                    end
+        element.data.selectedTokenIds = newSelection
+        element:FireEventTree("repaintSelection", newSelection)
+    end
+
+    panelOpts.updateSelection = function(element)
+        local newSelection = {}
+        local tokenGrid = element:Get("tokenGrid")
+        if tokenGrid then
+            for _, panel in ipairs(tokenGrid.children) do
+                if panel:HasClass('selected') then
+                    newSelection[#newSelection + 1] = panel.data.token.id
                 end
             end
+        end
 
-            element.data.selectedTokenIds = newSelection
-            element:FireEventTree("repaintSelection", newSelection)
-        end,
+        element.data.selectedTokenIds = newSelection
+        element:FireEvent("change", newSelection)
+    end
 
-        updateSelection = function(element)
-            local newSelection = {}
-            local tokenGrid = element:Get("tokenGrid")
-            if tokenGrid then
-                for _, panel in ipairs(tokenGrid.children) do
-                    if panel:HasClass('selected') then
-                        newSelection[#newSelection + 1] = panel.data.tokenInfo.id
-                    end
-                end
+    panelOpts.change = function(element, selectedTokenIds)
+        if fnChange then
+            fnChange(element, selectedTokenIds)
+        end
+    end
+
+    panelOpts.repaintSelection = function(element, selectedIds)
+        local selectedSet = {}
+        for _, id in ipairs(selectedIds) do
+            selectedSet[id] = true
+        end
+
+        local tokenGrid = element:Get("tokenGrid")
+        if tokenGrid then
+            for _, panel in ipairs(tokenGrid.children) do
+                local isSelected = selectedSet[panel.data.token.id] == true
+                panel:SetClass("selected", isSelected)
             end
+        end
 
-            element.data.selectedTokenIds = newSelection
-            element:FireEvent("change", newSelection)
-        end,
+        element:FireEvent("change", selectedIds)
+    end
 
-        change = function(element, selectedTokenIds)
-            if fnChange then
-                fnChange(element, selectedTokenIds)
-            end
-        end,
+    panelOpts.children = children
 
-        repaintSelection = function(element, selectedIds)
-            local selectedSet = {}
-            for _, id in ipairs(selectedIds) do
-                selectedSet[id] = true
-            end
-
-            local tokenGrid = element:Get("tokenGrid")
-            if tokenGrid then
-                for _, panel in ipairs(tokenGrid.children) do
-                    local isSelected = selectedSet[panel.data.tokenInfo.id] == true
-                    panel:SetClass("selected", isSelected)
-                end
-            end
-
-            element:FireEvent("change", selectedIds)
-        end,
-
-        children = children
-    }
+    return gui.Panel(panelOpts)
 end

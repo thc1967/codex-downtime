@@ -103,33 +103,97 @@ function DTShares:Revoke(sharedBy, sharedWith, projectId)
     end
 end
 
---- Shares a project
+--- Shares a project with recipients or revokes all if empty array
 --- @param sharedBy string VTT Token ID of the character sharing the project
---- @param sharedWith string VTT Token ID of the character receiving the project
 --- @param projectId string Unique identifier of the project being shared
-function DTShares:Share(sharedBy, sharedWith, projectId)
+--- @param sharedWith table Array of VTT Token IDs to share with (empty array revokes all)
+function DTShares:Share(sharedBy, projectId, sharedWith)
+    if not sharedBy or type(sharedBy) ~= "string" or #sharedBy == 0 then return end
+    if not projectId or type(projectId) ~= "string" or #projectId == 0 then return end
+    if not sharedWith or type(sharedWith) ~= "table" then return end
+
     local doc = self:_safeDoc()
-    if doc then
-        local data = doc.data
-        local hasChange = not data.senders[sharedBy]
-            or not data.senders[sharedBy][projectId]
-            or not data.senders[sharedBy][projectId][sharedWith]
-        if hasChange then
-            doc:BeginChange()
-            if not data.senders[sharedBy] then
-                data.senders[sharedBy] = {}
-            end
-            if not data.senders[sharedBy][projectId] then
-                data.senders[sharedBy][projectId] = {}
-            end
-            data.senders[sharedBy][projectId][sharedWith] = true
-            if not data.recipients[sharedWith] then
-                data.recipients[sharedWith] = {}
-            end
-            data.recipients[sharedWith][projectId] = sharedBy
-            doc:CompleteChange("Added project share", {undoable = false})
+    if not doc then return end
+
+    local data = doc.data
+
+    -- Build set of new recipients for easy lookup
+    local newRecipients = {}
+    for _, recipientId in ipairs(sharedWith) do
+        newRecipients[recipientId] = true
+    end
+
+    -- Get set of current recipients (or empty if none exist)
+    local currentRecipients = {}
+    if data.senders[sharedBy] and data.senders[sharedBy][projectId] then
+        for recipientId, _ in pairs(data.senders[sharedBy][projectId]) do
+            currentRecipients[recipientId] = true
         end
     end
+
+    -- Determine what changed
+    local toAdd = {}
+    local toRemove = {}
+
+    for recipientId, _ in pairs(newRecipients) do
+        if not currentRecipients[recipientId] then
+            toAdd[#toAdd + 1] = recipientId
+        end
+    end
+
+    for recipientId, _ in pairs(currentRecipients) do
+        if not newRecipients[recipientId] then
+            toRemove[#toRemove + 1] = recipientId
+        end
+    end
+
+    -- If nothing changed, bail out
+    if #toAdd == 0 and #toRemove == 0 then return end
+
+    -- Make changes in single transaction
+    doc:BeginChange()
+
+    -- Ensure sender structures exist if we're adding
+    if #toAdd > 0 then
+        if not data.senders[sharedBy] then
+            data.senders[sharedBy] = {}
+        end
+        if not data.senders[sharedBy][projectId] then
+            data.senders[sharedBy][projectId] = {}
+        end
+    end
+
+    -- Add new recipients
+    for _, recipientId in ipairs(toAdd) do
+        data.senders[sharedBy][projectId][recipientId] = true
+
+        if not data.recipients[recipientId] then
+            data.recipients[recipientId] = {}
+        end
+        data.recipients[recipientId][projectId] = sharedBy
+    end
+
+    -- Remove old recipients
+    for _, recipientId in ipairs(toRemove) do
+        data.senders[sharedBy][projectId][recipientId] = nil
+
+        if data.recipients[recipientId] then
+            data.recipients[recipientId][projectId] = nil
+            if next(data.recipients[recipientId]) == nil then
+                data.recipients[recipientId] = nil
+            end
+        end
+    end
+
+    -- Clean up empty sender nodes
+    if next(data.senders[sharedBy][projectId]) == nil then
+        data.senders[sharedBy][projectId] = nil
+    end
+    if data.senders[sharedBy] and next(data.senders[sharedBy]) == nil then
+        data.senders[sharedBy] = nil
+    end
+
+    doc:CompleteChange("Updated project shares", {undoable = false})
 end
 
 --- Static method to touch the settings document without requiring callers to manage instances
@@ -184,5 +248,9 @@ if DTConstants.DEVMODE then
         if shares then
             print("THC:: SHARES::", json(shares:GetShares()))
         end
+    end
+
+    Commands.thcdtclearshares = function(args)
+        local shares = DTShares:new():InitializeDocument()
     end
 end
