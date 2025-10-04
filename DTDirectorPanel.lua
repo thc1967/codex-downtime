@@ -25,6 +25,7 @@ local function _clearAllData()
     end
 
     chat.Send("Resetting Downtime settings.")
+    DTProjectShares:new():InitializeDocument()
     DTSettings:new():InitializeDocument()
 
 end
@@ -249,51 +250,6 @@ function DTDirectorPanel:_buildHeaderPanel()
                             DTGrantRollsDialog:new():ShowDialog()
                         end,
                     },
-                    DTConstants.DEVMODE and gui.Button {
-                        text = "C",
-                        width = 30,
-                        height = 30,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        classes = {"DTButton", "DTBase"},
-                        linger = function(element)
-                            gui.Tooltip("Test categorization")(element)
-                        end,
-                        click = function()
-                            self:_debugCategorization()
-                        end
-                    } or nil,
-                    DTConstants.DEVMODE and gui.Button{
-                        text = "I",
-                        width = 30,
-                        height = 30,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        classes = {"DTDanger", "DTButton", "DTBase"},
-                        linger = function(element)
-                            gui.Tooltip("Clear all data.")(element)
-                        end,
-                        click = function()
-                            _clearAllData()
-                        end
-                    } or nil,
-                    DTConstants.DEVMODE and gui.Button{
-                        text = "D",
-                        width = 30,
-                        height = 30,
-                        halign = "right",
-                        valign = "center",
-                        hmargin = 5,
-                        classes = {"DTButton", "DTBase"},
-                        linger = function(element)
-                            gui.Tooltip("Display network document.")(element)
-                        end,
-                        click = function()
-                            self:_debugDocument()
-                        end
-                    } or nil,
                 }
             },
         }
@@ -1046,8 +1002,8 @@ function DTDirectorPanel:_debugDocument()
     print("THC:: PERSISTED::", json(doc.data))
 end
 
-Commands.wipealldowntimedata = function(args)
-    if dmhub.isDM then
+if dmhub.isDM then
+    Commands.wipealldowntimedata = function(args)
         _clearAllData()
     end
 end

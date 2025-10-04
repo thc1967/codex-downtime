@@ -5,6 +5,8 @@
 DTProjectEditor = RegisterGameType("DTProjectEditor")
 DTProjectEditor.__index = DTProjectEditor
 
+local mod = dmhub.GetModLoading()
+
 --- Creates a new DTProjectEditor instance
 --- @param project DTProject The project to edit
 --- @return DTProjectEditor instance The new editor instance
@@ -268,33 +270,7 @@ function DTProjectEditor:_createProjectForm()
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
             },
-            -- gui.Dropdown {
-            --     width = "100%-4",
-            --     classes = {"DTDropdown", "DTBase"},
-            --     options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
-            --     data = {
-            --         getProject = function(element)
-            --             local projectController = element:FindParentWithClass("projectController")
-            --             if projectController then
-            --                 return projectController.data.project
-            --             end
-            --             return nil
-            --         end
-            --     },
-            --     refreshToken = function(element, info)
-            --         local project = element.data.getProject(element)
-            --         if project and element.idChosen ~= project:GetTestCharacteristic() then
-            --             element.idChosen = project:GetTestCharacteristic()
-            --         end
-            --     end,
-            --     change = function(element)
-            --         local project = element.data.getProject(element)
-            --         if project and element.idChosen ~= project:GetTestCharacteristic() then
-            --             project:SetTestCharacteristic(element.idChosen)
-            --         end
-            --     end
-            -- },
-            DTUtils.Multiselect {
+            gui.Multiselect {
                 classes = {"DTPanel", "DTBase"},
                 flow = "horizontal",
                 dropdown = {
@@ -304,7 +280,9 @@ function DTProjectEditor:_createProjectForm()
                 chipPanel = {
                     width = "67%",
                 },
-                chips = {},
+                chips = {
+                    classes = {"DTChip"}
+                },
                 options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
                 sort = true,
                 textDefault = "Select...",
@@ -1034,6 +1012,7 @@ function DTProjectEditor:CreateEditorPanel()
         height = "auto",
         halign = "right",
         valign = "top",
+        flow = "vertical",
         children = {
             gui.DeleteItemButton {
                 width = 20,
@@ -1058,6 +1037,22 @@ function DTProjectEditor:CreateEditorPanel()
                             }))
                         end
                     end
+                end
+            },
+            gui.Button {
+                style = {
+                    width = 20,
+                    height = 20,
+                },
+                width = 20,
+                height = 20,
+                icon = mod.images.share,
+                halign = "right",
+                hmargin = 5,
+                vmargin = 5,
+                border = 0,
+                click = function(element)
+                    print("THC:: SHARE:: CLICK")
                 end
             }
         }

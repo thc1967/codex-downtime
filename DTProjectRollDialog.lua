@@ -399,11 +399,14 @@ function DTProjectRollDialog._createPanel(roll, options)
                                                     end
                                                 end,
                                             },
-                                            DTUtils.Multiselect{
+                                            gui.Multiselect{
                                                 options = skillList,
                                                 classes = {"DTPanel", "DTBase"},
                                                 dropdown = {
                                                     classes = {"DTDropdown", "DTBase"},
+                                                },
+                                                chips = {
+                                                    classes = {"DTChip"}
                                                 },
                                                 width = "98%",
                                                 halign = "left",

@@ -20,7 +20,6 @@ function DTRoll:new(naturalRoll, modifiedRoll)
     instance.rollString = ""
     instance.rolledBy = ""
     instance.naturalRoll = math.floor(naturalRoll or 0)
-    instance.modifiedRoll = math.floor(modifiedRoll or 0)
     instance.breakthrough = false
     instance.rollGuid = ""
     instance.audit = ""

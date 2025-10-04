@@ -6,43 +6,6 @@ DTUtils = RegisterGameType("DTUtils")
 -- Turn on the background to see lines around the downtime tab panels
 local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
 
-
---- Compares two arrays to determine if they contain the same values
---- Handles both simple arrays and arrays of objects using reference equality
---- @param a1 table First array to compare
---- @param a2 table Second array to compare
---- @return boolean same True if arrays contain the same values, false otherwise
-function DTUtils.ListsHaveSameValues(a1, a2)
-    -- Handle nil cases
-    if not a1 and not a2 then return true end
-    if not a1 or not a2 then return false end
-
-    -- Convert to simple arrays (handle both keyed and simple arrays)
-    local arr1 = {}
-    local arr2 = {}
-    for _, v in ipairs(a1) do arr1[#arr1 + 1] = v end
-    for _, v in ipairs(a2) do arr2[#arr2 + 1] = v end
-
-    -- Quick length check
-    if #arr1 ~= #arr2 then return false end
-
-    -- Build frequency map for arr1
-    local freq = {}
-    for _, v in ipairs(arr1) do
-        freq[v] = (freq[v] or 0) + 1
-    end
-
-    -- Verify arr2 matches frequency map
-    for _, v in ipairs(arr2) do
-        if not freq[v] or freq[v] == 0 then
-            return false
-        end
-        freq[v] = freq[v] - 1
-    end
-
-    return true
-end
-
 --- Creates a labeled checkbox with consistent styling
 --- @param checkboxOptions table Options for the checkbox (text, value, change, etc.)
 --- @param panelOptions? table Optional panel options (width, height, etc.)
@@ -691,6 +654,13 @@ function DTUtils.GetDialogStyles()
             margin = 2,
             border = 1,
         },
+
+        -- Multiselect chips
+        gui.Style{
+            selectors = {"DTChip", "hover"},
+            bgcolor = "#330000",
+            borderColor = "#990000",
+        },
     }
 end
 
@@ -727,6 +697,42 @@ function DTUtils.GetPlayerDisplayName(userId)
     end
 
     return "{unknown}"
+end
+
+--- Compares two arrays to determine if they contain the same values
+--- Handles both simple arrays and arrays of objects using reference equality
+--- @param a1 table First array to compare
+--- @param a2 table Second array to compare
+--- @return boolean same True if arrays contain the same values, false otherwise
+function DTUtils.ListsHaveSameValues(a1, a2)
+    -- Handle nil cases
+    if not a1 and not a2 then return true end
+    if not a1 or not a2 then return false end
+
+    -- Convert to simple arrays (handle both keyed and simple arrays)
+    local arr1 = {}
+    local arr2 = {}
+    for _, v in ipairs(a1) do arr1[#arr1 + 1] = v end
+    for _, v in ipairs(a2) do arr2[#arr2 + 1] = v end
+
+    -- Quick length check
+    if #arr1 ~= #arr2 then return false end
+
+    -- Build frequency map for arr1
+    local freq = {}
+    for _, v in ipairs(arr1) do
+        freq[v] = (freq[v] or 0) + 1
+    end
+
+    -- Verify arr2 matches frequency map
+    for _, v in ipairs(arr2) do
+        if not freq[v] or freq[v] == 0 then
+            return false
+        end
+        freq[v] = freq[v] - 1
+    end
+
+    return true
 end
 
 --- Transforms a list of DTConstant instances into a list of id, text pairs for dropdown lists
@@ -788,285 +794,298 @@ function DTUtils.SyncArrays(target, source)
     return changed
 end
 
---- Creates a generic multiselect control for selecting multiple items from a list
---- Displays selected items as removable chips with a dropdown to add more items
---- @return table panel The multiselect panel with "change" event support
-function DTUtils.Multiselect(args)
+--- Creates a character selector with token grid and selection shortcuts
+--- @param args table Configuration (allTokens, initialSelection, width, height, showShortcuts, change, classes, data)
+--- @return table panel The character selector controller panel with GetValue/SetValue methods
+function DTUtils.CharacterSelector(args)
     args = args or {}
-    args.classes = args.classes or {}
 
-    -- Retain the original list of options
-    local m_options = shallow_copy_list(args.options or {})
-    args.options = nil
-
-    -- For later value setting
-    local optionsById = {}
-    for _, opt in ipairs(m_options) do
-        optionsById[opt.id] = opt
+    if not args.allTokens or type(args.allTokens) ~= "table" then
+        error("DTUtils.CharacterSelector requires args.allTokens")
     end
 
-    -- Reference to ourself
-    local m_panel = nil
+    -- Extract minimal data from tokens
+    local m_tokenData = {}
+    local m_validTokenIds = {}
 
-    -- Store the caller's callback for forwarding
-    local fnChange = nil
-    if args.change then
-        fnChange = args.change
-        args.change = nil
-    end
-
-    -- Guarantee a layout we know how to use.
-    local flow = string.lower(args.flow or "vertical")
-    if flow ~= "horizontal" and flow ~= "vertical" then
-        flow = "vertical"
-    end
-    args.flow = nil
-    local layoutVertical = flow == "vertical"
-    if layoutVertical then
-        args.height = "auto"
-    else
-        args.width = "auto"
-    end
-
-    -- Calculate our dropdown sub-component
-    local function buildDropdown()
-        local dropdownOpts = args.dropdown or {}
-        args.dropdown = nil
-        dropdownOpts.width = dropdownOpts.width or flow == "vertical" and "100%" or "50%"
-        dropdownOpts.textDefault = dropdownOpts.textDefault or args.textDefault or "Select an item..."
-        dropdownOpts.sort = dropdownOpts.sort or args.sort or nil
-        dropdownOpts.options = shallow_copy_list(m_options)
-        dropdownOpts.change = function(element)
-            local controller = element:FindParentWithClass("multiselectController")
-            if controller then
-                if element.idChosen then
-                    for _, item in ipairs(element.options) do
-                        if item.id == element.idChosen then
-                            controller:FireEventTree("addSelected", item)
-                            break
-                        end
-                    end
-                end
-            end
-        end
-        dropdownOpts.addSelected = function(element, item)
-            -- Adding to the selected list = removing from dropdown
-            local options = element.options
-            for i, option in ipairs(options) do
-                if option == item then
-                    element.idChosen = nil
-                    table.remove(options, i)
-                    element.options = options
-                    break
-                end
-            end
-        end
-        dropdownOpts.removeSelected = function(element, item)
-            -- Removing from the selected list = returning to the dropdown
-            local listOptions = element.options
-            local insertPos = #listOptions + 1
-            for i, option in ipairs(listOptions) do
-                if item.text < option.text then
-                    insertPos = i
-                    break
-                end
-            end
-            table.insert(listOptions, insertPos, item)
-        end
-        dropdownOpts.repaint = function(element, selections)
-            -- Remove everything from the original options list that
-            -- is selected now.
-            local options = shallow_copy_list(m_options)
-            for i = #options, 1, -1 do
-                for _, item in ipairs(selections) do
-                    if options[i].id == item.id then
-                        table.remove(options, i)
-                        break
-                    end
-                end
-            end
-            element.options = options
-        end
-        args.sort = nil
-        args.textDefault = nil
-        return gui.Dropdown(dropdownOpts)
-    end
-    local dropdownPanel = buildDropdown()
-
-    local function buildChips()
-        local chipsStyle = {
-            selectors = {"multiselect-chip"},
-            height = "auto",
-            width = "auto",
-            pad = 4,
-            margin = 4,
-            fontSize = 14,
-            bgimage = "panels/square.png",
-            borderColor = Styles.textColor,
-            border = 1,
-            cornerRadius = 2,
-            bgcolor = "#444444",
+    for _, token in ipairs(args.allTokens) do
+        local tokenInfo = {
+            id = token.id,
+            description = token.description,
+            isHero = token.properties and token.properties:IsHero() or false,
+            token = token  -- For gui.CreateTokenImage()
         }
-
-        -- Calculate for individual chips
-        local chipsOpts = args.chips or {}
-        args.chips = nil
-        local chipsClasses = chipsOpts.classes or {}
-        local chipsStyles = chipsOpts.styles or {}
-        args.chips = nil
-        chipsOpts.styles = table.move(chipsStyles, 1, #chipsStyles, #chipsStyle, chipsStyle)
-
-        -- Calculate for the panel
-        local chipPanelOpts = args.chipPanel or {}
-        args.chipPanel = nil
-        chipPanelOpts.width = chipPanelOpts.width or flow == "vertical" and "100%" or "auto"
-        chipPanelOpts.height = "auto"
-        chipPanelOpts.flow = chipPanelOpts.flow or "horizontal"
-        chipPanelOpts.wrap = true
-        chipPanelOpts.children = {}
-        chipPanelOpts.borderColor = "#98F347"
-        chipPanelOpts.addSelected = function(element, item)
-            local baseClasses = { item.id, "multiselect-chip" }
-            local opts = chipsOpts
-            opts.id = item.id
-            opts.data = { item = item }
-            opts.text = item.text
-            opts.classes = table.move(chipsClasses, 1, #chipsClasses, #baseClasses + 1, baseClasses)
-            opts.click = function(element)
-                local controller = element:FindParentWithClass("multiselectController")
-                if controller then
-                    controller:FireEventTree("removeSelected", element.data.item)
-                    dmhub.Schedule(0.1, function()
-                        element:DestroySelf()
-                    end)
-                end
-            end
-            element:AddChild(gui.Label(opts))
-        end
-        chipPanelOpts.repaint = function(element, selections)
-            -- Build lookup of selection IDs
-            local selectionIds = {}
-            for _, item in ipairs(selections) do
-                selectionIds[item.id] = true
-            end
-
-            -- Remove children not in selections (iterate backwards)
-            for i = #element.children, 1, -1 do
-                if not selectionIds[element.children[i].id] then
-                    element.children[i]:DestroySelf()
-                end
-            end
-
-            -- Build lookup of current child IDs
-            local childIds = {}
-            for _, child in ipairs(element.children) do
-                childIds[child.id] = true
-            end
-
-            -- Add selections that aren't in children
-            for _, item in ipairs(selections) do
-                if not childIds[item.id] then
-                    element:FireEvent("addSelected", item)
-                end
-            end
-        end
-        chipPanelOpts.removeSelected = function(element, item)
-            -- They're kind enough to destroy themselves
-        end
-
-        return gui.Panel(chipPanelOpts)
+        m_tokenData[#m_tokenData + 1] = tokenInfo
+        m_validTokenIds[token.id] = true
     end
-    local chipsPanel = buildChips()
 
-    local function buildController()
+    args.allTokens = nil
 
-        local controllerClasses = {"multiselectController"}
-        if args.classes then
-            table.move(args.classes, 1, #args.classes, #controllerClasses + 1, controllerClasses)
-            args.classes = nil
-        end
+    local fnChange = args.change
+    args.change = nil
 
-        local panelData = { selected = {} }
-        if args.data then
-            for k, v in pairs(args.data) do
-                if k ~= "selected" then
-                    panelData[k] = v
-                end
-            end
-        end
+    local initialSelection = args.initialSelection or {}
+    args.initialSelection = nil
 
-        local panelOpts = args or {}
-        panelOpts.classes = controllerClasses
-        panelOpts.width = panelOpts.width or "100%"
-        panelOpts.height = panelOpts.height or "auto"
-        panelOpts.flow = flow
-        panelOpts.data = panelData
-        panelOpts.change = function(element, ...)
-            if fnChange then
-                fnChange(element, element.data.selected, ...)
-            end
+    local showShortcuts = args.showShortcuts
+    if showShortcuts == nil then showShortcuts = true end
+    args.showShortcuts = nil
+
+    local gridHeight = args.height or 130
+    args.height = nil
+
+    local gridWidth = args.width or "96%"
+    args.width = nil
+
+    local additionalClasses = args.classes or {}
+    args.classes = nil
+
+    local additionalData = args.data or {}
+    args.data = nil
+
+    local function _buildTokenPanels()
+        local panels = {}
+        for _, tokenInfo in ipairs(m_tokenData) do
+            panels[#panels + 1] = gui.Panel{
+                bgimage = "panels/square.png",
+                classes = {"token-panel"},
+                data = { tokenInfo = tokenInfo },
+                children = { gui.CreateTokenImage(tokenInfo.token) },
+                linger = function(element)
+                    gui.Tooltip(element.data.tokenInfo.description)(element)
+                end,
+                press = function(element)
+                    element:SetClass("selected", not element:HasClass("selected"))
+                    local controller = element:FindParentWithClass("characterSelectorController")
+                    if controller then
+                        controller:FireEvent("updateSelection")
+                    end
+                end,
+            }
         end
-        panelOpts.addSelected = function(element, item)
-            local selected = element.data.selected
-            local found = false
-            for _, v in ipairs(selected) do
-                if v == item then
-                    found = true
-                    break
-                end
-            end
-            if not found then
-                selected[#selected + 1] = item
-            end
-            element:FireEvent("change")
-        end
-        panelOpts.removeSelected = function(element, item)
-            local selected = element.data.selected
-            for i, v in ipairs(selected) do
-                if v == item then
-                    table.remove(selected, i)
-                    break
-                end
-            end
-            element:FireEvent("change")
-        end
-        panelOpts.GetValue = function(element)
-            local ids = {}
-            for _, item in ipairs(element.data.selected) do
-                ids[#ids + 1] = item.id
-            end
-            return ids --element.data.selected
-        end
-        panelOpts.SetValue = function(element, v)
-            local newSelection = {}
-            local function addById(id)
-                if optionsById[id] then
-                    newSelection[#newSelection + 1] = optionsById[id]
-                end
-            end
-            if v then
-                if type(v) == "string" and #v > 0 then
-                    addById(v)
-                elseif type(v) == "table" then
-                    for _, item in ipairs(v) do
-                        if type(item) == "string" and #item > 0 then
-                            addById(item)
-                        elseif type(item) == "table" and item.id and type(item.id) == "string" and #item.id > 0 then
-                            addById(item.id)
+        return panels
+    end
+
+    local function _buildTokenGrid(tokenPanels)
+        return gui.Panel {
+            classes = {"tokenPool"},
+            bgimage = 'panels/square.png',
+            bgcolor = 'black',
+            cornerRadius = 8,
+            border = 2,
+            borderColor = '#888888',
+            width = "100%",
+            height = gridHeight,
+            pad = 4,
+            vmargin = 8,
+            styles = {
+                {
+                    classes = {'token-panel'},
+                    bgcolor = 'black',
+                    cornerRadius = 8,
+                    width = 64,
+                    height = 64,
+                    halign = 'left',
+                },
+                {
+                    classes = {'token-panel', 'hover'},
+                    borderColor = 'grey',
+                    borderWidth = 2,
+                    bgcolor = '#441111',
+                },
+                {
+                    classes = {'token-panel', 'selected'},
+                    borderColor = 'white',
+                    borderWidth = 2,
+                    bgcolor = '#882222',
+                },
+            },
+            children = {
+                gui.Panel {
+                    id = "tokenGrid",
+                    width = "100%",
+                    height = "96%",
+                    valign = "center",
+                    halign = "center",
+                    flow = "horizontal",
+                    vscroll = true,
+                    wrap = true,
+                    children = {tokenPanels}
+                }
+            }
+        }
+    end
+
+    local function _buildShortcutsPanel(tokenPanels)
+        return gui.Panel{
+            flow = 'horizontal',
+            halign = 'center',
+            width = 'auto',
+            height = 'auto',
+            styles = {
+                {
+                    classes = {'token-pool-shortcut'},
+                    color = '#aaaaaa',
+                    fontSize = 16,
+                    width = 'auto',
+                    height = 'auto',
+                    valign = 'center',
+                    halign = 'center',
+                },
+                {
+                    classes = {'token-pool-shortcut', 'hover'},
+                    color = 'white',
+                },
+                {
+                    classes = {'shortcut-divider'},
+                    bgimage = 'panels/square.png',
+                    halign = 'center',
+                    valign = 'center',
+                    margin = 4,
+                    width = 2,
+                    height = 16,
+                    bgcolor = '#aaaaaa',
+                },
+            },
+            children = {
+                gui.Label{
+                    classes = {'token-pool-shortcut'},
+                    text = 'All',
+                    click = function(element)
+                        for _, panel in ipairs(tokenPanels) do
+                            panel:SetClass('selected', true)
                         end
+                        local controller = element:FindParentWithClass("characterSelectorController")
+                        if controller then controller:FireEvent("updateSelection") end
+                    end,
+                },
+                gui.Panel{ classes = {'shortcut-divider'} },
+                gui.Label{
+                    classes = {'token-pool-shortcut'},
+                    text = 'Party',
+                    click = function(element)
+                        for _, panel in ipairs(tokenPanels) do
+                            local isHero = panel.data.tokenInfo.isHero
+                            panel:SetClass('selected', isHero == true)
+                        end
+                        local controller = element:FindParentWithClass("characterSelectorController")
+                        if controller then controller:FireEvent("updateSelection") end
+                    end,
+                },
+                gui.Panel{ classes = {'shortcut-divider'} },
+                gui.Label{
+                    classes = {'token-pool-shortcut'},
+                    text = 'None',
+                    click = function(element)
+                        for _, panel in ipairs(tokenPanels) do
+                            panel:SetClass('selected', false)
+                        end
+                        local controller = element:FindParentWithClass("characterSelectorController")
+                        if controller then controller:FireEvent("updateSelection") end
+                    end,
+                },
+            }
+        }
+    end
+
+    local tokenPanels = _buildTokenPanels()
+    local tokenGrid = _buildTokenGrid(tokenPanels)
+
+    local children = {tokenGrid}
+    if showShortcuts then
+        children[#children + 1] = _buildShortcutsPanel(tokenPanels)
+    end
+
+    local controllerClasses = {"characterSelectorController"}
+    for _, cls in ipairs(additionalClasses) do
+        controllerClasses[#controllerClasses + 1] = cls
+    end
+
+    local controllerData = {selectedTokenIds = {}}
+    for k, v in pairs(additionalData) do
+        controllerData[k] = v
+    end
+
+    return gui.Panel {
+        classes = controllerClasses,
+        width = gridWidth,
+        height = "auto",
+        flow = "vertical",
+        data = controllerData,
+
+        create = function(element)
+            if initialSelection and #initialSelection > 0 then
+                element:FireEvent("SetValue", initialSelection)
+            end
+        end,
+
+        GetValue = function(element)
+            return shallow_copy_list(element.data.selectedTokenIds)
+        end,
+
+        SetValue = function(element, v)
+            local newSelection = {}
+
+            local function addTokenId(tokenId)
+                if type(tokenId) == "string" and #tokenId > 0 and m_validTokenIds[tokenId] then
+                    newSelection[#newSelection + 1] = tokenId
+                end
+            end
+
+            if v == nil then
+                -- clear selection
+            elseif type(v) == "string" then
+                addTokenId(v)
+            elseif type(v) == "table" then
+                for _, item in ipairs(v) do
+                    if type(item) == "string" then
+                        addTokenId(item)
                     end
                 end
             end
-            element.data.selected = newSelection
-            element:FireEventTree("repaint", newSelection)
-        end
-        panelOpts.children = flow == "vertical"
-            and {chipsPanel, dropdownPanel}
-            or {dropdownPanel, chipsPanel}
 
-        return gui.Panel(panelOpts)
-    end
-    m_panel = buildController()
+            element.data.selectedTokenIds = newSelection
+            element:FireEventTree("repaintSelection", newSelection)
+        end,
 
-    return m_panel
+        updateSelection = function(element)
+            local newSelection = {}
+            local tokenGrid = element:Get("tokenGrid")
+            if tokenGrid then
+                for _, panel in ipairs(tokenGrid.children) do
+                    if panel:HasClass('selected') then
+                        newSelection[#newSelection + 1] = panel.data.tokenInfo.id
+                    end
+                end
+            end
+
+            element.data.selectedTokenIds = newSelection
+            element:FireEvent("change", newSelection)
+        end,
+
+        change = function(element, selectedTokenIds)
+            if fnChange then
+                fnChange(element, selectedTokenIds)
+            end
+        end,
+
+        repaintSelection = function(element, selectedIds)
+            local selectedSet = {}
+            for _, id in ipairs(selectedIds) do
+                selectedSet[id] = true
+            end
+
+            local tokenGrid = element:Get("tokenGrid")
+            if tokenGrid then
+                for _, panel in ipairs(tokenGrid.children) do
+                    local isSelected = selectedSet[panel.data.tokenInfo.id] == true
+                    panel:SetClass("selected", isSelected)
+                end
+            end
+
+            element:FireEvent("change", selectedIds)
+        end,
+
+        children = children
+    }
 end

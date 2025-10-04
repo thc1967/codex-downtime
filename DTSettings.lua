@@ -30,7 +30,7 @@ function DTSettings:InitializeDocument()
         pauseRollsReason = "",
         modifiedAt = dmhub.serverTime,
     }
-    doc:CompleteChange("Initialize downtime settings", {undoable = true})
+    doc:CompleteChange("Initialize downtime settings", {undoable = false})
     return doc
 end
 
