@@ -30,10 +30,10 @@ function DTGrantRollsDialog:ShowDialog()
 
         validateForm = function(element)
             local isValid = false
-            local tokenPool = element:Get("tokenPool")
+            local selector = element:Get("characterSelector")
             local numRolls = element.data.currentRollCount or 0
-            if tokenPool and tokenPool.data and tokenPool.data.selectedTokens then
-                isValid = #tokenPool.data.selectedTokens > 0 and numRolls ~= 0
+            if selector and selector.value then
+                isValid = #selector.value > 0 and numRolls ~= 0
             end
             element:FireEventTree("enableConfirm", isValid, numRolls >= 0 and "Grant" or "Revoke")
         end,
@@ -46,9 +46,9 @@ function DTGrantRollsDialog:ShowDialog()
         saveAndClose = function(element)
             local numRolls = element.data.currentRollCount or 0
             if numRolls ~= 0 then
-                local tokenPool = element:Get("tokenPool")
-                if tokenPool and tokenPool.data and tokenPool.data.selectedTokens and #tokenPool.data.selectedTokens then
-                    for _, tokenId in ipairs(tokenPool.data.selectedTokens) do
+                local selector = element:Get("characterSelector")
+                if selector and selector.value and #selector.value > 0 then
+                    for _, tokenId in ipairs(selector.value) do
                         local token = dmhub.GetCharacterById(tokenId)
                         if token and token.properties then
                             token:ModifyProperties{
@@ -189,6 +189,10 @@ function DTGrantRollsDialog:_buildNumberOfRollsField()
         halign = "left"
     })
 end
+
+--[[
+ORIGINAL _createCharacterSelector - COMMENTED OUT
+RESTORE THIS IF CharacterSelector REPLACEMENT BREAKS
 
 --- Creates the character selector with token grid and All/Party/None controls
 --- @return table panel The character selector panel
@@ -412,6 +416,48 @@ function DTGrantRollsDialog:_createCharacterSelector()
                     tokenPoolSelection
                 }
             }
+        }
+    }
+end
+]]
+
+--- Creates the character selector using DTUtils.CharacterSelector
+--- @return table panel The character selector panel
+function DTGrantRollsDialog:_createCharacterSelector()
+    -- Get all hero tokens to display
+    local allTokens = DTUtils.GetAllHeroTokens()
+
+    -- Get tokens selected on map and extract their IDs for initial selection
+    local selectedTokens = dmhub.selectedTokens
+    local initialSelectionIds = {}
+    for _, token in ipairs(selectedTokens) do
+        initialSelectionIds[#initialSelectionIds + 1] = token.id
+    end
+
+    -- Return wrapper panel with CharacterSelector
+    return gui.Panel{
+        width = "100%",
+        height = "auto",
+        flow = "vertical",
+        vmargin = 10,
+        children = {
+            gui.Label{
+                text = "Select Characters:",
+                classes = {"DTLabel", "DTBase"},
+                width = "100%",
+            },
+            DTUtils.CharacterSelector({
+                id = "characterSelector",
+                allTokens = allTokens,
+                initialSelection = initialSelectionIds,
+                change = function(element, selectedTokenIds)
+                    -- Fire validateForm when selection changes
+                    local controller = element:FindParentWithClass("dtGrantRollsController")
+                    if controller then
+                        controller:FireEvent("validateForm")
+                    end
+                end,
+            })
         }
     }
 end

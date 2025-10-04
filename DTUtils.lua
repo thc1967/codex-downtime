@@ -817,7 +817,6 @@ function DTUtils.CharacterSelector(args)
 
     local initialSelection = args.initialSelection or {}
     args.initialSelection = nil
-    print("THC:: CHARSEL:: INITIALSEL::", initialSelection)
 
     local showShortcuts = args.showShortcuts
     if showShortcuts == nil then showShortcuts = true end
@@ -842,8 +841,25 @@ function DTUtils.CharacterSelector(args)
             initiallySelected[tokenId] = true
         end
 
-        local panels = {}
+        -- Create sorted copy of tokens: selected first, then alphabetically by name
+        local sortedTokens = {}
         for _, token in ipairs(m_allTokens) do
+            sortedTokens[#sortedTokens + 1] = token
+        end
+        table.sort(sortedTokens, function(a, b)
+            local aSelected = initiallySelected[a.id] == true
+            local bSelected = initiallySelected[b.id] == true
+            if aSelected ~= bSelected then
+                return aSelected  -- selected tokens come first
+            end
+            -- Both selected or both not selected - sort by name
+            local aName = a.name or ""
+            local bName = b.name or ""
+            return aName < bName
+        end)
+
+        local panels = {}
+        for _, token in ipairs(sortedTokens) do
             -- Check if this token should be initially selected
             local isSelected = initiallySelected[token.id] == true
 
