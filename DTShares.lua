@@ -74,6 +74,27 @@ function DTShares:GetShares()
     return nil
 end
 
+--- Returns the list of token IDs with whom a specific project is shared
+--- @param tokenId string The token ID of the character who shared the project
+--- @param projectId string The unique identifier of the project
+--- @return table recipients Array of token IDs with whom the project is shared (empty if none)
+function DTShares:GetProjectSharedWith(tokenId, projectId)
+    if not tokenId or type(tokenId) ~= "string" or #tokenId == 0 then return {} end
+    if not projectId or type(projectId) ~= "string" or #projectId == 0 then return {} end
+
+    local doc = self:_safeDoc()
+    if not doc then return {} end
+
+    local recipients = {}
+    if doc.data.senders[tokenId] and doc.data.senders[tokenId][projectId] then
+        for recipientId, _ in pairs(doc.data.senders[tokenId][projectId]) do
+            recipients[#recipients + 1] = recipientId
+        end
+    end
+
+    return recipients
+end
+
 --- Revokes a project share
 --- @param sharedBy string VTT Token ID of the character who shared the project
 --- @param sharedWith string VTT Token ID of the character who received the project
@@ -251,6 +272,6 @@ if DTConstants.DEVMODE then
     end
 
     Commands.thcdtclearshares = function(args)
-        local shares = DTShares:new():InitializeDocument()
+        DTShares:new():InitializeDocument()
     end
 end

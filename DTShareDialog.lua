@@ -61,7 +61,7 @@ function DTShareDialog._createPanel(options)
             -- Header
             gui.Label{
                 classes = {"DTLabel", "DTBase"},
-                text = "Share This Project",
+                text = "Share This Project With:",
                 fontSize = 24,
                 width = "100%",
                 height = 30,
@@ -80,6 +80,7 @@ function DTShareDialog._createPanel(options)
                     DTUtils.CharacterSelector({
                         id = "characterSelector",
                         allTokens = options.showList,
+                        initialSelection = options.initialSelection,
                         width = "96%",
                         height = 130,
                         showShortcuts = true,

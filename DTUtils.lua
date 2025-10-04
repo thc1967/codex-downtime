@@ -817,6 +817,7 @@ function DTUtils.CharacterSelector(args)
 
     local initialSelection = args.initialSelection or {}
     args.initialSelection = nil
+    print("THC:: CHARSEL:: INITIALSEL::", initialSelection)
 
     local showShortcuts = args.showShortcuts
     if showShortcuts == nil then showShortcuts = true end
@@ -835,11 +836,20 @@ function DTUtils.CharacterSelector(args)
     args.data = nil
 
     local function _buildTokenPanels()
+        -- Build set of initially selected token IDs for O(1) lookup
+        local initiallySelected = {}
+        for _, tokenId in ipairs(initialSelection) do
+            initiallySelected[tokenId] = true
+        end
+
         local panels = {}
         for _, token in ipairs(m_allTokens) do
+            -- Check if this token should be initially selected
+            local isSelected = initiallySelected[token.id] == true
+
             panels[#panels + 1] = gui.Panel{
                 bgimage = "panels/square.png",
-                classes = {"token-panel"},
+                classes = {"token-panel", isSelected and "selected" or nil},
                 data = { token = token },
                 children = { gui.CreateTokenImage(token) },
                 linger = function(element)
@@ -1003,8 +1013,10 @@ function DTUtils.CharacterSelector(args)
     panelOpts.data = controllerData
 
     panelOpts.create = function(element)
+        -- Initial selection is applied during panel creation
+        -- Just update internal state to match visual state
         if initialSelection and #initialSelection > 0 then
-            element:FireEvent("SetValue", initialSelection)
+            element.data.selectedTokenIds = shallow_copy_list(initialSelection)
         end
     end
 

@@ -1066,7 +1066,8 @@ function DTProjectEditor:CreateEditorPanel()
 
                     local project = element.data.getProject(element)
                     local controller = element:FindParentWithClass("projectController")
-                    if project and controller then
+                    local shareData = DTShares:new()
+                    if project and controller and shareData then
 
                         -- Build the list of characters to show
                         local me = CharacterSheet.instance.data.info.token
@@ -1075,15 +1076,17 @@ function DTProjectEditor:CreateEditorPanel()
                         end
                         local showList = DTUtils.GetAllHeroTokens(inPartyAndNotMe)
 
+                        -- Build the list of characters already shared with
+                        local sharedWith = shareData:GetProjectSharedWith(me.id, project:GetID())
+                        print("THC:: SHAREDWITH::", sharedWith)
+
                         local options = {
                             showList = showList,
+                            initialSelection = sharedWith,
                             callbacks = {
                                 confirm = function(selectedTokens)
                                     print("THC:: SHAREDLG:: CONFIRM::", selectedTokens)
-                                    local shareData = DTShares:new()
-                                    if shareData then
-                                        shareData:Share(me.id, project:GetID(), selectedTokens)
-                                    end
+                                    shareData:Share(me.id, project:GetID(), selectedTokens)
                                 end,
                                 cancel = function()
                                     -- cancel handler
