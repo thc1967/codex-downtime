@@ -267,21 +267,23 @@ function DTCharSheetTab._createBodyPanel()
 end
 
 --- Refreshes the projects list display
+--- Reconciles existing editor panels with current project list to avoid expensive panel recreation
 --- @param element table The projects list container element
 function DTCharSheetTab._refreshProjectsList(element)
-    element.children = {}
-
     local character = CharacterSheet.instance.data.info.token
     if not character or not character.properties or not character.properties:IsHero() then
+        element.children = {}
         return
     end
 
+    local sharedProjects = DTUtils.GetSharedProjectsForRecipient(character.id)
+
     local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
-    if not downtimeInfo then
-        -- Show "no projects" message
+    if not downtimeInfo and #sharedProjects == 0 then
+        -- Show "no projects" message only if no shared projects either
         element.children = {
             gui.Label {
-                text = "(unable to create downtime info)",
+                text = "(ERROR: unable to create downtime info)",
                 classes = {"DTLabel", "DTBase"},
                 width = "100%",
                 height = 40,
@@ -294,11 +296,11 @@ function DTCharSheetTab._refreshProjectsList(element)
     end
 
     local projects = downtimeInfo:GetSortedProjects()
-    if not projects or #projects == 0 then
-        -- Show "no projects" message
+    if (not projects or #projects == 0) and #sharedProjects == 0 then
+        -- Show "no projects" message only if no shared projects either
         element.children = {
             gui.Label {
-                text = "No downtime projects yet.\nClick the Add button to create one.",
+                text = "No projects yet.\nClick the Add button to create one.",
                 classes = {"DTLabel", "DTBase"},
                 width = "100%",
                 height = 40,
@@ -310,12 +312,87 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    -- Create project entries
-    local projectEntries = {}
-    -- local isFirstItem = true
-    for _, project in ipairs(projects) do
-        projectEntries[#projectEntries + 1] = DTProjectEditor:new(project):CreateEditorPanel()
+    -- Reconcile existing panels with current projects
+    local panels = element.children or {}
+
+    -- Step 1: Remove panels for projects that no longer exist in either owned or shared lists
+    for i = #panels, 1, -1 do
+        local panel = panels[i]
+        local foundProject = false
+
+        -- Check owned projects
+        for _, project in ipairs(projects) do
+            if project:GetID() == panel.id then
+                foundProject = true
+                break
+            end
+        end
+
+        -- If not found in owned, check shared projects
+        if not foundProject then
+            for _, entry in ipairs(sharedProjects) do
+                if entry.project:GetID() == panel.id then
+                    foundProject = true
+                    break
+                end
+            end
+        end
+
+        -- Only remove if not found in EITHER list
+        if not foundProject then
+            table.remove(panels, i)
+        end
     end
 
-    element.children = projectEntries
+    -- Step 2: Add panels for new projects that don't have panels yet
+
+    -- Add panels for owned projects
+    for _, project in ipairs(projects) do
+        local foundPanel = false
+        for _, panel in ipairs(panels) do
+            if panel.id == project:GetID() then
+                foundPanel = true
+                break
+            end
+        end
+        if not foundPanel then
+            panels[#panels + 1] = DTProjectEditor:new(project):CreateEditorPanel()
+        end
+    end
+
+    -- Add panels for shared projects
+    for _, entry in ipairs(sharedProjects) do
+        local foundPanel = false
+        for _, panel in ipairs(panels) do
+            if panel.id == entry.project:GetID() then
+                foundPanel = true
+                break
+            end
+        end
+        if not foundPanel then
+            -- panels[#panels + 1] = DTProjectEditor:new(entry.project):CreateEditorPanel()
+        end
+    end
+
+    -- Step 3: Sort panels - owned projects first (by sort order), then shared projects (by sort order)
+    local projectSortOrder = {}
+
+    -- Add owned projects with their natural sort order
+    for _, project in ipairs(projects) do
+        projectSortOrder[project:GetID()] = project:GetSortOrder()
+    end
+
+    -- Add shared projects with offset to ensure they come after owned projects
+    for _, entry in ipairs(sharedProjects) do
+        -- Offset by 1000000 to ensure shared projects come after owned projects
+        projectSortOrder[entry.project:GetID()] = 1000000 + entry.project:GetSortOrder()
+    end
+
+    table.sort(panels, function(a, b)
+        local aOrder = projectSortOrder[a.id] or 999999
+        local bOrder = projectSortOrder[b.id] or 999999
+        return aOrder < bOrder
+    end)
+
+    element.children = panels
 end

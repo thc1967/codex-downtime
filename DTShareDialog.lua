@@ -77,7 +77,7 @@ function DTShareDialog._createPanel(options)
                 flow = "vertical",
                 vmargin = 10,
                 children = {
-                    DTUtils.CharacterSelector({
+                    gui.CharacterSelect({
                         id = "characterSelector",
                         allTokens = options.showList,
                         initialSelection = options.initialSelection,

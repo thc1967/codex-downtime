@@ -457,6 +457,49 @@ function DTUtils.GetAllHeroTokens(fn)
     return heroes
 end
 
+--- Gets all projects shared with a recipient along with owner information
+--- @param recipientId string The token ID of the character receiving shares
+--- @return table sharedProjects Array of {project, ownerTokenId, ownerName} or empty array if none
+function DTUtils.GetSharedProjectsForRecipient(recipientId)
+    -- Validate input
+    if not recipientId or type(recipientId) ~= "string" or #recipientId == 0 then
+        return {}
+    end
+
+    -- Get shares for this recipient
+    local shares = DTShares:new()
+    local sharedWith = shares:GetSharedWith(recipientId)
+    if not sharedWith or not next(sharedWith) then
+        return {}
+    end
+
+    -- Build array of shared projects with owner info
+    local sharedProjects = {}
+    for projectId, ownerId in pairs(sharedWith) do
+        -- Get owner token (may be nil if character was deleted)
+        local ownerToken = dmhub.GetCharacterById(ownerId)
+        if ownerToken then
+            local ownerName = ownerToken.name
+
+            -- Get owner's downtime info
+            local ownerDTInfo = ownerToken.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+            if ownerDTInfo then
+                -- Get the specific project
+                local project = ownerDTInfo:GetDowntimeProject(projectId)
+                if project then
+                    sharedProjects[#sharedProjects + 1] = {
+                        project = project,
+                        ownerId = ownerId,
+                        ownerName = ownerName
+                    }
+                end
+            end
+        end
+    end
+
+    return sharedProjects
+end
+
 --- Gets the standardized styling configuration for Quest Manager dialogs
 --- Provides consistent styling across all Quest Manager UI components
 --- @return table styles Array of GUI styles using DTBase inheritance pattern
@@ -792,318 +835,4 @@ function DTUtils.SyncArrays(target, source)
     end
 
     return changed
-end
-
---- Creates a character selector with token grid and selection shortcuts
---- @param args table Configuration (allTokens, initialSelection, width, height, showShortcuts, change, classes, data)
---- @return table panel The character selector controller panel with GetValue/SetValue methods
-function DTUtils.CharacterSelector(args)
-    args = args or {}
-
-    if not args.allTokens or type(args.allTokens) ~= "table" then
-        error("CharacterSelector requires args.allTokens")
-    end
-
-    -- Store reference to token list and build ID lookup for SetValue validation
-    local m_allTokens = args.allTokens
-    local m_validTokenIds = {}
-    for _, token in ipairs(m_allTokens) do
-        m_validTokenIds[token.id] = true
-    end
-    args.allTokens = nil
-
-    local fnChange = args.change
-    args.change = nil
-
-    local initialSelection = args.initialSelection or {}
-    args.initialSelection = nil
-
-    local showShortcuts = args.showShortcuts
-    if showShortcuts == nil then showShortcuts = true end
-    args.showShortcuts = nil
-
-    local gridHeight = args.height or 130
-    args.height = nil
-
-    local gridWidth = args.width or "96%"
-    args.width = nil
-
-    local additionalClasses = args.classes or {}
-    args.classes = nil
-
-    local additionalData = args.data or {}
-    args.data = nil
-
-    local function _buildTokenPanels()
-        -- Build set of initially selected token IDs for O(1) lookup
-        local initiallySelected = {}
-        for _, tokenId in ipairs(initialSelection) do
-            initiallySelected[tokenId] = true
-        end
-
-        -- Create sorted copy of tokens: selected first, then alphabetically by name
-        local sortedTokens = {}
-        for _, token in ipairs(m_allTokens) do
-            sortedTokens[#sortedTokens + 1] = token
-        end
-        table.sort(sortedTokens, function(a, b)
-            local aSelected = initiallySelected[a.id] == true
-            local bSelected = initiallySelected[b.id] == true
-            if aSelected ~= bSelected then
-                return aSelected  -- selected tokens come first
-            end
-            -- Both selected or both not selected - sort by name
-            local aName = a.name or ""
-            local bName = b.name or ""
-            return aName < bName
-        end)
-
-        local panels = {}
-        for _, token in ipairs(sortedTokens) do
-            -- Check if this token should be initially selected
-            local isSelected = initiallySelected[token.id] == true
-
-            panels[#panels + 1] = gui.Panel{
-                bgimage = "panels/square.png",
-                classes = {"token-panel", isSelected and "selected" or nil},
-                data = { token = token },
-                children = { gui.CreateTokenImage(token) },
-                linger = function(element)
-                    gui.Tooltip(element.data.token.description)(element)
-                end,
-                press = function(element)
-                    element:SetClass("selected", not element:HasClass("selected"))
-                    local controller = element:FindParentWithClass("characterSelectorController")
-                    if controller then
-                        controller:FireEvent("updateSelection")
-                    end
-                end,
-            }
-        end
-        return panels
-    end
-
-    local function _buildTokenGrid(tokenPanels)
-        return gui.Panel {
-            classes = {"tokenPool"},
-            bgimage = 'panels/square.png',
-            bgcolor = 'black',
-            cornerRadius = 8,
-            border = 2,
-            borderColor = '#888888',
-            width = "100%",
-            height = gridHeight,
-            pad = 4,
-            vmargin = 8,
-            styles = {
-                {
-                    classes = {'token-panel'},
-                    bgcolor = 'black',
-                    cornerRadius = 8,
-                    width = 64,
-                    height = 64,
-                    halign = 'left',
-                },
-                {
-                    classes = {'token-panel', 'hover'},
-                    borderColor = 'grey',
-                    borderWidth = 2,
-                    bgcolor = '#441111',
-                },
-                {
-                    classes = {'token-panel', 'selected'},
-                    borderColor = 'white',
-                    borderWidth = 2,
-                    bgcolor = '#882222',
-                },
-            },
-            children = {
-                gui.Panel {
-                    id = "tokenGrid",
-                    width = "100%",
-                    height = "96%",
-                    valign = "center",
-                    halign = "center",
-                    flow = "horizontal",
-                    vscroll = true,
-                    wrap = true,
-                    children = {tokenPanels}
-                }
-            }
-        }
-    end
-
-    local function _buildShortcutsPanel(tokenPanels)
-        return gui.Panel{
-            flow = 'horizontal',
-            halign = 'center',
-            width = 'auto',
-            height = 'auto',
-            styles = {
-                {
-                    classes = {'token-pool-shortcut'},
-                    color = '#aaaaaa',
-                    fontSize = 16,
-                    width = 'auto',
-                    height = 'auto',
-                    valign = 'center',
-                    halign = 'center',
-                },
-                {
-                    classes = {'token-pool-shortcut', 'hover'},
-                    color = 'white',
-                },
-                {
-                    classes = {'shortcut-divider'},
-                    bgimage = 'panels/square.png',
-                    halign = 'center',
-                    valign = 'center',
-                    margin = 4,
-                    width = 2,
-                    height = 16,
-                    bgcolor = '#aaaaaa',
-                },
-            },
-            children = {
-                gui.Label{
-                    classes = {'token-pool-shortcut'},
-                    text = 'All',
-                    click = function(element)
-                        for _, panel in ipairs(tokenPanels) do
-                            panel:SetClass('selected', true)
-                        end
-                        local controller = element:FindParentWithClass("characterSelectorController")
-                        if controller then controller:FireEvent("updateSelection") end
-                    end,
-                },
-                gui.Panel{ classes = {'shortcut-divider'} },
-                gui.Label{
-                    classes = {'token-pool-shortcut'},
-                    text = 'Party',
-                    click = function(element)
-                        for _, panel in ipairs(tokenPanels) do
-                            panel:SetClass('selected', true)
-                        end
-                        local controller = element:FindParentWithClass("characterSelectorController")
-                        if controller then controller:FireEvent("updateSelection") end
-                    end,
-                },
-                gui.Panel{ classes = {'shortcut-divider'} },
-                gui.Label{
-                    classes = {'token-pool-shortcut'},
-                    text = 'None',
-                    click = function(element)
-                        for _, panel in ipairs(tokenPanels) do
-                            panel:SetClass('selected', false)
-                        end
-                        local controller = element:FindParentWithClass("characterSelectorController")
-                        if controller then controller:FireEvent("updateSelection") end
-                    end,
-                },
-            }
-        }
-    end
-
-    local tokenPanels = _buildTokenPanels()
-    local tokenGrid = _buildTokenGrid(tokenPanels)
-
-    local children = {tokenGrid}
-    if showShortcuts then
-        children[#children + 1] = _buildShortcutsPanel(tokenPanels)
-    end
-
-    local controllerClasses = {"characterSelectorController"}
-    table.move(additionalClasses, 1, #additionalClasses, #controllerClasses + 1, controllerClasses)
-
-    local controllerData = {selectedTokenIds = {}}
-    additionalData.selectedTokenIds = nil
-    for k, v in pairs(additionalData) do
-        controllerData[k] = v
-    end
-
-    local panelOpts = args or {}
-    panelOpts.classes = controllerClasses
-    panelOpts.width = gridWidth
-    panelOpts.height = "auto"
-    panelOpts.flow = "vertical"
-    panelOpts.data = controllerData
-
-    panelOpts.create = function(element)
-        -- Initial selection is applied during panel creation
-        -- Just update internal state to match visual state
-        if initialSelection and #initialSelection > 0 then
-            element.data.selectedTokenIds = shallow_copy_list(initialSelection)
-        end
-    end
-
-    panelOpts.GetValue = function(element)
-        return shallow_copy_list(element.data.selectedTokenIds)
-    end
-
-    panelOpts.SetValue = function(element, v)
-        local newSelection = {}
-
-        local function addTokenId(tokenId)
-            if type(tokenId) == "string" and #tokenId > 0 and m_validTokenIds[tokenId] then
-                newSelection[#newSelection + 1] = tokenId
-            end
-        end
-
-        if v == nil then
-            -- clear selection
-        elseif type(v) == "string" then
-            addTokenId(v)
-        elseif type(v) == "table" then
-            for _, item in ipairs(v) do
-                if type(item) == "string" then
-                    addTokenId(item)
-                end
-            end
-        end
-
-        element.data.selectedTokenIds = newSelection
-        element:FireEventTree("repaintSelection", newSelection)
-    end
-
-    panelOpts.updateSelection = function(element)
-        local newSelection = {}
-        local tokenGrid = element:Get("tokenGrid")
-        if tokenGrid then
-            for _, panel in ipairs(tokenGrid.children) do
-                if panel:HasClass('selected') then
-                    newSelection[#newSelection + 1] = panel.data.token.id
-                end
-            end
-        end
-
-        element.data.selectedTokenIds = newSelection
-        element:FireEvent("change", newSelection)
-    end
-
-    panelOpts.change = function(element, selectedTokenIds)
-        if fnChange then
-            fnChange(element, selectedTokenIds)
-        end
-    end
-
-    panelOpts.repaintSelection = function(element, selectedIds)
-        local selectedSet = {}
-        for _, id in ipairs(selectedIds) do
-            selectedSet[id] = true
-        end
-
-        local tokenGrid = element:Get("tokenGrid")
-        if tokenGrid then
-            for _, panel in ipairs(tokenGrid.children) do
-                local isSelected = selectedSet[panel.data.token.id] == true
-                panel:SetClass("selected", isSelected)
-            end
-        end
-
-        element:FireEvent("change", selectedIds)
-    end
-
-    panelOpts.children = children
-
-    return gui.Panel(panelOpts)
 end
