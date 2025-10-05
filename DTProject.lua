@@ -42,7 +42,6 @@ function DTProject:new(sortOrder)
     instance.status = DEFAULT_STATUS
     instance.statusReason = "New Project"
     instance.milestoneThreshold = 0
-    instance.earnedBreakthroughs = 0
     instance.projectRolls = {}
     instance.progressAdjustments = {}
     instance.createdBy = dmhub.userid
@@ -222,32 +221,14 @@ function DTProject:SetMilestoneThreshold(threshold)
     return self
 end
 
---- Increments the earned breakthroughs count
---- @return DTProject self For chaining
-function DTProject:IncrementEarnedBreakthroughs()
-    self.earnedBreakthroughs = self.earnedBreakthroughs + 1
-    return self
-end
-
---- Decrements the earned breakthroughs count
---- @return DTProject self For chaining
-function DTProject:DecrementEarnedBreakthroughs()
-    self.earnedBreakthroughs = math.max(0, self.earnedBreakthroughs - 1)
-    return self
-end
-
---- Gets the earned breakthroughs count
---- @return number breakthroughs The earned breakthroughs count
-function DTProject:GetEarnedBreakthroughs()
-    return self.earnedBreakthroughs or 0
-end
-
---- Sets the earned breakthroughs count
---- @param count number The earned breakthroughs count
---- @return DTProject self For chaining
-function DTProject:SetEarnedBreakthroughs(count)
-    self.earnedBreakthroughs = math.max(0, math.floor(count or 0))
-    return self
+--- Returns the number of Breakthroughs rolled against this project
+--- @return number breakthroughs
+function DTProject:GetBreakthroughRollCount()
+    local i = 0
+    for _, r in ipairs(self:GetRolls()) do
+        if r:GetBreakthrough() then i = i + 1 end
+    end
+    return i
 end
 
 --- Determines whether the project is active / ready to roll

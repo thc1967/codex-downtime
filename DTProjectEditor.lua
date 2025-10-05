@@ -248,7 +248,7 @@ function DTProjectEditor:_createProjectForm()
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        local s = string.format("%d pending", project:GetEarnedBreakthroughs())
+                        local s = string.format("%d rolled", project:GetBreakthroughRollCount())
                         if element.text ~= s then
                             element.text = s
                         end
@@ -1172,9 +1172,7 @@ function DTProjectEditor:_createRollsPanel()
                         children = {
                             self:_createRollButton({
                                 confirm = function(rolls, controller)
-                                    for _, roll in ipairs(rolls) do
-                                        controller:FireEvent("addRoll", roll)
-                                    end
+                                    controller:FireEvent("addRolls", rolls)
                                 end
                             }),
                         }
