@@ -1485,7 +1485,6 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
         vmargin = 5,
         border = 0,
         confirm = function(rolls, controller)
-            print("THC:: SHAREDROLLS::", json(rolls))
             local token = dmhub.GetCharacterById(ownerId)
             if token then
                 local project = controller.data.project

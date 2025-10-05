@@ -156,7 +156,7 @@ function DTProjectRollDialog._createPanel(options)
                     local newRoll = DTRoll:new()
                     dmhub.Roll {
                         guid = dmhub.GenerateGuid(),
-                        roll = isFirstRoll and "20d10" or rollString, --THC:: FIX:: rollString,
+                        roll = rollString,
                         description = isFirstRoll and "Making a Project Roll" or "Breakthrough roll",
                         tokenid = token,
                         complete = function(rollInfo)
