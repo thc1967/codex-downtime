@@ -37,7 +37,7 @@ end
 
 --- Gets the rollString used for this roll
 --- @return string|nil rollString The rollString name or nil if no rollString was used
-function DTRoll:RollString()
+function DTRoll:GetRollString()
     return self.rollString or ""
 end
 

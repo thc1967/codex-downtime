@@ -1170,95 +1170,13 @@ function DTProjectEditor:_createRollsPanel()
                         width = "12%",
                         halign = "right",
                         children = {
-                            gui.Button {
-                                classes = {"DTButton", "DTBase"},
-                                icon = "panels/initiative/initiative-dice.png",
-                                width = 24,
-                                height = 24,
-                                margin = 0,
-                                borderWidth = 0,
-                                data = {
-                                    enabled = false,
-                                    tooltipText = "",
-                                    getDowntimeInfo = function(element)
-                                        local downtimeController = element:FindParentWithClass("downtimeController")
-                                        if downtimeController then
-                                            return downtimeController.data.getDowntimeInfo()
-                                        end
-                                        return nil
-                                    end,
-                                    getProject = function(element)
-                                        local projectController = element:FindParentWithClass("projectController")
-                                        if projectController then
-                                            return projectController.data.project
-                                        end
-                                        return nil
-                                    end,
-                                },
-                                monitorGame = DTSettings:new():GetDocumentPath(),
-                                refreshToken = function(element)
-                                    element:FireEvent("refreshGame")
-                                end,
-                                refreshGame = function(element)
-                                    local isEnabled = false
-                                    element.data.tooltipText = "Project not found?"
-                                    local project = element.data.getProject(element)
-                                    if project then
-                                        local validState, issueList = project:IsValidStateToRoll()
-                                        if validState then
-                                            local downtimeInfo = element.data.getDowntimeInfo(element)
-                                            if downtimeInfo then
-                                                if downtimeInfo:GetAvailableRolls() > 0 or project:GetEarnedBreakthroughs() > 0 then
-                                                    local settings = DTSettings:new()
-                                                    if settings then
-                                                        if settings:GetPauseRolls() then
-                                                            element.data.tooltipText = "Rolling is currently paused"
-                                                        else
-                                                            element.data.tooltipText = "Make a roll"
-                                                            isEnabled = true
-                                                        end
-                                                    end
-                                                else
-                                                    element.data.tooltipText = "You have no available rolls"
-                                                end
-                                            else
-                                                element.data.tooltipText = "No available rolls"
-                                            end
-                                        else
-                                            element.data.tooltipText = table.concat(issueList, " ")
-                                        end
+                            self:_createRollButton({
+                                confirm = function(rolls, controller)
+                                    for _, roll in ipairs(rolls) do
+                                        controller:FireEvent("addRoll", roll)
                                     end
-                                    element:SetClass("DTDisabled", not isEnabled)
-                                    element.interactable = isEnabled
-                                end,
-                                linger = function(element)
-                                    if element.data.tooltipText and #element.data.tooltipText then
-                                        gui.Tooltip(element.data.tooltipText)(element)
-                                    end
-                                end,
-                                click = function(element)
-                                    if not element.interactable then return end
-                                    local project = element.data.getProject(element)
-                                    local controller = element:FindParentWithClass("projectController")
-                                    local roll = DTRoll:new()
-                                    if project and controller and roll then
-                                        local options = {
-                                            data = {
-                                                project = project
-                                            },
-                                            callbacks = {
-                                                confirm = function(roll)
-                                                    controller:FireEvent("addRoll", roll)
-                                                end,
-                                                cancel = function()
-                                                    -- cancel handler
-                                                end
-                                            }
-                                        }
-                                        CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(roll, options))
-                                    end
-                                end,
-                            },
+                                end
+                            }),
                         }
                     },
                 }
@@ -1302,6 +1220,123 @@ function DTProjectEditor:_createRollsPanel()
                 }
             }
         }
+    }
+end
+
+--- Creates a roll button for making downtime project rolls
+--- @param options table|nil Options table with styling and callback properties
+---   - confirm: function(rolls, controller) - Callback when rolls are confirmed, receives array of DTRoll objects
+---   - width: number - Button width (default: 24)
+---   - height: number - Button height (default: 24)
+---   - margin: number - Button margin (default: 0)
+---   - borderWidth/border: number - Border width (default: 0)
+---   - halign: string - Horizontal alignment (default: nil)
+---   - hmargin: number - Horizontal margin (default: nil)
+---   - vmargin: number - Vertical margin (default: nil)
+--- @return table button The roll button element
+function DTProjectEditor:_createRollButton(options)
+    options = options or {}
+    local confirmCallback = options.confirm
+    local width = options.width or 24
+    local height = options.height or 24
+    local margin = options.margin or 0
+    local borderWidth = options.borderWidth or options.border or 0
+    local halign = options.halign or nil
+    local hmargin = options.hmargin or nil
+    local vmargin = options.vmargin or nil
+
+    return gui.Button {
+        classes = {"DTButton", "DTBase"},
+        icon = "panels/initiative/initiative-dice.png",
+        width = width,
+        height = height,
+        margin = margin,
+        borderWidth = borderWidth,
+        halign = halign,
+        hmargin = hmargin,
+        vmargin = vmargin,
+        data = {
+            enabled = false,
+            tooltipText = "",
+            getDowntimeInfo = function(element)
+                local downtimeController = element:FindParentWithClass("downtimeController")
+                if downtimeController then
+                    return downtimeController.data.getDowntimeInfo()
+                end
+                return nil
+            end,
+            getProject = function(element)
+                local projectController = element:FindParentWithClass("projectController")
+                if projectController then
+                    return projectController.data.project
+                end
+                return nil
+            end,
+        },
+        monitorGame = DTSettings:new():GetDocumentPath(),
+        refreshToken = function(element)
+            element:FireEvent("refreshGame")
+        end,
+        refreshGame = function(element)
+            local isEnabled = false
+            element.data.tooltipText = "Project not found?"
+            local project = element.data.getProject(element)
+            if project then
+                local validState, issueList = project:IsValidStateToRoll()
+                if validState then
+                    local downtimeInfo = element.data.getDowntimeInfo(element)
+                    if downtimeInfo then
+                        if downtimeInfo:GetAvailableRolls() > 0 or project:GetEarnedBreakthroughs() > 0 then
+                            local settings = DTSettings:new()
+                            if settings then
+                                if settings:GetPauseRolls() then
+                                    element.data.tooltipText = "Rolling is currently paused"
+                                else
+                                    element.data.tooltipText = "Make a roll"
+                                    isEnabled = true
+                                end
+                            end
+                        else
+                            element.data.tooltipText = "You have no available rolls"
+                        end
+                    else
+                        element.data.tooltipText = "No available rolls"
+                    end
+                else
+                    element.data.tooltipText = table.concat(issueList, " ")
+                end
+            end
+            element:SetClass("DTDisabled", not isEnabled)
+            element.interactable = isEnabled
+        end,
+        linger = function(element)
+            if element.data.tooltipText and #element.data.tooltipText then
+                gui.Tooltip(element.data.tooltipText)(element)
+            end
+        end,
+        click = function(element)
+            if not element.interactable then return end
+            local project = element.data.getProject(element)
+            local controller = element:FindParentWithClass("projectController")
+            if project and controller then
+                local options = {
+                    data = {
+                        project = project
+                    },
+                    callbacks = {
+                        confirm = function(rolls)
+                            if confirmCallback then
+                                confirmCallback(rolls, controller)
+                            end
+                        end,
+                        cancel = function()
+                            -- cancel handler
+                        end
+                    }
+                }
+                CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(options))
+            end
+        end,
     }
 end
 
@@ -1420,66 +1455,58 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
             end
         },
         click = function(element)
-            local projectController = element:FindParentWithClass("projectController")
-            if projectController then
-                local project = projectController.data and projectController.data.project
-                if project then
-                    CharacterSheet.instance:AddChild(DTConfirmationDialog.CreateAsChild(
-                        "Withdraw From Project?",
-                        string.format("Are you sure you want to withdraw your ability to roll on %s's project?", ownerName),
-                        "Confirm",
-                        "Cancel",
-                        {
-                            confirm = function()
-                                print("THC:: CONFIRMREVOKE::", ownerId)
-                                local shares = DTShares:new()
-                                if shares then
-                                    shares:Revoke(ownerId, CharacterSheet.instance.data.info.token.id, project:GetID())
-                                end
-                            end,
-                            cancel = function()
-                                -- Optional cancel logic
+            local project = element.data.getProject(element)
+                CharacterSheet.instance:AddChild(DTConfirmationDialog.CreateAsChild(
+                    "Withdraw From Project?",
+                    string.format("Are you sure you want to withdraw your ability to roll on %s's project?", ownerName),
+                    "Confirm",
+                    "Cancel",
+                    {
+                        confirm = function()
+                            local shares = DTShares:new()
+                            if shares then
+                                shares:Revoke(ownerId, CharacterSheet.instance.data.info.token.id, project:GetID())
                             end
-                        }
-                    ))
-                end
-            end
+                        end,
+                        cancel = function()
+                            -- Optional cancel logic
+                        end
+                    }
+                ))
         end,
         linger = function(element)
             gui.Tooltip("Remove yourself from this shared project")(element)
         end
     }
 
-    local rollButton = gui.Button {
-        style = {
-            width = 20,
-            height = 20,
-        },
+    local rollButton = self:_createRollButton({
         width = 20,
         height = 20,
-        icon = "panels/initiative/initiative-dice.png",
         halign = "left",
         hmargin = 5,
         vmargin = 5,
         border = 0,
-        data = {
-            ownerName = ownerName,
-            ownerId = ownerId,
-            getProject = function(element)
-                local projectController = element:FindParentWithClass("projectController")
-                if projectController then
-                    return projectController.data.project
+        confirm = function(rolls, controller)
+            print("THC:: SHAREDROLLS::", json(rolls))
+            local token = dmhub.GetCharacterById(ownerId)
+            if token then
+                local project = controller.data.project
+                if project then
+                    token:ModifyProperties{
+                        description = "Downtime project update",
+                        execute = function ()
+                            for _, roll in ipairs(rolls) do
+                                project:AddRoll(roll)
+                            end
+                        end
+                    }
+                    dmhub.Schedule(0.1, function()
+                        controller:FireEventTree("refreshToken")
+                    end)
                 end
-                return nil
             end
-        },
-        click = function(element)
-            print("THC:: SHARED_PROJECT_ROLL::")
-        end,
-        linger = function(element)
-            gui.Tooltip("Roll on this shared project")(element)
         end
-    }
+    })
 
     return {unshareButton, rollButton}
 end
@@ -1524,7 +1551,7 @@ function DTProjectEditor:_createProjectPanelContainer(additionalClasses, content
         vmargin = 7,
         borderColor = "#cc00cc",
         data = {
-            project = self:GetProject()
+            project = self:GetProject(),
         },
         children = {
             gui.Panel{
@@ -1604,10 +1631,10 @@ function DTProjectEditor:CreateEditorPanel()
             element:FireEvent("refreshProject")
         end,
 
-        addRoll = function(element, newRoll)
+        addRolls = function(element, rolls)
             local downtimeController = element:FindParentWithClass("downtimeController")
             if downtimeController then
-                element.data.project:AddRoll(newRoll)
+                element.data.project:AddRolls(rolls)
                 downtimeController:FireEvent("adjustRolls", -1)
             end
         end,
@@ -1679,7 +1706,7 @@ function DTProjectEditor._reconcileProgressItemsList(panels, items, deleteEvent)
             gui.Panel {
                 classes = {"DTPanel", "DTBase"},
                 width = "100%",
-                height = "100%",
+                height = "90%",
                 halign = "center",
                 valign = "top",
                 children = {

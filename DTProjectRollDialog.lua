@@ -4,16 +4,15 @@ DTProjectRollDialog = RegisterGameType("DTProjectRollDialog")
 DTProjectRollDialog.__index = DTProjectRollDialog
 
 --- Creates a project roll dialog for AddChild usage
---- @param roll DTRoll|DTProgressItem The roll instance to edit
 --- @param options table Table with data, options, and callback functions
 --- @return table|nil panel The GUI panel ready for AddChild
-function DTProjectRollDialog.CreateAsChild(roll, options)
+function DTProjectRollDialog.CreateAsChild(options)
     if not options then return end
     if not options.callbacks then options.callbacks = {} end
 
-    options.callbacks.confirmHandler = function(roll)
+    options.callbacks.confirmHandler = function(rolls)
         if options.callbacks and options.callbacks.confirm then
-            options.callbacks.confirm(roll)
+            options.callbacks.confirm(rolls)
         end
     end
 
@@ -23,14 +22,13 @@ function DTProjectRollDialog.CreateAsChild(roll, options)
         end
     end
 
-    return DTProjectRollDialog._createPanel(roll, options)
+    return DTProjectRollDialog._createPanel(options)
 end
 
 --- Private helper to create the roll dialog panel structure
---- @param roll DTRoll|DTProgressItem The roll instance to edit
 --- @param options table Table with data, options, and callback functions
 --- @return table panel The GUI panel structure
-function DTProjectRollDialog._createPanel(roll, options)
+function DTProjectRollDialog._createPanel(options)
     local resultPanel = nil
 
     local character = CharacterSheet.instance.data.info.token.properties
@@ -60,7 +58,7 @@ function DTProjectRollDialog._createPanel(roll, options)
                 banes = {},
                 bonuses = {},
             },
-            roll = roll,
+            rolls = {},  -- Array to collect all rolls in breakthrough chain
             project = options.data.project,
 
             isRolling = false,
@@ -127,8 +125,14 @@ function DTProjectRollDialog._createPanel(roll, options)
             element:FireEventTree("updateFields")
         end,
 
-        executeRoll = function(element)
+        updateTitle = function(element, newTitle)
+            local title = element:Get("dlgTitle")
+            if title then
+                title:FireEvent("updateTitle", newTitle)
+            end
+        end,
 
+        executeRoll = function(element)
             local audit = ""
             local adjustDetails = element:GetChildrenWithClassRecursive("adjustDetail")
             if adjustDetails and #adjustDetails > 0 then
@@ -140,31 +144,42 @@ function DTProjectRollDialog._createPanel(roll, options)
             end
 
             local rollString = element.data.calculateRoll(element)
-
             local token = CharacterSheet.instance.data.info.token
-
-            -- Prevent closing while rolling
             element.data.isRolling = true
+            element.data.rolls = {}  -- Initialize rolls array
 
-            local rollGuid = dmhub.GenerateGuid()
-            dmhub.Roll {
-                guid = rollGuid,
-                roll = rollString,
-                description = "Making a Project Roll",
-                tokenid = token,
-                complete = function(rollInfoArg)
-                    element.data.roll:SetAudit(audit)
-                        :SetRollGuid(rollInfoArg.key)
-                        :SetRollString(rollString)
-                        :SetRolledBy(token.name or "(unnamed character)")
-                        :SetNaturalRoll(rollInfoArg.naturalRoll)
-                        :SetBreakthrough(rollInfoArg.naturalRoll >= DTConstants.BREAKTHROUGH_MIN)
-                        :SetAmount(math.max(1, rollInfoArg.total))
+            local function keepRollingBreakthroughs(previousRoll, isFirstRoll)
+                if isFirstRoll or previousRoll:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
+                    if not isFirstRoll then
+                        element:FireEventTree("updateTitle", "Rolling a Breakthrough!")
+                    end
+                    local newRoll = DTRoll:new()
+                    dmhub.Roll {
+                        guid = dmhub.GenerateGuid(),
+                        roll = isFirstRoll and "20d10" or rollString, --THC:: FIX:: rollString,
+                        description = isFirstRoll and "Making a Project Roll" or "Breakthrough roll",
+                        tokenid = token,
+                        complete = function(rollInfo)
+                            newRoll:SetAudit(audit)
+                                :SetRollGuid(rollInfo.key)
+                                :SetRollString(rollString)
+                                :SetRolledBy(token.name or "(unnamed character)")
+                                :SetNaturalRoll(rollInfo.naturalRoll)
+                                :SetBreakthrough(not isFirstRoll)  -- First roll = false, others = true
+                                :SetAmount(math.max(1, rollInfo.total))
+                            element.data.rolls[#element.data.rolls + 1] = newRoll
+                            keepRollingBreakthroughs(newRoll, false)  -- Recursive call
+                        end,
+                    }
+                else
+                    -- Breakthrough chain complete - return all rolls
                     element.data.isRolling = false
-                    options.callbacks.confirmHandler(element.data.roll)
+                    options.callbacks.confirmHandler(element.data.rolls)
                     element:FireEvent("close", true)
-                end,
-            }
+                end
+            end
+
+            keepRollingBreakthroughs(nil, true)  -- Start with first roll
         end,
 
         close = function(element, force)
@@ -186,6 +201,9 @@ function DTProjectRollDialog._createPanel(roll, options)
                 width = "100%",
                 height = 30,
                 textAlignment = "center",
+                updateTitle = function(element, newText)
+                    element.text = newText
+                end,
             },
             gui.Divider { width = "50%" },
 
