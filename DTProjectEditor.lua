@@ -996,117 +996,130 @@ function DTProjectEditor:_createRollsPanel()
     }
 end
 
---- Creates an inline editor panel for real-time project editing
---- @return table panel The editor panel with input fields
-function DTProjectEditor:CreateEditorPanel()
-    local editor = self
+--- Creates action buttons for owned project panels (delete + share)
+--- @return table buttons Array containing delete button and share button elements
+function DTProjectEditor:_createOwnedProjectButtons()
+    local deleteButton = gui.DeleteItemButton {
+        width = 20,
+        height = 20,
+        halign = "right",
+        valign = "top",
+        hmargin = 5,
+        vmargin = 5,
+        click = function(element)
+            local downtimeController = element:FindParentWithClass("downtimeController")
+            local projectController = element:FindParentWithClass("projectController")
+            if projectController and downtimeController then
+                local project = projectController.data and projectController.data.project
+                if project then
+                    CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
+                        confirm = function()
+                            downtimeController:FireEvent("deleteProject", project:GetID())
+                        end,
+                        cancel = function()
+                            -- Optional cancel logic
+                        end
+                    }))
+                end
+            end
+        end
+    }
 
-    local formPanel = self:_createProjectForm()
+    local shareButton = gui.Button {
+        style = {
+            width = 20,
+            height = 20,
+        },
+        width = 20,
+        height = 20,
+        icon = mod.images.share,
+        halign = "right",
+        hmargin = 5,
+        vmargin = 5,
+        border = 0,
+        data = {
+            getProject = function(element)
+                local projectController = element:FindParentWithClass("projectController")
+                if projectController then
+                    return projectController.data.project
+                end
+                return nil
+            end,
+        },
+        click = function(element)
+            print("THC:: SHARE:: CLICK")
+            if not element.interactable then return end
 
-    local rollsPanel = self:_createRollsPanel()
+            local project = element.data.getProject(element)
+            local controller = element:FindParentWithClass("projectController")
+            local shareData = DTShares:new()
+            if project and controller and shareData then
 
-    local adjustmentsPanel = self:_createAdjustmentsPanel()
+                -- Build the list of characters to show
+                local me = CharacterSheet.instance.data.info.token
+                local function inPartyAndNotMe(t)
+                    return t.id ~= me.id and t.partyId == me.partyId
+                end
+                local showList = DTUtils.GetAllHeroTokens(inPartyAndNotMe)
 
-    local deletePanel = gui.Panel {
+                -- Build the list of characters already shared with
+                local sharedWith = shareData:GetProjectSharedWith(me.id, project:GetID())
+                print("THC:: SHAREDWITH::", sharedWith)
+
+                local options = {
+                    showList = showList,
+                    initialSelection = sharedWith,
+                    callbacks = {
+                        confirm = function(selectedTokens)
+                            print("THC:: SHAREDLG:: CONFIRM::", selectedTokens)
+                            shareData:Share(me.id, project:GetID(), selectedTokens)
+                        end,
+                        cancel = function()
+                            -- cancel handler
+                        end
+                    }
+                }
+                CharacterSheet.instance:AddChild(DTShareDialog.CreateAsChild(options))
+            end
+        end,
+        linger = function(element)
+            gui.Tooltip("Share this project with other characters to request rolls.")(element)
+        end,
+    }
+
+    return {deleteButton, shareButton}
+end
+
+--- Creates the action buttons panel container
+--- @param buttons table Array of button elements to display vertically
+--- @return table panel Vertical panel containing the buttons
+function DTProjectEditor:_createActionButtonsPanel(buttons)
+    return gui.Panel {
         width = 60,
         height = "auto",
         halign = "right",
         valign = "top",
         flow = "vertical",
-        children = {
-            gui.DeleteItemButton {
-                width = 20,
-                height = 20,
-                halign = "right",
-                valign = "top",
-                hmargin = 5,
-                vmargin = 5,
-                click = function(element)
-                    local downtimeController = element:FindParentWithClass("downtimeController")
-                    local projectController = element:FindParentWithClass("projectController")
-                    if projectController and downtimeController then
-                        local project = projectController.data and projectController.data.project
-                        if project then
-                            CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
-                                confirm = function()
-                                    downtimeController:FireEvent("deleteProject", project:GetID())
-                                end,
-                                cancel = function()
-                                    -- Optional cancel logic
-                                end
-                            }))
-                        end
-                    end
-                end
-            },
-            gui.Button {
-                style = {
-                    width = 20,
-                    height = 20,
-                },
-                width = 20,
-                height = 20,
-                icon = mod.images.share,
-                halign = "right",
-                hmargin = 5,
-                vmargin = 5,
-                border = 0,
-                data = {
-                    getProject = function(element)
-                        local projectController = element:FindParentWithClass("projectController")
-                        if projectController then
-                            return projectController.data.project
-                        end
-                        return nil
-                    end,
-                },
-                click = function(element)
-                    print("THC:: SHARE:: CLICK")
-                    if not element.interactable then return end
-
-                    local project = element.data.getProject(element)
-                    local controller = element:FindParentWithClass("projectController")
-                    local shareData = DTShares:new()
-                    if project and controller and shareData then
-
-                        -- Build the list of characters to show
-                        local me = CharacterSheet.instance.data.info.token
-                        local function inPartyAndNotMe(t)
-                            return t.id ~= me.id and t.partyId == me.partyId
-                        end
-                        local showList = DTUtils.GetAllHeroTokens(inPartyAndNotMe)
-
-                        -- Build the list of characters already shared with
-                        local sharedWith = shareData:GetProjectSharedWith(me.id, project:GetID())
-                        print("THC:: SHAREDWITH::", sharedWith)
-
-                        local options = {
-                            showList = showList,
-                            initialSelection = sharedWith,
-                            callbacks = {
-                                confirm = function(selectedTokens)
-                                    print("THC:: SHAREDLG:: CONFIRM::", selectedTokens)
-                                    shareData:Share(me.id, project:GetID(), selectedTokens)
-                                end,
-                                cancel = function()
-                                    -- cancel handler
-                                end
-                            }
-                        }
-                        CharacterSheet.instance:AddChild(DTShareDialog.CreateAsChild(options))
-                    end
-                end,
-                linger = function(element)
-                    gui.Tooltip("Share this project with other characters to request rolls.")(element)
-                end,
-            }
-        }
+        children = buttons
     }
+end
 
-    -- Container panel with form and delete button side by side
-    return gui.Panel {
-        id = editor:GetProject():GetID(),
-        classes = {"projectController"},
+--- Creates the outer project panel container with consistent styling
+--- @param additionalClasses table|nil Array of additional CSS classes beyond "projectController"
+--- @param contentPanels table Array of panels to layout horizontally (form, adjustments, rolls, buttons)
+--- @param eventHandlers table|nil Table of event handler functions (addAdjustment, deleteAdjustment, etc.)
+--- @return table panel The outer container panel
+function DTProjectEditor:_createProjectPanelContainer(additionalClasses, contentPanels, eventHandlers)
+    local classes = {"projectController"}
+    if additionalClasses then
+        for _, cls in ipairs(additionalClasses) do
+            classes[#classes + 1] = cls
+        end
+    end
+
+    local panelDef = {
+        id = self:GetProject():GetID(),
+        classes = classes,
         width = "95%",
         height = "auto",
         flow = "horizontal",
@@ -1118,7 +1131,75 @@ function DTProjectEditor:CreateEditorPanel()
         data = {
             project = self:GetProject()
         },
+        children = {
+            gui.Panel{
+                width = "98%",
+                height = "auto",
+                halign = "left",
+                flow = "horizontal",
+                valign = "top",
+                children = contentPanels
+            }
+        }
+    }
 
+    -- Add event handlers if provided
+    if eventHandlers then
+        for eventName, handler in pairs(eventHandlers) do
+            panelDef[eventName] = handler
+        end
+    end
+
+    return gui.Panel(panelDef)
+end
+
+--- Creates an inline editor panel for real-time project editing
+--- @return table panel The editor panel with input fields
+function DTProjectEditor:CreateEditorPanel()
+    -- Create content panels
+    local formPanel = self:_createProjectForm()
+    local rollsPanel = self:_createRollsPanel()
+    local adjustmentsPanel = self:_createAdjustmentsPanel()
+
+    -- Create buttons using extracted method
+    local buttons = self:_createOwnedProjectButtons()
+    local actionButtonsPanel = self:_createActionButtonsPanel(buttons)
+
+    -- Build content panels array for horizontal layout
+    local contentPanels = {
+        gui.Panel {
+            width = "60%",
+            height = "auto",
+            halign = "left",
+            valign = "top",
+            hmargin = 8,
+            children = { formPanel }
+        },
+        gui.Panel {
+            width = "20%",
+            height = "260",
+            halign = "left",
+            valign = "center",
+            children = { adjustmentsPanel }
+        },
+        gui.Panel {
+            width = "20%",
+            height = "260",
+            halign = "left",
+            valign = "center",
+            children = { rollsPanel }
+        },
+        gui.Panel {
+            width = "auto",
+            height = "auto",
+            halign = "right",
+            valign = "top",
+            children = { actionButtonsPanel }
+        }
+    }
+
+    -- Event handlers for owned projects
+    local eventHandlers = {
         addAdjustment = function(element, newAdjustment)
             element.data.project:AddAdjustment(newAdjustment)
             DTSettings.Touch()
@@ -1150,48 +1231,10 @@ function DTProjectEditor:CreateEditorPanel()
         refreshProject = function(element)
             element:FireEventTree("refreshToken")
         end,
-
-        children = {
-            gui.Panel{
-                width = "98%",
-                height = "auto",
-                halign = "left",
-                flow = "horizontal",
-                valign = "top",
-                children = {
-                    gui.Panel {
-                        width = "60%",
-                        height = "auto",
-                        halign = "left",
-                        valign = "top",
-                        hmargin = 8,
-                        children = { formPanel }
-                    },
-                    gui.Panel {
-                        width = "20%",
-                        height = "260",
-                        halign = "left",
-                        valign = "center",
-                        children = { adjustmentsPanel }
-                    },
-                    gui.Panel {
-                        width = "20%",
-                        height = "260",
-                        halign = "left",
-                        valign = "center",
-                        children = { rollsPanel }
-                    },
-                    gui.Panel {
-                        width = "auto",
-                        height = "auto",
-                        halign = "right",
-                        valign = "top",
-                        children = { deletePanel }
-                    }
-                }
-            }
-        }
     }
+
+    -- Use extracted container method
+    return self:_createProjectPanelContainer(nil, contentPanels, eventHandlers)
 end
 
 --- Reconciles progress item list panels with current data using efficient 3-step process
