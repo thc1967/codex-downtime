@@ -26,6 +26,7 @@ function DTCharSheetTab.CreateDowntimePanel()
         valign = "top",
         halign = "center",
         styles = DTUtils.GetDialogStyles(),
+        monitorGame = DTShares:new():GetDocumentPath(),
         data = {
             getDowntimeInfo = function()
                 return CharacterSheet.instance.data.info.token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
@@ -50,14 +51,16 @@ function DTCharSheetTab.CreateDowntimePanel()
             element:FireEvent("refreshDowntime")
         end,
 
+        refreshGame = function(element)
+            element:FireEvent("refreshDowntime")
+        end,
+
         refreshDowntime = function(element)
             element:FireEventTree("refreshToken")
         end,
 
         children = {
-            -- Header
             DTCharSheetTab._createHeaderPanel(),
-            -- Body
             DTCharSheetTab._createBodyPanel(),
         }
     }
@@ -315,31 +318,35 @@ function DTCharSheetTab._refreshProjectsList(element)
     -- Reconcile existing panels with current projects
     local panels = element.children or {}
 
-    -- Step 1: Remove panels for projects that no longer exist in either owned or shared lists
+    -- Step 1: Remove panels for projects that no longer exist OR have wrong type
     for i = #panels, 1, -1 do
         local panel = panels[i]
-        local foundProject = false
+        local isSharedPanel = panel:HasClass("sharedProject")
+        local shouldRemove = true
 
-        -- Check owned projects
+        -- Check owned projects (should NOT be shared panel)
         for _, project in ipairs(projects) do
             if project:GetID() == panel.id then
-                foundProject = true
+                if not isSharedPanel then
+                    shouldRemove = false
+                end
                 break
             end
         end
 
-        -- If not found in owned, check shared projects
-        if not foundProject then
+        -- If not matched in owned, check shared projects (MUST be shared panel)
+        if shouldRemove then
             for _, entry in ipairs(sharedProjects) do
                 if entry.project:GetID() == panel.id then
-                    foundProject = true
+                    if isSharedPanel then
+                        shouldRemove = false
+                    end
                     break
                 end
             end
         end
 
-        -- Only remove if not found in EITHER list
-        if not foundProject then
+        if shouldRemove then
             table.remove(panels, i)
         end
     end
@@ -350,7 +357,8 @@ function DTCharSheetTab._refreshProjectsList(element)
     for _, project in ipairs(projects) do
         local foundPanel = false
         for _, panel in ipairs(panels) do
-            if panel.id == project:GetID() then
+            -- Must match ID AND be an owned panel (not shared)
+            if panel.id == project:GetID() and not panel:HasClass("sharedProject") then
                 foundPanel = true
                 break
             end
@@ -364,13 +372,14 @@ function DTCharSheetTab._refreshProjectsList(element)
     for _, entry in ipairs(sharedProjects) do
         local foundPanel = false
         for _, panel in ipairs(panels) do
-            if panel.id == entry.project:GetID() then
+            -- Must match ID AND be a shared panel
+            if panel.id == entry.project:GetID() and panel:HasClass("sharedProject") then
                 foundPanel = true
                 break
             end
         end
         if not foundPanel then
-            panels[#panels + 1] = DTProjectEditor:new(entry.project):CreateSharedProjectPanel(entry.ownerName, entry.ownerTokenId)
+            panels[#panels + 1] = DTProjectEditor:new(entry.project):CreateSharedProjectPanel(entry.ownerName, entry.ownerId)
         end
     end
 

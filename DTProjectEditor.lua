@@ -1356,7 +1356,6 @@ function DTProjectEditor:_createOwnedProjectButtons()
             end,
         },
         click = function(element)
-            print("THC:: SHARE:: CLICK")
             if not element.interactable then return end
 
             local project = element.data.getProject(element)
@@ -1373,14 +1372,12 @@ function DTProjectEditor:_createOwnedProjectButtons()
 
                 -- Build the list of characters already shared with
                 local sharedWith = shareData:GetProjectSharedWith(me.id, project:GetID())
-                print("THC:: SHAREDWITH::", sharedWith)
 
                 local options = {
                     showList = showList,
                     initialSelection = sharedWith,
                     callbacks = {
                         confirm = function(selectedTokens)
-                            print("THC:: SHAREDLG:: CONFIRM::", selectedTokens)
                             shareData:Share(me.id, project:GetID(), selectedTokens)
                         end,
                         cancel = function()
@@ -1401,9 +1398,9 @@ end
 
 --- Creates action buttons for shared project panels (unshare + roll)
 --- @param ownerName string The display name of the character who owns this project
---- @param ownerTokenId string The token ID of the character who owns this project
+--- @param ownerId string The token ID of the character who owns this project
 --- @return table buttons Array containing unshare button and roll button elements
-function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerTokenId)
+function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
     local unshareButton = gui.DeleteItemButton {
         width = 20,
         height = 20,
@@ -1413,7 +1410,7 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerTokenId)
         vmargin = 5,
         data = {
             ownerName = ownerName,
-            ownerTokenId = ownerTokenId,
+            ownerId = ownerId,
             getProject = function(element)
                 local projectController = element:FindParentWithClass("projectController")
                 if projectController then
@@ -1423,7 +1420,30 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerTokenId)
             end
         },
         click = function(element)
-            print("THC:: SHARED_PROJECT_UNSHARE::")
+            local projectController = element:FindParentWithClass("projectController")
+            if projectController then
+                local project = projectController.data and projectController.data.project
+                if project then
+                    CharacterSheet.instance:AddChild(DTConfirmationDialog.CreateAsChild(
+                        "Withdraw From Project?",
+                        string.format("Are you sure you want to withdraw your ability to roll on %s's project?", ownerName),
+                        "Confirm",
+                        "Cancel",
+                        {
+                            confirm = function()
+                                print("THC:: CONFIRMREVOKE::", ownerId)
+                                local shares = DTShares:new()
+                                if shares then
+                                    shares:Revoke(ownerId, CharacterSheet.instance.data.info.token.id, project:GetID())
+                                end
+                            end,
+                            cancel = function()
+                                -- Optional cancel logic
+                            end
+                        }
+                    ))
+                end
+            end
         end,
         linger = function(element)
             gui.Tooltip("Remove yourself from this shared project")(element)
@@ -1444,7 +1464,7 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerTokenId)
         border = 0,
         data = {
             ownerName = ownerName,
-            ownerTokenId = ownerTokenId,
+            ownerId = ownerId,
             getProject = function(element)
                 local projectController = element:FindParentWithClass("projectController")
                 if projectController then
@@ -1611,14 +1631,14 @@ end
 
 --- Creates a read-only panel for shared projects
 --- @param ownerName string The display name of the character who owns this project
---- @param ownerTokenId string The token ID of the character who owns this project
+--- @param ownerId string The token ID of the character who owns this project
 --- @return table panel The read-only shared project panel
-function DTProjectEditor:CreateSharedProjectPanel(ownerName, ownerTokenId)
+function DTProjectEditor:CreateSharedProjectPanel(ownerName, ownerId)
     -- Create read-only form with owner name
     local sharedFormPanel = self:_createSharedProjectForm(ownerName)
 
     -- Create different buttons (unshare + roll)
-    local buttons = self:_createSharedProjectButtons(ownerName, ownerTokenId)
+    local buttons = self:_createSharedProjectButtons(ownerName, ownerId)
     local actionButtonsPanel = self:_createActionButtonsPanel(buttons)
 
     -- Simpler layout - just form, no adjustments/rolls panels

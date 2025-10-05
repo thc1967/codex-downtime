@@ -459,7 +459,7 @@ end
 
 --- Gets all projects shared with a recipient along with owner information
 --- @param recipientId string The token ID of the character receiving shares
---- @return table sharedProjects Array of {project, ownerTokenId, ownerName} or empty array if none
+--- @return table sharedProjects Array of {project, ownerId, ownerName} or empty array if none
 function DTUtils.GetSharedProjectsForRecipient(recipientId)
     -- Validate input
     if not recipientId or type(recipientId) ~= "string" or #recipientId == 0 then
