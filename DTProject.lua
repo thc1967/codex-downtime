@@ -13,7 +13,6 @@
 --- @field status string Current state of the project
 --- @field statusReason string Explanation for why the project is paused (if applicable)
 --- @field milestoneThreshold number|nil Progress value at which the project automatically pauses for Director review
---- @field earnedBreakthroughs number Counter for breakthroughs that couldn't be used immediately due to hitting a milestone
 --- @field projectRolls table Array of DTRoll objects - History of all rolls made on this project
 --- @field progressAdjustments table Array of DTAdjustment objects - History of all adjustments made to project progress
 --- @field createdBy string GUID identifier of the user who created this project
@@ -303,25 +302,6 @@ function DTProject:_setStateFromProgressChange(item, direction)
 
     local function isRoll() return item.typeName == "DTRoll" end
     local function isAdjustment() return item.typeName == "DTAdjustment" end
-
-    -- if isRoll() then
-    --     if direction > 0 then -- Adding a roll
-    --         if item:GetBreakthrough() then
-    --             self:DecrementEarnedBreakthroughs()
-    --         end
-    --         if item:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
-    --             self:IncrementEarnedBreakthroughs()
-    --         end
-    --     else -- Removing a roll
-    --         if item:GetBreakthrough() then
-    --             self:IncrementEarnedBreakthroughs()
-    --         end
-    --         -- If the roll we are removing resulted in a breakthrough,
-    --         -- we are not going to try to find the breakthrough that was 
-    --         -- rolled as a result of that breakthrough. The user will need 
-    --         -- to find and delete that as well.
-    --     end
-    -- end
 
     local STATUS = DTConstants.STATUS
     local oldValue = self:GetProgress()

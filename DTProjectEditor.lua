@@ -1280,7 +1280,6 @@ function DTProjectEditor:_createRollButton(options)
             element:FireEvent("refreshToken")
         end,
         refreshToken = function(element)
-            print("THC:: ROLLBTN:: REFRESHTOKEN::")
             local isEnabled = false
             element.data.tooltipText = "Project not found?"
             local project = element.data.getProject(element)
@@ -1289,7 +1288,7 @@ function DTProjectEditor:_createRollButton(options)
                 if validState then
                     local downtimeInfo = element.data.getDowntimeInfo(element)
                     if downtimeInfo then
-                        if downtimeInfo:GetAvailableRolls() > 0 or project:GetEarnedBreakthroughs() > 0 then
+                        if downtimeInfo:GetAvailableRolls() > 0 then
                             local settings = DTSettings:new()
                             if settings then
                                 if settings:GetPauseRolls() then
