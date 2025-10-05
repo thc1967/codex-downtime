@@ -710,6 +710,315 @@ function DTProjectEditor:_createProjectForm()
     }
 end
 
+--- Creates read-only form panel for shared projects
+--- @param ownerName string The display name of the character who owns this project
+--- @return table panel The read-only form panel
+function DTProjectEditor:_createSharedProjectForm(ownerName)
+    local projectFormStyles = {
+        gui.Style {
+            selectors = {"PEFormRow", "DTPanelRow", "DTPanel", "DTBase"},
+            height = 30,
+            pad = 0,
+            margin = 0,
+            width = "100%-4",
+            borderColor = "blue",
+        },
+        gui.Style {
+            selectors = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+            height = "100%-8",
+            pad = 0,
+            margin = 0,
+            hpad = 2,
+            borderColor = "yellow",
+        }
+    }
+
+    -- Title field (modified to include owner name)
+    local titleField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        height = "auto",
+        flow = "horizontal",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Title:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                hmargin = 4,
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                bold = false,
+                data = {
+                    ownerName = ownerName,
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        element.text = string.format("%s (from %s)", project:GetTitle(), element.data.ownerName)
+                    end
+                end
+            }
+        }
+    }
+
+    -- Progress field
+    local progressField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        flow = "horizontal",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Progress:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                hmargin = 4,
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                bold = false,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        local progress = project:GetProgress()
+                        local goal = project:GetProjectGoal()
+                        local pct = goal > 0 and (progress / goal) or 0
+                        element.text = string.format("%d / %d (%d%%)", progress, goal, math.floor(pct * 100))
+                    end
+                end
+            }
+        }
+    }
+
+    -- Source field
+    local sourceField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        flow = "horizontal",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Project Source:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                hmargin = 4,
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                bold = false,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        element.text = project:GetProjectSource() or ""
+                    end
+                end
+            }
+        }
+    }
+
+    -- Characteristic field (read-only, displays comma-separated list)
+    local characteristicField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        flow = "horizontal",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Project Roll Characteristic:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                hmargin = 4,
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                bold = false,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        local characteristics = project:GetTestCharacteristics()
+                        if characteristics and #characteristics > 0 then
+                            local displayTexts = {}
+                            for _, charKey in ipairs(characteristics) do
+                                displayTexts[#displayTexts + 1] = DTConstants.GetDisplayText(DTConstants.CHARACTERISTICS, charKey)
+                            end
+                            element.text = table.concat(displayTexts, ", ")
+                        else
+                            element.text = "(none)"
+                        end
+                    end
+                end
+            }
+        }
+    }
+
+    -- Language field
+    local languageField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        flow = "horizontal",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Language Penalty:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                hmargin = 4,
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                bold = false,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        element.text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, project:GetProjectSourceLanguagePenalty())
+                    end
+                end
+            }
+        }
+    }
+
+    -- Status field
+    local statusField = gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "98%",
+        flow = "horizontal",
+        valign = "center",
+        children = {
+            gui.Label {
+                text = "Status:",
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                hmargin = 4,
+            },
+            gui.Label {
+                classes = {"DTLabel", "DTBase"},
+                width = "auto",
+                bold = false,
+                data = {
+                    getProject = function(element)
+                        local projectController = element:FindParentWithClass("projectController")
+                        if projectController then
+                            return projectController.data.project
+                        end
+                        return nil
+                    end
+                },
+                refreshToken = function(element)
+                    local project = element.data.getProject(element)
+                    if project then
+                        element.text = DTConstants.GetDisplayText(DTConstants.STATUS, project:GetStatus())
+                    end
+                end
+            }
+        }
+    }
+
+    -- Return panel with 2 rows
+    return gui.Panel {
+        classes = {"DTPanel", "DTBase"},
+        width = "100%",
+        height = "auto",
+        flow = "vertical",
+        styles = projectFormStyles,
+        borderColor = "cyan",
+        children = {
+            -- Row 1: Title (50%), Status (25%), Progress (25%)
+            gui.Panel {
+                classes = {"PEFormRow", "DTPanelRow", "DTPanel", "DTBase"},
+                children = {
+                    gui.Panel {
+                        classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+                        width = "33%",
+                        children = {titleField}
+                    },
+                    gui.Panel {
+                        classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+                        width = "34%",
+                        children = {statusField}
+                    },
+                    gui.Panel {
+                        classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+                        width = "33%",
+                        children = {progressField}
+                    }
+                }
+            },
+
+            -- Row 2: Source (33%), Language Penalty (34%), Characteristic (33%)
+            gui.Panel {
+                classes = {"PEFormRow", "DTPanelRow", "DTPanel", "DTBase"},
+                children = {
+                    gui.Panel {
+                        classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+                        width = "33%",
+                        children = {sourceField}
+                    },
+                    gui.Panel {
+                        classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+                        width = "34%",
+                        children = {languageField}
+                    },
+                    gui.Panel {
+                        classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
+                        width = "33%",
+                        children = {characteristicField}
+                    }
+                }
+            }
+        }
+    }
+end
+
 --- Creates the adjustments list for a downtime project
 --- @return table panel The adjustments table / panel
 function DTProjectEditor:_createAdjustmentsPanel()
@@ -1002,7 +1311,7 @@ function DTProjectEditor:_createOwnedProjectButtons()
     local deleteButton = gui.DeleteItemButton {
         width = 20,
         height = 20,
-        halign = "right",
+        halign = "left",
         valign = "top",
         hmargin = 5,
         vmargin = 5,
@@ -1033,7 +1342,7 @@ function DTProjectEditor:_createOwnedProjectButtons()
         width = 20,
         height = 20,
         icon = mod.images.share,
-        halign = "right",
+        halign = "left",
         hmargin = 5,
         vmargin = 5,
         border = 0,
@@ -1090,27 +1399,95 @@ function DTProjectEditor:_createOwnedProjectButtons()
     return {deleteButton, shareButton}
 end
 
+--- Creates action buttons for shared project panels (unshare + roll)
+--- @param ownerName string The display name of the character who owns this project
+--- @param ownerTokenId string The token ID of the character who owns this project
+--- @return table buttons Array containing unshare button and roll button elements
+function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerTokenId)
+    local unshareButton = gui.DeleteItemButton {
+        width = 20,
+        height = 20,
+        halign = "left",
+        valign = "top",
+        hmargin = 5,
+        vmargin = 5,
+        data = {
+            ownerName = ownerName,
+            ownerTokenId = ownerTokenId,
+            getProject = function(element)
+                local projectController = element:FindParentWithClass("projectController")
+                if projectController then
+                    return projectController.data.project
+                end
+                return nil
+            end
+        },
+        click = function(element)
+            print("THC:: SHARED_PROJECT_UNSHARE::")
+        end,
+        linger = function(element)
+            gui.Tooltip("Remove yourself from this shared project")(element)
+        end
+    }
+
+    local rollButton = gui.Button {
+        style = {
+            width = 20,
+            height = 20,
+        },
+        width = 20,
+        height = 20,
+        icon = "panels/initiative/initiative-dice.png",
+        halign = "left",
+        hmargin = 5,
+        vmargin = 5,
+        border = 0,
+        data = {
+            ownerName = ownerName,
+            ownerTokenId = ownerTokenId,
+            getProject = function(element)
+                local projectController = element:FindParentWithClass("projectController")
+                if projectController then
+                    return projectController.data.project
+                end
+                return nil
+            end
+        },
+        click = function(element)
+            print("THC:: SHARED_PROJECT_ROLL::")
+        end,
+        linger = function(element)
+            gui.Tooltip("Roll on this shared project")(element)
+        end
+    }
+
+    return {unshareButton, rollButton}
+end
+
 --- Creates the action buttons panel container
 --- @param buttons table Array of button elements to display vertically
 --- @return table panel Vertical panel containing the buttons
 function DTProjectEditor:_createActionButtonsPanel(buttons)
     return gui.Panel {
+        classes = {"DTPanel", "DTBase"},
         width = 60,
         height = "auto",
-        halign = "right",
+        halign = "left",
         valign = "top",
         flow = "vertical",
+        borderColor = "cyan",
         children = buttons
     }
 end
 
 --- Creates the outer project panel container with consistent styling
 --- @param additionalClasses table|nil Array of additional CSS classes beyond "projectController"
---- @param contentPanels table Array of panels to layout horizontally (form, adjustments, rolls, buttons)
+--- @param contentPanels table Array of panels to layout horizontally (form, adjustments, rolls)
+--- @param actionButtonsPanel table The action buttons panel to position top-right
 --- @param eventHandlers table|nil Table of event handler functions (addAdjustment, deleteAdjustment, etc.)
 --- @return table panel The outer container panel
-function DTProjectEditor:_createProjectPanelContainer(additionalClasses, contentPanels, eventHandlers)
-    local classes = {"projectController"}
+function DTProjectEditor:_createProjectPanelContainer(additionalClasses, contentPanels, actionButtonsPanel, eventHandlers)
+    local classes = {"projectController", "DTPanel", "DTBase"}
     if additionalClasses then
         for _, cls in ipairs(additionalClasses) do
             classes[#classes + 1] = cls
@@ -1120,14 +1497,12 @@ function DTProjectEditor:_createProjectPanelContainer(additionalClasses, content
     local panelDef = {
         id = self:GetProject():GetID(),
         classes = classes,
-        width = "95%",
+        width = "98%",
         height = "auto",
         flow = "horizontal",
         hmargin = 5,
         vmargin = 7,
-        bgimage = "panels/square.png",
-        borderColor = "#444444",
-        border = { y1 = 4, y2 = 1, x2 = 4, x1 = 1 },
+        borderColor = "#cc00cc",
         data = {
             project = self:GetProject()
         },
@@ -1138,8 +1513,12 @@ function DTProjectEditor:_createProjectPanelContainer(additionalClasses, content
                 halign = "left",
                 flow = "horizontal",
                 valign = "top",
+                bgimage = "panels/square.png",
+                borderColor = "#444444",
+                border = { y1 = 4, y2 = 1, x2 = 4, x1 = 1 },
                 children = contentPanels
-            }
+            },
+            actionButtonsPanel
         }
     }
 
@@ -1168,7 +1547,7 @@ function DTProjectEditor:CreateEditorPanel()
     -- Build content panels array for horizontal layout
     local contentPanels = {
         gui.Panel {
-            width = "60%",
+            width = "60%-8",
             height = "auto",
             halign = "left",
             valign = "top",
@@ -1176,25 +1555,18 @@ function DTProjectEditor:CreateEditorPanel()
             children = { formPanel }
         },
         gui.Panel {
-            width = "20%",
+            width = "20%-8",
             height = "260",
             halign = "left",
             valign = "center",
             children = { adjustmentsPanel }
         },
         gui.Panel {
-            width = "20%",
+            width = "20%-8",
             height = "260",
             halign = "left",
             valign = "center",
             children = { rollsPanel }
-        },
-        gui.Panel {
-            width = "auto",
-            height = "auto",
-            halign = "right",
-            valign = "top",
-            children = { actionButtonsPanel }
         }
     }
 
@@ -1234,7 +1606,38 @@ function DTProjectEditor:CreateEditorPanel()
     }
 
     -- Use extracted container method
-    return self:_createProjectPanelContainer(nil, contentPanels, eventHandlers)
+    return self:_createProjectPanelContainer(nil, contentPanels, actionButtonsPanel, eventHandlers)
+end
+
+--- Creates a read-only panel for shared projects
+--- @param ownerName string The display name of the character who owns this project
+--- @param ownerTokenId string The token ID of the character who owns this project
+--- @return table panel The read-only shared project panel
+function DTProjectEditor:CreateSharedProjectPanel(ownerName, ownerTokenId)
+    -- Create read-only form with owner name
+    local sharedFormPanel = self:_createSharedProjectForm(ownerName)
+
+    -- Create different buttons (unshare + roll)
+    local buttons = self:_createSharedProjectButtons(ownerName, ownerTokenId)
+    local actionButtonsPanel = self:_createActionButtonsPanel(buttons)
+
+    -- Simpler layout - just form, no adjustments/rolls panels
+    local contentPanels = {
+        gui.Panel {
+            width = "95%",
+            height = "auto",
+            halign = "left",
+            valign = "top",
+            hmargin = 8,
+            children = { sharedFormPanel }
+        }
+    }
+
+    -- No event handlers for read-only panel
+    local eventHandlers = nil
+
+    -- Use container method with "sharedProject" class for styling distinction
+    return self:_createProjectPanelContainer({"sharedProject"}, contentPanels, actionButtonsPanel, eventHandlers)
 end
 
 --- Reconciles progress item list panels with current data using efficient 3-step process

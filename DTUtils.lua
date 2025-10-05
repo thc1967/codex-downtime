@@ -547,6 +547,13 @@ function DTUtils.GetDialogStyles()
             width = "100%-4",
             valign = "top",
         },
+        gui.Style{
+            selectors = {"DTPanelReadRow", "DTPanel", "DTBase"},
+            vmargin = 2,
+            height = 30,
+            width = "100%-4",
+            valign = "bottom",
+        },
 
         -- DT Control Types: Inherit from DTBase, add specific properties
         gui.Style{

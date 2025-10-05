@@ -370,7 +370,7 @@ function DTCharSheetTab._refreshProjectsList(element)
             end
         end
         if not foundPanel then
-            -- panels[#panels + 1] = DTProjectEditor:new(entry.project):CreateEditorPanel()
+            panels[#panels + 1] = DTProjectEditor:new(entry.project):CreateSharedProjectPanel(entry.ownerName, entry.ownerTokenId)
         end
     end
 
