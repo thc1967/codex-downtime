@@ -26,7 +26,6 @@ function DTCharSheetTab.CreateDowntimePanel()
         valign = "top",
         halign = "center",
         styles = DTUtils.GetDialogStyles(),
-        monitorGame = DTShares:new():GetDocumentPath(),
         data = {
             getDowntimeInfo = function()
                 return CharacterSheet.instance.data.info.token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
@@ -48,14 +47,6 @@ function DTCharSheetTab.CreateDowntimePanel()
             local downtimeInfo = element.data.getDowntimeInfo()
             downtimeInfo:SetAvailableRolls(downtimeInfo:GetAvailableRolls() + amount)
             DTSettings.Touch()
-            element:FireEvent("refreshDowntime")
-        end,
-
-        refreshGame = function(element)
-            element:FireEvent("refreshDowntime")
-        end,
-
-        refreshDowntime = function(element)
             element:FireEventTree("refreshToken")
         end,
 
@@ -97,10 +88,6 @@ function DTCharSheetTab._createHeaderPanel()
                         halign = "left",
                         valign = "center",
                         hmargin = "20",
-                        monitorGame = DTSettings:new():GetDocumentPath(),
-                        refreshGame = function(element)
-                            element:FireEventTree("refreshToken")
-                        end,
                         children = {
                             gui.Label {
                                 text = "Rolling status is ",
@@ -121,6 +108,14 @@ function DTCharSheetTab._createHeaderPanel()
                                 fontSize = 20,
                                 halign = "left",
                                 valign = "center",
+                                create = function(element)
+                                    dmhub.Schedule(0.2, function()
+                                        element.monitorGame = DTSettings:new():GetDocumentPath()
+                                    end)
+                                end,
+                                refreshGame = function(element)
+                                    element:FireEvent("refreshToken")
+                                end,
                                 refreshToken = function(element)
                                     local status = "UNKNOWN"
                                     local settings = DTSettings:new()
@@ -141,7 +136,15 @@ function DTCharSheetTab._createHeaderPanel()
                                 halign = "left",
                                 valign = "center",
                                 bold = false,
-                                refreshToken = function(element, info)
+                                create = function(element)
+                                    dmhub.Schedule(0.2, function()
+                                        element.monitorGame = DTSettings:new():GetDocumentPath()
+                                    end)
+                                end,
+                                refreshGame = function(element)
+                                    element:FireEvent("refreshToken")
+                                end,
+                                refreshToken = function(element)
                                     local reason = ""
                                     local settings = DTSettings:new()
                                     if settings then
@@ -166,7 +169,7 @@ function DTCharSheetTab._createHeaderPanel()
                 valign = "center",
                 children = {
                     gui.Label {
-                        text = "Calculating staged and available rolls...",
+                        text = "Calculating available rolls...",
                         classes = {"DTLabel", "DTBase"},
                         width = "100%",
                         height = "100%",
@@ -174,22 +177,34 @@ function DTCharSheetTab._createHeaderPanel()
                         valign = "center",
                         hmargin = "20",
                         fontSize = 20,
+                        create = function(element)
+                            dmhub.Schedule(0.2, function()
+                                element.monitorGame = DTSettings:new():GetDocumentPath()
+                            end)
+                        end,
+                        refreshGame = function(element)
+                            element:FireEvent("refreshToken")
+                        end,
                         refreshToken = function(element)
                             local fmt = "Available Rolls: %d%s"
                             local availableRolls = 0
                             local msg = ""
-                            local token = CharacterSheet.instance.data.info.token
-                            if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
-                                if downtimeInfo then
-                                    availableRolls = downtimeInfo:GetAvailableRolls()
+                            if CharacterSheet.instance.data.info then
+                                local token = CharacterSheet.instance.data.info.token
+                                if token and token.properties and token.properties:IsHero() then
+                                    local downtimeInfo = token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+                                    if downtimeInfo then
+                                        availableRolls = downtimeInfo:GetAvailableRolls()
+                                    else
+                                        msg = " (Can't get downtime info)"
+                                    end
                                 else
-                                    msg = " (Can't get downtime info)"
+                                    msg = " (WTF not a character)"
                                 end
+                                element.text = string.format(fmt, availableRolls, msg)
                             else
-                                msg = " (WTF not a character)"
+                                print("THC:: BOOM:: DTCharSheetTab._createHeaderPanel refreshToken Avail Rolls Label")
                             end
-                            element.text = string.format(fmt, availableRolls, msg)
                         end
                     }
                 },
@@ -211,17 +226,21 @@ function DTCharSheetTab._createHeaderPanel()
                             gui.Tooltip("Add a new downtime project")(element)
                         end,
                         click = function(element)
-                            local token = CharacterSheet.instance.data.info.token
-                            if token and token.properties and token.properties:IsHero() then
-                                local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
-                                if downtimeInfo then
-                                    downtimeInfo:AddDowntimeProject()
-                                    DTSettings.Touch()
-                                    local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
-                                    if scrollArea then
-                                        scrollArea:FireEventTree("refreshToken")
+                            if CharacterSheet.instance.data.info then
+                                local token = CharacterSheet.instance.data.info.token
+                                if token and token.properties and token.properties:IsHero() then
+                                    local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
+                                    if downtimeInfo then
+                                        downtimeInfo:AddDowntimeProject()
+                                        DTSettings.Touch()
+                                        local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
+                                        if scrollArea then
+                                            scrollArea:FireEventTree("refreshToken")
+                                        end
                                     end
                                 end
+                            else
+                                print("THC:: BOOM:: DTCharSheetTab._createHeaderPanel click Add Button")
                             end
                         end
                     }
@@ -259,7 +278,15 @@ function DTCharSheetTab._createBodyPanel()
                         flow = "vertical",
                         halign = "center",
                         valign = "top",
-                        refreshToken = function(element, info)
+                        create = function(element)
+                            dmhub.Schedule(0.2, function()
+                                element.monitorGame = DTShares:new():GetDocumentPath()
+                            end)
+                        end,
+                        refreshGame = function(element)
+                            element:FireEvent("refreshToken")
+                        end,
+                        refreshToken = function(element)
                             DTCharSheetTab._refreshProjectsList(element)
                         end
                     }
@@ -273,6 +300,10 @@ end
 --- Reconciles existing editor panels with current project list to avoid expensive panel recreation
 --- @param element table The projects list container element
 function DTCharSheetTab._refreshProjectsList(element)
+    if CharacterSheet.instance.data.info == nil then
+        print("THC:: BOOM:: DTCharSheetTab._refreshProjectsList")
+        return
+    end
     local character = CharacterSheet.instance.data.info.token
     if not character or not character.properties or not character.properties:IsHero() then
         element.children = {}

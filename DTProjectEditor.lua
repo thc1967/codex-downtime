@@ -590,7 +590,7 @@ function DTProjectEditor:_createProjectForm()
                         return nil
                     end
                 },
-                refreshToken = function(element, info)
+                refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project and element.text ~= tostring(project:GetMilestoneThreshold()) then
                         local threshold = project:GetMilestoneThreshold()
@@ -1271,11 +1271,16 @@ function DTProjectEditor:_createRollButton(options)
                 return nil
             end,
         },
-        monitorGame = DTSettings:new():GetDocumentPath(),
-        refreshToken = function(element)
-            element:FireEvent("refreshGame")
+        create = function(element)
+            dmhub.Schedule(0.2, function()
+                element.monitorGame = DTSettings:new():GetDocumentPath()
+            end)
         end,
         refreshGame = function(element)
+            element:FireEvent("refreshToken")
+        end,
+        refreshToken = function(element)
+            print("THC:: ROLLBTN:: REFRESHTOKEN::")
             local isEnabled = false
             element.data.tooltipText = "Project not found?"
             local project = element.data.getProject(element)

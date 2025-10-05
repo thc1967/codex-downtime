@@ -157,7 +157,7 @@ function DTProjectRollDialog._createPanel(options)
                     dmhub.Roll {
                         guid = dmhub.GenerateGuid(),
                         roll = rollString,
-                        description = isFirstRoll and "Making a Project Roll" or "Breakthrough roll",
+                        description = isFirstRoll and "Project Roll" or "Breakthrough roll",
                         tokenid = token,
                         complete = function(rollInfo)
                             newRoll:SetAudit(audit)

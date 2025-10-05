@@ -3,7 +3,7 @@
 --- @class DTConstants
 DTConstants = RegisterGameType("DTConstants")
 
-DTConstants.DEVMODE = false
+DTConstants.DEVMODE = true
 DTConstants.DEVUI = false
 
 --- The location on the character we're storing the downtime
@@ -36,6 +36,12 @@ DTConstants.STATUS = {
     DTConstant:new("COMPLETE", 4, "Complete")
 }
 
+--- Valid follower types
+DTConstants.FOLLOWER_TYPE = {
+    DTConstant:new("artisan", 1, "Artisan"),
+    DTConstant:new("sage", 2, "Sage")
+}
+
 --- Convenience accessors for direct access to specific constants
 DTConstants.LANGUAGE_PENALTY.NONE = DTConstants.LANGUAGE_PENALTY[1]
 DTConstants.LANGUAGE_PENALTY.RELATED = DTConstants.LANGUAGE_PENALTY[2]
@@ -51,6 +57,9 @@ DTConstants.STATUS.ACTIVE = DTConstants.STATUS[1]
 DTConstants.STATUS.PAUSED = DTConstants.STATUS[2]
 DTConstants.STATUS.MILESTONE = DTConstants.STATUS[3]
 DTConstants.STATUS.COMPLETE = DTConstants.STATUS[4]
+
+DTConstants.FOLLOWER_TYPE.ARTISAN = DTConstants.FOLLOWER_TYPE[1]
+DTConstants.FOLLOWER_TYPE.SAGE = DTConstants.FOLLOWER_TYPE[2]
 
 --- Helper function to get display text for enum keys
 --- Looks up the DTConstant in the enum table and returns displayText

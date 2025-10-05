@@ -21,7 +21,6 @@ DTProject = RegisterGameType("DTProject")
 DTProject.__index = DTProject
 
 local DEFAULT_LANG_PENALTY = DTConstants.LANGUAGE_PENALTY.NONE.key
--- local DEFAULT_CHARACTERISTIC = DTConstants.CHARACTERISTICS.REASON.key
 local DEFAULT_STATUS = DTConstants.STATUS.PAUSED.key
 
 --- Creates a new downtime project instance
@@ -36,7 +35,6 @@ function DTProject:new(sortOrder)
     instance.itemPrerequisite = ""
     instance.projectSource = ""
     instance.projectSourceLanguagePenalty = DEFAULT_LANG_PENALTY
-    -- instance.testCharacteristic = DEFAULT_CHARACTERISTIC
     instance.testCharacteristics = {}
     instance.projectGoal = 1
     instance.status = DEFAULT_STATUS
