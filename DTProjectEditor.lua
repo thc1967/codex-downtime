@@ -298,8 +298,7 @@ function DTProjectEditor:_createProjectForm()
                 create = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        local c = project:GetTestCharacteristics()
-                        element.value = c
+                        element.value = project:GetTestCharacteristics()
                     end
                 end,
                 refreshToken = function(element)
@@ -331,6 +330,15 @@ function DTProjectEditor:_createProjectForm()
     }
 
     -- Language field (label + dropdown)
+    local langTable = dmhub.GetTableVisible(Language.tableName) or {}
+    -- Languages we'll show in the list are all languages except selected one
+    local candidateLangs = {}
+    for k, v in pairs(langTable) do
+        candidateLangs[#candidateLangs + 1] = {
+            id = k,
+            text = v.name
+        }
+    end
     local languageField = gui.Panel {
         classes = {"DTPanel", "DTBase"},
         width = "98%",
@@ -338,14 +346,26 @@ function DTProjectEditor:_createProjectForm()
         borderColor = "green",
         children = {
             gui.Label {
-                text = "Language Penalty:",
+                text = "Languages:",
                 classes = {"DTLabel", "DTBase"},
                 width = "98%",
             },
-            gui.Dropdown {
-                width = "100%-4",
-                classes = {"DTDropdown", "DTBase"},
-                options = DTUtils.ListToDropdownOptions(DTConstants.LANGUAGE_PENALTY),
+            gui.Multiselect {
+                classes = {"DTPanel", "DTBase"},
+                dropdown = {
+                    classes = {"DTDropdown", "DTBase"},
+                    width = "33%",
+                },
+                chipPanel = {
+                    width = "67%",
+                },
+                chips = {
+                    classes = {"DTChip"}
+                },
+                options = candidateLangs,
+                flow = "horizontal",
+                textDefault = "Select languages...",
+                sort = true,
                 data = {
                     getProject = function(element)
                         local projectController = element:FindParentWithClass("projectController")
@@ -355,16 +375,34 @@ function DTProjectEditor:_createProjectForm()
                         return nil
                     end
                 },
-                refreshToken = function(element)
+                create = function(element)
                     local project = element.data.getProject(element)
-                    if project and element.idChosen ~= project:GetProjectSourceLanguagePenalty() then
-                        element.idChosen = project:GetProjectSourceLanguagePenalty()
+                    if project then
+                        element.value = project:GetProjectSourceLanguages()
+                    end
+                end,
+                refreshToken = function(element)
+                    local uiValues = element.value
+                    local project = element.data.getProject(element)
+                    if project then
+                        local storageValues = project:GetProjectSourceLanguages()
+                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                            element.value = storageValues
+                        end
                     end
                 end,
                 change = function(element)
+                    local uiValues = element.value
                     local project = element.data.getProject(element)
-                    if project and element.idChosen ~= project:GetProjectSourceLanguagePenalty() then
-                        project:SetProjectSourceLanguagePenalty(element.idChosen)
+                    if project then
+                        local storageValues = project:GetProjectSourceLanguages()
+                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                            project:SetProjectSourceLanguages(uiValues)
+                            local projectController = element:FindParentWithClass("projectController")
+                            if projectController then
+                                projectController:FireEventTree("refreshToken")
+                            end
+                        end
                     end
                 end
             }
@@ -917,10 +955,13 @@ function DTProjectEditor:_createSharedProjectForm(ownerName)
                         return nil
                     end
                 },
-                refreshToken = function(element)
+                refreshToken = function(element, info)
                     local project = element.data.getProject(element)
                     if project then
-                        element.text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, project:GetProjectSourceLanguagePenalty())
+                        local creature = info.token.properties
+                        local projectLangs = project:GetProjectSourceLanguages()
+                        local penalty = DTUtils.CalcLangPenalty(projectLangs, creature:LanguagesKnown())
+                        element.text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, penalty)
                     end
                 end
             }
@@ -1358,7 +1399,7 @@ function DTProjectEditor:_createOwnedProjectButtons()
             if projectController and downtimeController then
                 local project = projectController.data and projectController.data.project
                 if project then
-                    CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project", project:GetTitle(), {
+                    CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Project: ".. project:GetTitle(), {
                         confirm = function()
                             downtimeController:FireEvent("deleteProject", project:GetID())
                         end,
@@ -1841,7 +1882,7 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
                         click = function(element)
                             local projectController = element:FindParentWithClass("projectController")
                             if projectController then
-                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("Item", "this Item", {
+                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("this item", {
                                     confirm = function()
                                         projectController:FireEvent(deleteEvent, item:GetID())
                                     end,

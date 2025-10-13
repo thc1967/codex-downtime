@@ -6,6 +6,7 @@
 --- @field title string The name of the project
 --- @field itemPrerequisite string Any special items required to start/continue the project
 --- @field projectSource string The lore source (book, tutor, etc.) enabling this project
+--- @field projectSourceLanguages string[] The languages this project requires
 --- @field projectSourceLanguagePenalty string The character's language relationship to the project source language
 --- @field testCharacteristic string The characteristic used for project rolls
 --- @field testCharacteristics {} The list of potential test characteristics for project rolls
@@ -33,6 +34,7 @@ function DTProject:new(sortOrder)
     instance.title = ""
     instance.itemPrerequisite = ""
     instance.projectSource = ""
+    instance.projectSourceLanguages = {}
     instance.projectSourceLanguagePenalty = DEFAULT_LANG_PENALTY
     instance.testCharacteristics = {}
     instance.projectGoal = 1
@@ -91,6 +93,20 @@ end
 --- @return DTProject self For chaining
 function DTProject:SetProjectSource(source)
     self.projectSource = source or ""
+    return self
+end
+
+--- Gets the language id's for the project source
+--- @return string[] languageIds The list of language id's for the project source
+function DTProject:GetProjectSourceLanguages()
+    return self:try_get("projectSourceLanguages") or {}
+end
+
+--- Set the language id's for the project source
+--- @param langIds string[] List of lanugage id's for the project source
+--- @return DTProject self For chaining
+function DTProject:SetProjectSourceLanguages(langIds)
+    self.projectSourceLanguages = langIds
     return self
 end
 

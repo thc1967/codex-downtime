@@ -42,10 +42,10 @@ function DTProjectRollDialog._createPanel(options)
     end
 
     resultPanel = gui.Panel {
+        styles = DTUtils.GetDialogStyles(),
         classes = {"rollController", "DTDialog"},
         width = 800,
         height = 500,
-        styles = DTUtils.GetDialogStyles(),
         floating = true,
         escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
         captureEscape = true,
@@ -305,8 +305,9 @@ function DTProjectRollDialog._createPanel(options)
                                                     local rollController = element:FindParentWithClass("rollController")
                                                     if rollController then
                                                         local project = rollController.data.getProject(rollController)
+                                                        local creature = CharacterSheet.instance.data.info.token.properties
                                                         if project then
-                                                            local langPenalty = project:GetProjectSourceLanguagePenalty()
+                                                            local langPenalty = DTUtils.CalcLangPenalty(project:GetProjectSourceLanguages(), creature:LanguagesKnown())
                                                             if langPenalty then
                                                                 if langPenalty == DTConstants.LANGUAGE_PENALTY.RELATED.key then
                                                                     element.data.banes = 1
@@ -469,6 +470,7 @@ function DTProjectRollDialog._createPanel(options)
                             },
                         }
                     },
+
                     -- Bottom row - Summary
                     gui.Panel {
                         classes = {"DTPanel", "DTBase"},

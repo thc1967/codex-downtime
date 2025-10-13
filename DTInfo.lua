@@ -3,7 +3,8 @@
 --- Stored within the character object in the root node named 'downtimeInfo'
 --- @class DTInfo
 --- @field availableRolls number Counter that the Director increments via Grant Rolls to All
---- @field downtimeProjects table The list of DTProject records for the character
+--- @field downtimeProjects DTProject[] The list of DTProject records for the character
+--- @field followers DTFollower[] The list of followers for this character
 DTInfo = RegisterGameType("DTInfo")
 DTInfo.__index = DTInfo
 
@@ -14,6 +15,7 @@ function DTInfo:new()
 
     instance.availableRolls = 0
     instance.downtimeProjects = {}
+    instance.followers = {}
 
     return instance
 end
@@ -51,7 +53,7 @@ end
 
 --- Gets all downtime projects for this character
 --- @return table downtimeProjects Hash table of DTProject instances keyed by GUID
-function DTInfo:GetDowntimeProjects()
+function DTInfo:GetProjects()
     return self.downtimeProjects or {}
 end
 
@@ -74,16 +76,16 @@ end
 
 --- Returns the project matching the key or nil if not found
 --- @param projectId string The GUID identifier of the project to return
---- @return DTProject|nil The project referenced by the key or nil if it doesn't exist
-function DTInfo:GetDowntimeProject(projectId)
+--- @return DTProject|nil project The project referenced by the key or nil if it doesn't exist
+function DTInfo:GetProject(projectId)
     return self.downtimeProjects[projectId or ""]
 end
 
 --- Adds a new downtime project to this character
 --- @param project? DTProject The project to add or nil if we're creating a new one
 --- @return DTProject project The newly created project
-function DTInfo:AddDowntimeProject(project)
-    if project == nil or type(project) ~= table then
+function DTInfo:AddProject(project)
+    if project == nil or type(project) ~= "table" then
         local nextOrder = self:_maxProjectOrder() + 1
         project = DTProject:new(nextOrder)
     end
@@ -99,6 +101,55 @@ function DTInfo:RemoveProject(projectId)
         self.downtimeProjects[projectId] = nil
     end
     return self
+end
+
+--- Returns the project matching the key or nil if not found
+--- @param followerId string The GUID identifier of the follower to return
+--- @return DTFollower|nil follower The follower referenced by the key or nil if it doesn't exist
+function DTInfo:GetFollower(followerId)
+    local followers = self:GetFollowers()
+    return followers[followerId]
+end
+
+--- Adds a new follower to this character
+--- @param follower? DTFollower The follower to add or nil if we're creating a new one
+--- @return DTFollower follower The newly created follower
+function DTInfo:AddFollower(follower)
+    local followers = self:GetFollowers()
+    if follower == nil or type(follower) ~= "table" then
+        follower = DTFollower:new()
+    end
+    followers[follower:GetID()] = follower
+    return follower
+end
+
+--- Removes a follower from this character
+--- @param followerId string The GUID of the follower to remove
+--- @return DTInfo self For chaining
+function DTInfo:RemoveFollower(followerId)
+    local followers = self:GetFollowers()
+    followers[followerId] = nil
+    return self
+end
+
+--- Return the list of followers for this character
+--- @return DTFollower[] followers The list of followers
+function DTInfo:GetFollowers()
+    return self:get_or_add("followers ", {})
+end
+
+--- Returns the list of followers sorted on name
+--- @return DTFollower[] The list of followers
+function DTInfo:GetSortedFollowers()
+    local myFollowers = self:GetFollowers()
+    local followers = {}
+    for _, follower in pairs(myFollowers) do
+        followers[#followers + 1] = follower
+    end
+    table.sort(followers, function(a, b)
+        return a:GetName() < b:GetName()
+    end)
+    return followers
 end
 
 --- Gets the highest sort order number among all projects for this character

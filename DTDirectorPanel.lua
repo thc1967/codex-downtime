@@ -293,141 +293,122 @@ function DTDirectorPanel:_showSettingsDialog()
             element:FireEvent("validateForm")
         end,
 
+        escape = function(element)
+            gui.CloseModal()
+        end,
+
         children = {
+            gui.Label{
+                text = "Edit Downtime Settings",
+                width = "100%",
+                height = 30,
+                fontSize = "24",
+                classes = {"DTLabel", "DTBase"},
+                textAlignment = "center",
+                halign = "center"
+            },
+            gui.Divider { width = "50%" },
+
+            -- Content
             gui.Panel {
                 classes = {"DTPanel", "DTBase"},
-                height = "100%",
+                height = "100%-124",
                 width = "98%",
-                valign = "top",
-                halign = "center",
+                valign="top",
                 flow = "vertical",
                 borderColor = "red",
                 children = {
-                    -- Header
                     gui.Panel {
-                        classes = {"DTPanel", "DTBase"},
-                        valign = "top",
-                        height = 40,
+                        classes = {"DTPanelRow", "DTPanel", "DTBase"},
                         width = "98%",
                         borderColor = "blue",
                         children = {
-                            gui.Label{
-                                text = "Edit Downtime Settings",
-                                width = "100%",
-                                height = 30,
-                                fontSize = "24",
-                                classes = {"DTLabel", "DTBase"},
-                                textAlignment = "center",
-                                halign = "center"
-                            },
-                        }
-                    },
-
-                    -- Content
-                    gui.Panel {
-                        classes = {"DTPanel", "DTBase"},
-                        height = "100%-124",
-                        width = "98%",
-                        valign="top",
-                        flow = "vertical",
-                        borderColor = "blue",
-                        children = {
-                            gui.Panel {
-                                classes = {"DTPanelRow", "DTPanel", "DTBase"},
-                                width = "98%",
-                                borderColor = "yellow",
-                                children = {
-                                    DTUtils.CreateLabeledCheckbox({
-                                        id = "chkPauseRolls",
-                                        text = "Pause Rolls",
-                                        value = isPaused,
-                                        change = function(element)
-                                            local controller = element:FindParentWithClass("dtSettingsController")
-                                            if controller then
-                                                controller:FireEvent("validateForm")
-                                            end
-                                        end
-                                    }, {
-                                        halign = "left",
-                                        height = "auto",
-                                    }),
-                                }
-                            },
-
-                            gui.Panel {
-                                classes = {"DTPanelRow", "DTPanel", "DTBase"},
-                                width = "98%",
-                                borderColor = "yellow",
-                                children = {
-                                    DTUtils.CreateLabeledInput("Pause Reason", {
-                                        id = "txtPauseReason",
-                                        text = pauseReason,
-                                        placeholderText = "Enter reason for pausing rolls...",
-                                        lineType = "Single",
-                                        editlag = 0.5,
-                                        change = function(element)
-                                            element:FireEvent("edit")
-                                        end,
-                                        edit = function(element)
-                                            local controller = element:FindParentWithClass("dtSettingsController")
-                                            if controller then
-                                                controller:FireEvent("validateForm")
-                                            end
-                                        end,
-                                    }, {}),
-                                }
-                            }
-                        }
-                    },
-
-                    -- Footer
-                    gui.Panel{
-                        classes = {"DTPanel", "DTBase"},
-                        width = "98%",
-                        height = 60,
-                        halign = "center",
-                        valign = "bottom",
-                        flow = "horizontal",
-                        borderColor = "blue",
-                        children = {
-                            -- Cancel button
-                            gui.Button{
-                                text = "Cancel",
-                                width = 120,
-                                valign = "bottom",
-                                classes = {"DTButton", "DTBase"},
-                                click = function(element)
-                                    gui.CloseModal()
-                                end
-                            },
-                            -- Confirm button
-                            gui.Button{
-                                text = "Confirm",
-                                width = 120,
-                                valign = "bottom",
-                                classes = {"DTButton", "DTBase", "DTDisabled"},
-                                interactable = false,
-                                enableConfirm = function(element, enabled)
-                                    element:SetClass("DTDisabled", not enabled)
-                                    element.interactable = enabled
-                                end,
-                                click = function(element)
-                                    if not element.interactable then return end
+                            DTUtils.CreateLabeledCheckbox({
+                                id = "chkPauseRolls",
+                                text = "Pause Rolls",
+                                value = isPaused,
+                                change = function(element)
                                     local controller = element:FindParentWithClass("dtSettingsController")
                                     if controller then
-                                        controller:FireEvent("saveAndClose")
+                                        controller:FireEvent("validateForm")
                                     end
                                 end
-                            }
+                            }, {
+                                halign = "left",
+                                height = "auto",
+                            }),
+                        }
+                    },
+
+                    gui.Panel {
+                        classes = {"DTPanelRow", "DTPanel", "DTBase"},
+                        width = "98%",
+                        borderColor = "blue",
+                        children = {
+                            DTUtils.CreateLabeledInput("Pause Reason", {
+                                id = "txtPauseReason",
+                                text = pauseReason,
+                                placeholderText = "Enter reason for pausing rolls...",
+                                lineType = "Single",
+                                editlag = 0.5,
+                                change = function(element)
+                                    element:FireEvent("edit")
+                                end,
+                                edit = function(element)
+                                    local controller = element:FindParentWithClass("dtSettingsController")
+                                    if controller then
+                                        controller:FireEvent("validateForm")
+                                    end
+                                end,
+                            }, {}),
                         }
                     }
                 }
             },
-        },
 
-        escape = function(element)
-            gui.CloseModal()
-        end
+            -- Footer
+            gui.Panel{
+                classes = {"DTPanel", "DTBase"},
+                width = "100%",
+                height = 40,
+                vmargin = 10,
+                halign = "center",
+                valign = "bottom",
+                flow = "horizontal",
+                borderColor = "red",
+                children = {
+                    -- Cancel button
+                    gui.Button{
+                        text = "Cancel",
+                        width = 120,
+                        valign = "bottom",
+                        classes = {"DTButton", "DTBase"},
+                        click = function(element)
+                            gui.CloseModal()
+                        end
+                    },
+                    -- Confirm button
+                    gui.Button{
+                        text = "Confirm",
+                        width = 120,
+                        valign = "bottom",
+                        classes = {"DTButton", "DTBase", "DTDisabled"},
+                        interactable = false,
+                        enableConfirm = function(element, enabled)
+                            element:SetClass("DTDisabled", not enabled)
+                            element.interactable = enabled
+                        end,
+                        click = function(element)
+                            if not element.interactable then return end
+                            local controller = element:FindParentWithClass("dtSettingsController")
+                            if controller then
+                                controller:FireEvent("saveAndClose")
+                            end
+                        end
+                    }
+                }
+            }
+        },
     }
 
     gui.ShowModal(settingsDialog)
@@ -473,7 +454,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     local function isHeroWithDowntimeProjects(character)
         if character and character.properties and character.properties:IsHero() then
             local dti = character.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
-            if dti and next(dti:GetDowntimeProjects()) then return true end
+            if dti and next(dti:GetProjects()) then return true end
         end
         return false
     end
@@ -510,7 +491,7 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
 
             local downtimeInfo = character.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
             if downtimeInfo then
-                local projects = downtimeInfo:GetDowntimeProjects()
+                local projects = downtimeInfo:GetProjects()
 
                 for _, project in pairs(projects) do
                     local projectEntry = {

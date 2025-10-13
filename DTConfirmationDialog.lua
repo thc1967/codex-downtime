@@ -31,15 +31,14 @@ function DTConfirmationDialog.ShowModal(title, message, confirmButtonText, cance
 end
 
 --- Shows a standardized delete confirmation dialog
---- @param itemType string The type of item being deleted ("quest", "note", "objective")
---- @param itemTitle string The display name/title of the item being deleted
+--- @param message string Text to place after `are you sure you want to delete...`
 --- @param onConfirm function Callback function to execute if user confirms deletion
 --- @param onCancel function Optional callback function to execute if user cancels (default: just close dialog)
-function DTConfirmationDialog.ShowDeleteModal(itemType, itemTitle, onConfirm, onCancel)
+function DTConfirmationDialog.ShowDeleteModal(message, onConfirm, onCancel)
     local title = "Delete Confirmation"
-    local message = "Are you sure you want to delete " .. itemType .. " \"" .. (itemTitle or "Untitled") .. "\"?"
+    local displayMessage = string.format("Are you sure you want to delete %s?", message or "this item")
 
-    DTConfirmationDialog.ShowModal(title, message, "Delete", "Cancel", onConfirm, onCancel)
+    DTConfirmationDialog.ShowModal(title, displayMessage, "Delete", "Cancel", onConfirm, onCancel)
 end
 
 --- Private helper to create the panel structure
@@ -57,19 +56,10 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
 
     local resultPanel = nil
     resultPanel = gui.Panel {
-        classes = {"confirmDialogController", "DTPanel", "DTBase"},
+        styles = DTUtils.GetDialogStyles(),
+        classes = {"confirmDialogController", "DTDialog"}, --"DTPanel", "DTBase"},
         width = 400,
         height = 200,
-        halign = "center",
-        valign = "center",
-        bgcolor = "#111111ff",
-        borderWidth = 2,
-        borderColor = Styles.textColor,
-        bgimage = "panels/square.png",
-        flow = "vertical",
-        hpad = 20,
-        vpad = 20,
-        styles = DTUtils.GetDialogStyles(),
         floating = true,
         escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
         captureEscape = true,
@@ -91,14 +81,15 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
         children = {
             -- Header
             gui.Label{
+                classes = {"DTLabel", "DTBase"},
                 text = title,
                 fontSize = 24,
                 width = "100%",
                 height = 30,
-                classes = {"DTLabel", "DTBase"},
                 textAlignment = "center",
                 halign = "center"
             },
+            gui.Divider { width = "50%" },
 
             -- Confirmation message
             gui.Label{
@@ -119,7 +110,7 @@ function DTConfirmationDialog._createPanel(title, message, confirmButtonText, ca
                 height = 40,
                 halign = "center",
                 valign = "center",
-                borderColor = "yellow",
+                borderColor = "red",
                 children = {
                     gui.Button{
                         text = cancelButtonText,
@@ -175,13 +166,12 @@ function DTConfirmationDialog.CreateAsChild(title, message, confirmButtonText, c
 end
 
 --- Creates a delete confirmation dialog panel for AddChild usage
---- @param itemType string The type of item being deleted
---- @param itemTitle string The display name of the item being deleted
+--- @param message string Text to place after `are you sure you want to delete...`
 --- @param callbacks table Table with confirm and cancel callback functions
 --- @return table panel The GUI panel ready for AddChild
-function DTConfirmationDialog.ShowDeleteAsChild(itemType, itemTitle, callbacks)
+function DTConfirmationDialog.ShowDeleteAsChild(message, callbacks)
     local title = "Delete Confirmation"
-    local message = "Are you sure you want to delete " .. itemType .. " \"" .. (itemTitle or "Untitled") .. "\"?"
+    local displayMessage = string.format("Are you sure you want to delete %s?", message or "this item")
 
-    return DTConfirmationDialog.CreateAsChild(title, message, "Delete", "Cancel", callbacks)
+    return DTConfirmationDialog.CreateAsChild(title, displayMessage, "Delete", "Cancel", callbacks)
 end

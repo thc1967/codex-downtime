@@ -6,6 +6,34 @@ DTUtils = RegisterGameType("DTUtils")
 -- Turn on the background to see lines around the downtime tab panels
 local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
 
+--- Calculates the language penalty based on whether any known language
+--- is in the list of required or related to any in the list of required
+--- @param required string[] List of candidate required language ids
+--- @param known string[] list of known language ids
+--- @return string penalty The penalty level
+function DTUtils.CalcLangPenalty(required, known)
+    local penalty = DTConstants.LANGUAGE_PENALTY.UNKNOWN.key
+    local langRels = dmhub.GetTableVisible(LanguageRelation.tableName)
+
+    for _, reqId in ipairs(required) do
+        -- Do we know the language?
+        if known[reqId]  then
+            penalty = DTConstants.LANGUAGE_PENALTY.NONE.key
+            break
+        -- Or do we have a related language?
+        elseif langRels[reqId] then
+            for relId, _ in pairs(langRels[reqId].related) do
+                if known[relId] then
+                    penalty = DTConstants.LANGUAGE_PENALTY.RELATED.key
+                    break
+                end
+            end
+        end
+    end
+
+    return penalty
+end
+
 --- Creates a labeled checkbox with consistent styling
 --- @param checkboxOptions table Options for the checkbox (text, value, change, etc.)
 --- @param panelOptions? table Optional panel options (width, height, etc.)
@@ -485,7 +513,7 @@ function DTUtils.GetSharedProjectsForRecipient(recipientId)
             local ownerDTInfo = ownerToken.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
             if ownerDTInfo then
                 -- Get the specific project
-                local project = ownerDTInfo:GetDowntimeProject(projectId)
+                local project = ownerDTInfo:GetProject(projectId)
                 if project then
                     sharedProjects[#sharedProjects + 1] = {
                         project = project,
