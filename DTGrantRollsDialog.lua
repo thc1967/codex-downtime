@@ -19,7 +19,7 @@ function DTGrantRollsDialog:ShowDialog()
         classes = {"dtGrantRollsController", "DTDialog"},
         width = 450,
         height = 450,
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
         data = {
             currentRollCount = 1,
         },
@@ -184,17 +184,17 @@ end
 --- Builds the number of rolls input field with +/- buttons
 --- @return table panel The number of rolls input panel
 function DTGrantRollsDialog:_buildNumberOfRollsField()
-    return DTUtils.CreateNumericEditor("Number of Rolls:", 1, "dtGrantRollsController", "rollCountChanged", {
+    return DTUIComponents.CreateNumericEditor("Number of Rolls:", 1, "dtGrantRollsController", "rollCountChanged", {
         width = "50%",
         halign = "left"
     })
 end
 
---- Creates the character selector using DTUtils.CharacterSelector
+--- Creates the character selector using gui.CharacterSelect
 --- @return table panel The character selector panel
 function DTGrantRollsDialog:_createCharacterSelector()
     -- Get all hero tokens to display
-    local allTokens = DTUtils.GetAllHeroTokens()
+    local allTokens = DTBusinessRules.GetAllHeroTokens()
 
     -- Get tokens selected on map and extract their IDs for initial selection
     local selectedTokens = dmhub.selectedTokens

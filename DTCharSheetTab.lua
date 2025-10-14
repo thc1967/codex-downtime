@@ -25,7 +25,7 @@ function DTCharSheetTab.CreateDowntimePanel()
         flow = "vertical",
         valign = "top",
         halign = "center",
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
         data = {
             getDowntimeInfo = function()
                 return CharacterSheet.instance.data.info.token.properties:GetDowntimeInfo()
@@ -267,7 +267,7 @@ function DTCharSheetTab._createBodyPanel()
                 height = "100%",
                 valign = "top",
                 vscroll = true,
-                styles = DTUtils.GetDialogStyles(),
+                styles = DTHelpers.GetDialogStyles(),
                 children = {
                     -- Inner auto-height container that pins content to top
                     gui.Panel{
@@ -310,7 +310,7 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    local sharedProjects = DTUtils.GetSharedProjectsForRecipient(token.id)
+    local sharedProjects = DTBusinessRules.GetSharedProjectsForRecipient(token.id)
 
     local downtimeInfo = token.properties:GetDowntimeInfo()
     if not downtimeInfo and #sharedProjects == 0 then

@@ -35,7 +35,7 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
         classes = {"adjustmentDialogController", "DTDialog"},
         width = 500,
         height = 350,
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
         floating = true,
         escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
         captureEscape = true,
@@ -114,7 +114,7 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
                 vmargin = 10,
                 children = {
                     -- Amount field with numeric editor
-                    DTUtils.CreateNumericEditor("Adjustment Amount:", adjustment:GetAmount(), "adjustmentDialogController", "adjustAmount"),
+                    DTUIComponents.CreateNumericEditor("Adjustment Amount:", adjustment:GetAmount(), "adjustmentDialogController", "adjustAmount"),
 
                     -- Reason field
                     gui.Panel{

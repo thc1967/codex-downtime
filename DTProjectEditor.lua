@@ -283,7 +283,7 @@ function DTProjectEditor:_createProjectForm()
                 chips = {
                     classes = {"DTChip"}
                 },
-                options = DTUtils.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
+                options = DTHelpers.ListToDropdownOptions(DTConstants.CHARACTERISTICS),
                 sort = true,
                 textDefault = "Select...",
                 data = {
@@ -306,7 +306,7 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project then
                         local storageValues = project:GetTestCharacteristics()
-                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
                             element.value = storageValues
                         end
                     end
@@ -316,7 +316,7 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project then
                         local storageValues = project:GetTestCharacteristics()
-                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
                             project:SetTestCharacteristics(uiValues)
                             local projectController = element:FindParentWithClass("projectController")
                             if projectController then
@@ -386,7 +386,7 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project then
                         local storageValues = project:GetProjectSourceLanguages()
-                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
                             element.value = storageValues
                         end
                     end
@@ -396,7 +396,7 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project then
                         local storageValues = project:GetProjectSourceLanguages()
-                        if not DTUtils.ListsHaveSameValues(uiValues, storageValues) then
+                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
                             project:SetProjectSourceLanguages(uiValues)
                             local projectController = element:FindParentWithClass("projectController")
                             if projectController then
@@ -471,7 +471,7 @@ function DTProjectEditor:_createProjectForm()
             isDM and gui.Dropdown {
                 width = "100%-4",
                 classes = {"DTDropdown", "DTBase"},
-                options = DTUtils.ListToDropdownOptions(DTConstants.STATUS),
+                options = DTHelpers.ListToDropdownOptions(DTConstants.STATUS),
                 data = {
                     getProject = function(element)
                         local projectController = element:FindParentWithClass("projectController")
@@ -960,7 +960,7 @@ function DTProjectEditor:_createSharedProjectForm(ownerName)
                     if project then
                         local creature = CharacterSheet.instance.data.info.token.properties
                         local projectLangs = project:GetProjectSourceLanguages()
-                        local penalty = DTUtils.CalcLangPenalty(projectLangs, creature:LanguagesKnown())
+                        local penalty = DTBusinessRules.CalcLangPenalty(projectLangs, creature:LanguagesKnown())
                         element.text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, penalty)
                     end
                 end
@@ -1446,7 +1446,7 @@ function DTProjectEditor:_createOwnedProjectButtons()
                 local function inPartyAndNotMe(t)
                     return t.id ~= me.id and t.partyId == me.partyId
                 end
-                local showList = DTUtils.GetAllHeroTokens(inPartyAndNotMe)
+                local showList = DTBusinessRules.GetAllHeroTokens(inPartyAndNotMe)
 
                 -- Build the list of characters already shared with
                 local sharedWith = shareData:GetProjectSharedWith(me.id, project:GetID())
@@ -1831,10 +1831,10 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
 
     -- Get user display name with color
     local commitBy, rollBy = item:GetCommitBy()
-    local userDisplay = DTUtils.GetPlayerDisplayName(commitBy)
+    local userDisplay = DTHelpers.GetPlayerDisplayName(commitBy)
     local rollText = nil
     if rollBy and #rollBy > 0 then
-        local rollDisplay = DTUtils.FormatNameWithUserColor(rollBy, commitBy)
+        local rollDisplay = DTHelpers.FormatNameWithUserColor(rollBy, commitBy)
         userDisplay = string.format("%s (%s)", rollDisplay, userDisplay)
         rollText = string.format("<b>Roll:</b> %s; ", item:GetRollString())
     end

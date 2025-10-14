@@ -42,7 +42,7 @@ function DTProjectRollDialog._createPanel(options)
     end
 
     resultPanel = gui.Panel {
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
         classes = {"rollController", "DTDialog"},
         width = 800,
         height = 500,
@@ -307,7 +307,7 @@ function DTProjectRollDialog._createPanel(options)
                                                         local project = rollController.data.getProject(rollController)
                                                         local creature = CharacterSheet.instance.data.info.token.properties
                                                         if project then
-                                                            local langPenalty = DTUtils.CalcLangPenalty(project:GetProjectSourceLanguages(), creature:LanguagesKnown())
+                                                            local langPenalty = DTBusinessRules.CalcLangPenalty(project:GetProjectSourceLanguages(), creature:LanguagesKnown())
                                                             if langPenalty then
                                                                 if langPenalty == DTConstants.LANGUAGE_PENALTY.RELATED.key then
                                                                     element.data.banes = 1
@@ -440,7 +440,7 @@ function DTProjectRollDialog._createPanel(options)
                                                     local newSelected = element.value
                                                     local curSelected = element.data.skillsSelected or {}
                                                     local skillLookup = element.data.skillLookup
-                                                    local changed = DTUtils.SyncArrays(curSelected, newSelected)
+                                                    local changed = DTHelpers.SyncArrays(curSelected, newSelected)
                                                     if changed then
                                                         element.data.skillsSelected = curSelected
                                                         local rollController = element:FindParentWithClass("rollController")

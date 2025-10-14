@@ -11,7 +11,7 @@ local function _clearAllData()
         return false
     end
 
-    local heroes = DTUtils.GetAllHeroTokens(tokenHasDowntime)
+    local heroes = DTBusinessRules.GetAllHeroTokens(tokenHasDowntime)
     for _, t in ipairs(heroes) do
         chat.Send(string.format("Removing Downtime data from %s.", t.name))
         t:ModifyProperties{
@@ -175,7 +175,7 @@ function DTDirectorPanel:_buildHeaderPanel()
         flow = "horizontal",
         halign = "left",
         valign = "center",
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
         children = {
             -- Settings panel - edit button & state
             gui.Panel {
@@ -266,7 +266,7 @@ function DTDirectorPanel:_showSettingsDialog()
         classes = {"dtSettingsController", "DTDialog"},
         width = 500,
         height = 300,
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
 
         saveAndClose = function(element)
             local chkPause = element:Get("chkPauseRolls")
@@ -323,7 +323,7 @@ function DTDirectorPanel:_showSettingsDialog()
                         width = "98%",
                         borderColor = "blue",
                         children = {
-                            DTUtils.CreateLabeledCheckbox({
+                            DTUIComponents.CreateLabeledCheckbox({
                                 id = "chkPauseRolls",
                                 text = "Pause Rolls",
                                 value = isPaused,
@@ -345,7 +345,7 @@ function DTDirectorPanel:_showSettingsDialog()
                         width = "98%",
                         borderColor = "blue",
                         children = {
-                            DTUtils.CreateLabeledInput("Pause Reason", {
+                            DTUIComponents.CreateLabeledInput("Pause Reason", {
                                 id = "txtPauseReason",
                                 text = pauseReason,
                                 placeholderText = "Enter reason for pausing rolls...",
@@ -459,7 +459,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         return false
     end
 
-    local allHeroes = DTUtils.GetAllHeroTokens(isHeroWithDowntimeProjects)
+    local allHeroes = DTBusinessRules.GetAllHeroTokens(isHeroWithDowntimeProjects)
     for _, character in ipairs(allHeroes) do
         characterInfo[#characterInfo + 1] = {
             id = character.id,

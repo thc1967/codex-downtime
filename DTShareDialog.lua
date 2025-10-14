@@ -35,7 +35,7 @@ function DTShareDialog._createPanel(options)
         classes = {"shareController", "DTDialog"},
         width = 450,
         height = 300,
-        styles = DTUtils.GetDialogStyles(),
+        styles = DTHelpers.GetDialogStyles(),
         floating = true,
         escapePriority = EscapePriority.EXIT_MODAL_DIALOG,
         captureEscape = true,
