@@ -1290,13 +1290,16 @@ function DTProjectEditor:_createRollButton(options)
     local hmargin = options.hmargin or nil
     local vmargin = options.vmargin or nil
 
-    return DTUIComponents.CreateRollButton{
+    return gui.EnhIconButton {
         width = width,
         height = height,
         margin = margin,
         halign = halign,
         hmargin = hmargin,
         vmargin = vmargin,
+        hoverColor = "#00cccc",
+        pressColor = "#008080",
+        bgimage = 'panels/initiative/initiative-dice.png',
         data = {
             enabled = false,
             tooltipText = "",
@@ -1415,18 +1418,15 @@ function DTProjectEditor:_createOwnedProjectButtons()
         end
     }
 
-    local shareButton = gui.Button {
-        style = {
-            width = 20,
-            height = 20,
-        },
+    local shareButton = gui.EnhIconButton {
         width = 20,
         height = 20,
-        icon = mod.images.share,
         halign = "left",
         hmargin = 5,
         vmargin = 5,
-        border = 0,
+        bgimage = mod.images.share,
+        hoverColor = "#fcae1e",
+        pressColor = "#dc8e00",
         data = {
             getProject = function(element)
                 local projectController = element:FindParentWithClass("projectController")

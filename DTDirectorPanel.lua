@@ -235,14 +235,16 @@ function DTDirectorPanel:_buildHeaderPanel()
                 halign = "right",
                 valign = "center",
                 children = {
-                    gui.Button {
-                        icon = "panels/initiative/initiative-dice.png",
+                    gui.EnhIconButton {
+                        bgimage = "panels/initiative/initiative-dice.png",
                         width = "30",
                         height = "30",
                         halign = "right",
                         valign = "center",
                         hmargin = 5,
                         borderWidth = 0,
+                        hoverColor = "#00cccc",
+                        pressColor = "#00aaaa",
                         linger = function(element)
                             gui.Tooltip("Grant rolls to characters")(element)
                         end,
