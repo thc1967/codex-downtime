@@ -476,7 +476,7 @@ function DTUtils.GetAllHeroTokens(fn)
     for _, token in ipairs(despawnedTokens) do
         local character = dmhub.GetCharacterById(token.charid)
         if character and character.properties and character.properties:IsHero() then
-            if fn == nill or fn(character) then
+            if fn == nil or fn(character) then
                 heroes[#heroes + 1] = character
             end
         end

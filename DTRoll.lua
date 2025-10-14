@@ -104,7 +104,7 @@ function DTRoll:SetAudit(audit)
     return self
 end
 
---- Gets the audit informatoin for this roll
+--- Gets the audit information for this roll
 --- @return string audit The text representation of the audit
 function DTRoll:GetAudit()
     return self.audit or ""

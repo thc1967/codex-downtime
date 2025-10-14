@@ -45,6 +45,10 @@ function DTProject:new(sortOrder)
     instance.progressAdjustments = {}
     instance.createdBy = dmhub.userid
 
+    -- Progress caching to avoid expensive recalculation on every GetProgress() call
+    instance._cachedProgress = nil        -- Stores the calculated progress value
+    instance._progressDirty = true        -- Marks cache as needing recalculation
+
     return instance
 end
 
@@ -126,22 +130,6 @@ function DTProject:SetProjectSourceLanguagePenalty(penalty)
     return self
 end
 
---- Gets the test characteristic
---- @return string characteristic One of DTConstants.CHARACTERISTICS values
--- function DTProject:GetTestCharacteristic()
---     return self.testCharacteristic or DEFAULT_CHARACTERISTIC
--- end
-
---- Sets the test characteristic
---- @param characteristic string One of DTConstants.CHARACTERISTICS values
---- @return DTProject self For chaining
--- function DTProject:SetTestCharacteristic(characteristic)
---     if self:_isValidTestCharacteristic(characteristic) then
---         self.testCharacteristic = characteristic
---     end
---     return self
--- end
-
 --- Gets the list of test characteristics for this project
 --- Falls back to legacy single characteristic if list is empty/nil
 --- @return table characteristics Array of characteristic keys from DTConstants.CHARACTERISTICS
@@ -153,7 +141,7 @@ function DTProject:GetTestCharacteristics()
     local legacy = self:try_get("testCharacteristic")
     if legacy and legacy ~= "" then
         local newValue = {legacy}
-        
+
         local current = self:get_or_add("testCharacteristics", newValue)
         current = legacy
 
@@ -285,6 +273,13 @@ function DTProject:IsValidStateToRoll()
     return isValid, #reasons and reasons or nil
 end
 
+--- Invalidates the progress cache, forcing recalculation on next GetProgress() call
+--- Called internally by AddRoll, RemoveRoll, AddAdjustment, RemoveAdjustment
+--- @private
+function DTProject:_invalidateProgressCache()
+    self._progressDirty = true
+end
+
 --- Gets a specific project roll
 --- @param rollId string GUID ID of the roll to find
 --- @return DTRoll|nil roll The roll object or nil if not found
@@ -362,6 +357,7 @@ function DTProject:AddRoll(roll)
     self:_setStateFromProgressChange(roll, 1)
     roll:SetCommitInfo()
     self.projectRolls[#self.projectRolls + 1] = roll
+    self:_invalidateProgressCache()
 
     return self
 end
@@ -392,6 +388,7 @@ function DTProject:RemoveRoll(rollId)
     if roll then
         self:_setStateFromProgressChange(roll, -1)
         table.remove(self.projectRolls, index)
+        self:_invalidateProgressCache()
     end
 
     return self
@@ -415,6 +412,7 @@ function DTProject:AddAdjustment(adjustment)
     self:_setStateFromProgressChange(adjustment, 1)
     adjustment:SetCommitInfo()
     self.progressAdjustments[#self.progressAdjustments + 1] = adjustment
+    self:_invalidateProgressCache()
     return self
 end
 
@@ -432,6 +430,7 @@ function DTProject:RemoveAdjustment(adjustmentId)
         if adjustment and adjustment:GetID() == adjustmentId then
             self:_setStateFromProgressChange(adjustment, -1)
             table.remove(self.progressAdjustments, i)
+            self:_invalidateProgressCache()
             break
         end
     end
@@ -453,11 +452,21 @@ function DTProject:SetSortOrder(sortOrder)
     return self
 end
 
---- Calculates the current progress of this project
---- Sums all project roll results and progress adjustments
---- **NOTE:** This operation iterates two tables and can be expensive.
+--- Gets the current progress of this project
+--- Uses cached value when available, recalculates only when cache is dirty
+--- Cache is invalidated automatically when rolls or adjustments are added/removed
 --- @return number progress The total progress points earned on this project
 function DTProject:GetProgress()
+    -- Check if cache is valid using VTT property system
+    local cachedProgress = self:try_get("_cachedProgress")
+    local progressDirty = self:try_get("_progressDirty")
+
+    -- Return cached value if it exists and cache is not dirty
+    if cachedProgress ~= nil and not progressDirty then
+        return cachedProgress
+    end
+
+    -- Recalculate progress from scratch
     local progress = 0
 
     -- Add all roll results
@@ -471,6 +480,10 @@ function DTProject:GetProgress()
     for _, adjustment in ipairs(adjustments) do
         progress = progress + adjustment:GetAmount()
     end
+
+    -- Update cache and mark as clean
+    self._cachedProgress = progress
+    self._progressDirty = false
 
     return progress
 end
@@ -498,18 +511,6 @@ function DTProject:_isValidLanguagePenalty(penalty)
     end
     return false
 end
-
---- Validates if the given test characteristic is valid
---- @param characteristic string The characteristic to validate
---- @return boolean valid True if the characteristic is valid
--- function DTProject:_isValidTestCharacteristic(characteristic)
---     for _, validCharacteristic in pairs(DTConstants.CHARACTERISTICS) do
---         if characteristic == validCharacteristic.key then
---             return true
---         end
---     end
---     return false
--- end
 
 --- Validates if the project has at least one valid test characteristic
 --- @param characteristics table The characteristics list to validate
