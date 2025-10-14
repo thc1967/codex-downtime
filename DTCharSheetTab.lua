@@ -192,7 +192,7 @@ function DTCharSheetTab._createHeaderPanel()
                             if CharacterSheet.instance.data.info then
                                 local token = CharacterSheet.instance.data.info.token
                                 if token and token.properties and token.properties:IsHero() then
-                                    local downtimeInfo = token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+                                    local downtimeInfo = token.properties:GetDowntimeInfo()
                                     if downtimeInfo then
                                         availableRolls = downtimeInfo:GetAvailableRolls()
                                     else
@@ -229,7 +229,7 @@ function DTCharSheetTab._createHeaderPanel()
                             if CharacterSheet.instance.data.info then
                                 local token = CharacterSheet.instance.data.info.token
                                 if token and token.properties and token.properties:IsHero() then
-                                    local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
+                                    local downtimeInfo = token.properties:GetDowntimeInfo()
                                     if downtimeInfo then
                                         downtimeInfo:AddProject()
                                         DTSettings.Touch()

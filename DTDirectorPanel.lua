@@ -453,7 +453,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     -- Local validation function to check if character meets criteria
     local function isHeroWithDowntimeProjects(character)
         if character and character.properties and character.properties:IsHero() then
-            local dti = character.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+            local dti = character.properties:GetDowntimeInfo()
             if dti and next(dti:GetProjects()) then return true end
         end
         return false
