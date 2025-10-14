@@ -28,7 +28,7 @@ function DTCharSheetTab.CreateDowntimePanel()
         styles = DTUtils.GetDialogStyles(),
         data = {
             getDowntimeInfo = function()
-                return CharacterSheet.instance.data.info.token.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+                return CharacterSheet.instance.data.info.token.properties:GetDowntimeInfo()
             end,
         },
 
@@ -87,7 +87,7 @@ function DTCharSheetTab._createHeaderPanel()
                         flow = "horizontal",
                         halign = "left",
                         valign = "center",
-                        hmargin = "20",
+                        hmargin = 20,
                         children = {
                             gui.Label {
                                 text = "Rolling status is ",
@@ -304,15 +304,15 @@ function DTCharSheetTab._refreshProjectsList(element)
         print("THC:: BOOM:: DTCharSheetTab._refreshProjectsList")
         return
     end
-    local character = CharacterSheet.instance.data.info.token
-    if not character or not character.properties or not character.properties:IsHero() then
+    local token = CharacterSheet.instance.data.info.token
+    if not token or not token.properties or not token.properties:IsHero() then
         element.children = {}
         return
     end
 
-    local sharedProjects = DTUtils.GetSharedProjectsForRecipient(character.id)
+    local sharedProjects = DTUtils.GetSharedProjectsForRecipient(token.id)
 
-    local downtimeInfo = character.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
+    local downtimeInfo = token.properties:GetDowntimeInfo()
     if not downtimeInfo and #sharedProjects == 0 then
         -- Show "no projects" message only if no shared projects either
         element.children = {

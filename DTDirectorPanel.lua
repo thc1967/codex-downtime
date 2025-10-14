@@ -464,7 +464,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         characterInfo[#characterInfo + 1] = {
             id = character.id,
             name = character.name or "Unknown Character",
-            rolls = character.properties.downtimeInfo:GetAvailableRolls(),
+            rolls = character.properties:GetDowntimeInfo():GetAvailableRolls(),
         }
     end
 
@@ -489,7 +489,7 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
             local characterId = characterInfo.id
             local characterName = characterInfo.name
 
-            local downtimeInfo = character.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+            local downtimeInfo = character.properties:GetDowntimeInfo()
             if downtimeInfo then
                 local projects = downtimeInfo:GetProjects()
 
@@ -613,7 +613,7 @@ function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabT
                         press = function()
                             local character = dmhub.GetCharacterById(characterId)
                             if character then
-                                character:ShowSheet()
+                                character:ShowSheet("Downtime")
                             end
                         end
                     }

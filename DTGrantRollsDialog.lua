@@ -25,7 +25,9 @@ function DTGrantRollsDialog:ShowDialog()
         },
 
         create = function(element)
-            element:FireEvent("validateForm")
+            dmhub.Schedule(0.1, function()
+                element:FireEvent("validateForm")
+            end)
         end,
 
         validateForm = function(element)
@@ -54,9 +56,7 @@ function DTGrantRollsDialog:ShowDialog()
                             token:ModifyProperties{
                                 description = "Grant Downtime Rolls",
                                 execute = function ()
-                                    local downtimeInfo = token.properties:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
-                                    if type(downtimeInfo) ~= "table" then downtimeInfo = DTInfo:new() end
-                                    downtimeInfo:GrantRolls(numRolls)
+                                    token.properties:GetDowntimeInfo():GrantRolls(numRolls)
                                 end,
                             }
                         end
@@ -145,7 +145,7 @@ function DTGrantRollsDialog:ShowDialog()
                             },
                             -- Confirm button
                             gui.Button{
-                                text = "Confirm",
+                                text = "Grant",
                                 width = 120,
                                 valign = "bottom",
                                 classes = {"DTButton", "DTBase", "DTDisabled"},

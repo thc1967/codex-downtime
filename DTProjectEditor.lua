@@ -955,10 +955,10 @@ function DTProjectEditor:_createSharedProjectForm(ownerName)
                         return nil
                     end
                 },
-                refreshToken = function(element, info)
+                refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        local creature = info.token.properties
+                        local creature = CharacterSheet.instance.data.info.token.properties
                         local projectLangs = project:GetProjectSourceLanguages()
                         local penalty = DTUtils.CalcLangPenalty(projectLangs, creature:LanguagesKnown())
                         element.text = DTConstants.GetDisplayText(DTConstants.LANGUAGE_PENALTY, penalty)

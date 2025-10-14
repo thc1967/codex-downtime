@@ -6,6 +6,10 @@ if dmhub.isDM then
     end
 end
 
+creature.GetDowntimeInfo = function(self)
+    return self:get_or_add(DTConstants.CHARACTER_STORAGE_KEY, DTInfo:new())
+end
+
 CharSheet.RegisterTab {
     id = "Downtime",
     text = "Downtime",
@@ -15,7 +19,7 @@ CharSheet.RegisterTab {
     panel = DTCharSheetTab.CreateDowntimePanel
 }
 
-if DTConstants.DEVMODE then
-    CharSheet.defaultSheet = "Downtime"
-end
+-- if DTConstants.DEVMODE then
+--     CharSheet.defaultSheet = "Downtime"
+-- end
 dmhub.RefreshCharacterSheet()
