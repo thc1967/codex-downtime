@@ -1541,7 +1541,7 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
                                 project:AddRoll(roll)
                             end
                         end
-                    }     
+                    }
                     local downtimeController = controller:FindParentWithClass("downtimeController")
                     if downtimeController then
                         downtimeController:FireEvent("adjustRolls", -1)
@@ -1832,20 +1832,23 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
     -- Get user display name with color
     local commitBy, rollBy = item:GetCommitBy()
     local userDisplay = DTUtils.GetPlayerDisplayName(commitBy)
+    local rollText = nil
     if rollBy and #rollBy > 0 then
         local rollDisplay = DTUtils.FormatNameWithUserColor(rollBy, commitBy)
         userDisplay = string.format("%s (%s)", rollDisplay, userDisplay)
+        rollText = string.format("<b>Roll:</b> %s; ", item:GetRollString())
     end
 
-    local description = item:GetDescription()
-    if #description > 80 then
-        description = description:sub(1, 77) .. "..."
+    local description = item:GetDescription():gsub("/n", "; ")
+    if rollText then
+        description = rollText .. description
     end
 
     return gui.Panel{
         id = item:GetID(),
         classes = {"DTListRow", "DTListBase"},
         flow = "vertical",
+        height = "auto",
         data = {
             serverTime = item:GetServerTime(),
         },

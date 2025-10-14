@@ -138,7 +138,7 @@ function DTProjectRollDialog._createPanel(options)
             if adjustDetails and #adjustDetails > 0 then
                 for _, detail in ipairs(adjustDetails) do
                     local label, text = detail.data.getTypeAndText(detail)
-                    if #audit > 0 then audit = audit .. "/n" end
+                    if #audit > 0 then audit = audit .. "; " end
                     audit = string.format("%s<b>%s</b> %s", audit, label, text)
                 end
             end
@@ -570,7 +570,7 @@ end
 function DTProjectRollDialog._makeExtraAdjustmentLabel(adjustType)
 
     local lower, proper = adjustType:lower(), adjustType:sub(1, 1):upper() .. adjustType:sub(2):lower()
-    local defaultLabel = string.format("No %s selected.", proper)
+    local defaultLabel = string.format("No %s selected", proper)
 
     return gui.Panel {
         classes = {"adjustDetail", "DTPanel", "DTBase"},
