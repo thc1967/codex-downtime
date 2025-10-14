@@ -1541,7 +1541,11 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
                                 project:AddRoll(roll)
                             end
                         end
-                    }
+                    }     
+                    local downtimeController = controller:FindParentWithClass("downtimeController")
+                    if downtimeController then
+                        downtimeController:FireEvent("adjustRolls", -1)
+                    end
                     dmhub.Schedule(0.1, function()
                         controller:FireEventTree("refreshToken")
                     end)
