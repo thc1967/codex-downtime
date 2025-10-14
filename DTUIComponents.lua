@@ -408,3 +408,87 @@ function DTUIComponents.CreateLabeledInput(labelText, inputOptions, panelOptions
         }
     }
 end
+
+--- Creates a roll button with blue hover icon tint (following DeleteItemButton pattern)
+--- @param options table Options table with click handler and optional styling
+---   - click: function(element) - Click handler callback
+---   - press: function(element) - Press handler callback (optional)
+---   - linger: function(element) - Linger/hover handler for tooltips (optional)
+---   - width: number - Button width (default: 20)
+---   - height: number - Button height (default: 20)
+---   - halign: string - Horizontal alignment (optional)
+---   - valign: string - Vertical alignment (optional)
+---   - hmargin: number - Horizontal margin (optional)
+---   - vmargin: number - Vertical margin (optional)
+---   - margin: number - All-around margin (optional)
+---   - classes: table - Additional CSS classes (optional)
+---   - styles: table - Additional styles (optional)
+---   - create: function(element) - Create event handler (optional)
+---   - refreshGame: function(element) - Refresh game event (optional)
+---   - refreshToken: function(element) - Refresh token event (optional)
+---   - data: table - Custom data object (optional)
+--- @return table panel The roll button panel
+function DTUIComponents.CreateRollButton(options)
+    options = options or {}
+
+    -- Styles for roll button icon tinting
+    local rollButtonStyles = {
+        {
+            priority = 10,
+            selectors = {'dt-roll-button'},
+            bgcolor = "white",  -- Default: white icon
+            borderWidth = 0,
+        },
+        {
+            priority = 10,
+            selectors = {'dt-roll-button', 'hover'},
+            bgcolor = "#00cccc",  -- Hover: blue icon
+            transitionTime = 0.2
+        },
+        {
+            priority = 10,
+            selectors = {'dt-roll-button', 'press'},
+            bgcolor = "#000088",  -- Press: darker blue
+        },
+    }
+
+    -- Build args table
+    local args = {
+        classes = {'dt-roll-button'},
+        bgimage = 'panels/initiative/initiative-dice.png',
+        borderWidth = 0,
+        width = options.width or 20,
+        height = options.height or 20,
+        styles = rollButtonStyles,
+    }
+
+    -- Merge additional classes
+    if options.classes then
+        for _, cls in ipairs(options.classes) do
+            args.classes[#args.classes + 1] = cls
+        end
+        options.classes = nil
+    end
+
+    -- Merge additional styles
+    if options.styles then
+        local styles = {}
+        for _, s in ipairs(args.styles) do
+            styles[#styles + 1] = s
+        end
+        for _, s in ipairs(options.styles) do
+            styles[#styles + 1] = s
+        end
+        args.styles = styles
+        options.styles = nil
+    end
+
+    -- Copy all other options
+    for k, v in pairs(options) do
+        if k ~= "width" and k ~= "height" then  -- Already handled above
+            args[k] = v
+        end
+    end
+
+    return gui.Panel(args)
+end

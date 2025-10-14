@@ -1286,18 +1286,14 @@ function DTProjectEditor:_createRollButton(options)
     local width = options.width or 24
     local height = options.height or 24
     local margin = options.margin or 0
-    local borderWidth = options.borderWidth or options.border or 0
     local halign = options.halign or nil
     local hmargin = options.hmargin or nil
     local vmargin = options.vmargin or nil
 
-    return gui.Button {
-        classes = {"DTButton", "DTBase"},
-        icon = "panels/initiative/initiative-dice.png",
+    return DTUIComponents.CreateRollButton{
         width = width,
         height = height,
         margin = margin,
-        borderWidth = borderWidth,
         halign = halign,
         hmargin = hmargin,
         vmargin = vmargin,
