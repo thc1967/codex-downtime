@@ -750,8 +750,9 @@ end
 
 --- Creates read-only form panel for shared projects
 --- @param ownerName string The display name of the character who owns this project
+--- @param ownerColor string|nil The player color for the owner (optional)
 --- @return table panel The read-only form panel
-function DTProjectEditor:_createSharedProjectForm(ownerName)
+function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
     local projectFormStyles = {
         gui.Style {
             selectors = {"PEFormRow", "DTPanelRow", "DTPanel", "DTBase"},
@@ -791,6 +792,7 @@ function DTProjectEditor:_createSharedProjectForm(ownerName)
                 bold = false,
                 data = {
                     ownerName = ownerName,
+                    ownerColor = ownerColor,
                     getProject = function(element)
                         local projectController = element:FindParentWithClass("projectController")
                         if projectController then
@@ -802,7 +804,12 @@ function DTProjectEditor:_createSharedProjectForm(ownerName)
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        element.text = string.format("%s (from %s)", project:GetTitle(), element.data.ownerName)
+                        local ownerDisplay = element.data.ownerName
+                        -- Apply color if available
+                        if element.data.ownerColor then
+                            ownerDisplay = string.format("<color=%s>%s</color>", element.data.ownerColor, element.data.ownerName)
+                        end
+                        element.text = string.format("%s (from %s)", project:GetTitle(), ownerDisplay)
                     end
                 end
             }
@@ -1705,10 +1712,11 @@ end
 --- Creates a read-only panel for shared projects
 --- @param ownerName string The display name of the character who owns this project
 --- @param ownerId string The token ID of the character who owns this project
+--- @param ownerColor string|nil The player color for the owner (optional)
 --- @return table panel The read-only shared project panel
-function DTProjectEditor:CreateSharedProjectPanel(ownerName, ownerId)
-    -- Create read-only form with owner name
-    local sharedFormPanel = self:_createSharedProjectForm(ownerName)
+function DTProjectEditor:CreateSharedProjectPanel(ownerName, ownerId, ownerColor)
+    -- Create read-only form with owner name and color
+    local sharedFormPanel = self:_createSharedProjectForm(ownerName, ownerColor)
 
     -- Create different buttons (unshare + roll)
     local buttons = self:_createSharedProjectButtons(ownerName, ownerId)

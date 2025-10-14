@@ -101,6 +101,7 @@ function DTBusinessRules.GetSharedProjectsForRecipient(recipientId)
         local ownerToken = dmhub.GetCharacterById(ownerId)
         if ownerToken then
             local ownerName = ownerToken.name
+            local ownerColor = ownerToken.playerColor and ownerToken.playerColor.tostring or nil
 
             -- Get owner's downtime info
             local ownerDTInfo = ownerToken.properties:GetDowntimeInfo()
@@ -111,7 +112,8 @@ function DTBusinessRules.GetSharedProjectsForRecipient(recipientId)
                     sharedProjects[#sharedProjects + 1] = {
                         project = project,
                         ownerId = ownerId,
-                        ownerName = ownerName
+                        ownerName = ownerName,
+                        ownerColor = ownerColor
                     }
                 end
             end

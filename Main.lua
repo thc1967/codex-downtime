@@ -19,7 +19,4 @@ CharSheet.RegisterTab {
     panel = DTCharSheetTab.CreateDowntimePanel
 }
 
--- if DTConstants.DEVMODE then
---     CharSheet.defaultSheet = "Downtime"
--- end
 dmhub.RefreshCharacterSheet()
