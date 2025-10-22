@@ -3,6 +3,7 @@ local mod = dmhub.GetModLoading()
 --- DESTRUCTIVE Clears all downtime data from network storage
 --- and characters!
 local function _clearAllData()
+    if not dmhub.isDM then return end
 
     local function tokenHasDowntime(t)
         if t.properties and t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
@@ -456,7 +457,10 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     local function isHeroWithDowntimeProjects(character)
         if character and character.properties and character.properties:IsHero() then
             local dti = character.properties:GetDowntimeInfo()
-            if dti and next(dti:GetProjects()) then return true end
+            if dti and type(dti.GetProjects) == "function" then
+                local projects =  dti:GetProjects()
+                if projects and next(projects) then return true end
+            end
         end
         return false
     end
