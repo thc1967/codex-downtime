@@ -397,10 +397,10 @@ function DTProjectRollDialog._createPanel(options)
                                                         local attrId = nil
                                                         local attrVal = -100
                                                         for _, charId in ipairs(characteristics) do
-                                                            local baseAttr = character:GetBaseAttribute(charId)
-                                                            if baseAttr and baseAttr.baseValue > attrVal then
+                                                            local a = character:GetAttribute(charId):Modifier()
+                                                            if a and a > attrVal then
                                                                 attrId = charId
-                                                                attrVal = baseAttr.baseValue
+                                                                attrVal = a
                                                             end
                                                         end
 
