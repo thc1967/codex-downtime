@@ -3,6 +3,7 @@
 --- @class DTProject
 --- @field id string GUID identifier for this project
 --- @field sortOrder number The sort order for this objective
+--- @field itemId string The GUID of the item we're crafting, if that's what we're doing
 --- @field title string The name of the project
 --- @field itemPrerequisite string Any special items required to start/continue the project
 --- @field projectSource string The lore source (book, tutor, etc.) enabling this project
@@ -31,6 +32,7 @@ function DTProject:new(sortOrder)
 
     instance.id = dmhub.GenerateGuid()
     instance.sortOrder = sortOrder or 1
+    instance.itemId = ""
     instance.title = ""
     instance.itemPrerequisite = ""
     instance.projectSource = ""
@@ -56,6 +58,20 @@ end
 --- @return string id GUID id of this project
 function DTProject:GetID()
     return self.id
+end
+
+--- Gets the identifier of the item we're crafting, if that's what we're doing
+--- @return string itemId the GUID of the item
+function DTProject:GetItemId()
+    return self:try_get("itemId") or ""
+end
+
+--- Sets the id of the item we're crafting
+--- @param itemId string The GUID of the item we're crafting
+--- @return DTProject self For chaining
+function DTProject:SetItemId(itemId)
+    self.itemId = itemId or ""
+    return self
 end
 
 --- Gets the title of this project
@@ -324,6 +340,7 @@ function DTProject:_setStateFromProgressChange(item, direction)
     if newValue >= projectGoal then
         self:SetStatus(DTConstants.STATUS.COMPLETE.key)
             :SetStatusReason("Project complete.")
+        -- TODO: If we were crafting an item, put it into our inventory
 
     elseif currentStatus == DTConstants.STATUS.COMPLETE.key then
         if newValue < projectGoal then
@@ -331,7 +348,7 @@ function DTProject:_setStateFromProgressChange(item, direction)
                 :SetStatusReason("")
         end
     elseif currentStatus == DTConstants.STATUS.MILESTONE.key then
-        if newValue <= self:GetMilestoneThreshold() then
+        if newValue < self:GetMilestoneThreshold() then
             self:SetStatus(STATUS.ACTIVE.key)
                 :SetStatusReason("")
         end

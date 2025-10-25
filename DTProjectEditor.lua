@@ -26,6 +26,7 @@ end
 --- @return table panel The form panel with input fields
 function DTProjectEditor:_createProjectForm()
     local isDM = dmhub.isDM
+    local progress = self.project:GetProgress()
 
     local projectFormStyles = {
         gui.Style {
@@ -46,10 +47,34 @@ function DTProjectEditor:_createProjectForm()
         }
     }
 
+    -- Select Item button (only if no progress)
+    local selectItem = progress == 0 and gui.EnhIconButton {
+        width = 32,
+        height = 32,
+        halign = "center",
+        valign = "center",
+        hoverColor = "#00cc00",
+        pressColor = "#008000",
+        bgimage = mod.images.downtimeProjects,
+        linger = function(element)
+            gui.Tooltip("Craft an item...")(element)
+        end,
+        click = function(element)
+            CharacterSheet.instance:AddChild(DTSelectItemDialog.CreateAsChild({
+                confirm = function(itemId)
+                    print("ITEMSEL:: CONFIRM::", itemId)
+                end,
+                cancel = function()
+                    -- Placeholder for future cancel logic
+                end
+            }))
+        end
+    } or gui.Panel { height = 1, width = 1 }
+
     -- Title field (input only, no label)
     local titleField = gui.Panel{
         classes = {"DTPanel", "DTBase"},
-        width = "98%",
+        width = progress > 0 and "98%" or "98%-46",
         height = "auto",
         valign = "center",
         borderColor = "green",
@@ -669,7 +694,7 @@ function DTProjectEditor:_createProjectForm()
                     gui.Panel {
                         classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
                         width = "84%",
-                        children = {titleField}
+                        children = {selectItem, titleField}
                     },
                     gui.Panel {
                         classes = {"PEFormFieldContainer", "DTPanel", "DTBase"},
