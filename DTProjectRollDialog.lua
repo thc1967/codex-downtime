@@ -164,6 +164,7 @@ function DTProjectRollDialog._createPanel(options)
                                 :SetRollGuid(rollInfo.key)
                                 :SetRollString(rollString)
                                 :SetRolledBy(token.name or "(unnamed character)")
+                                :SetRolledByID(token.id or "")
                                 :SetNaturalRoll(rollInfo.naturalRoll)
                                 :SetBreakthrough(not isFirstRoll)  -- First roll = false, others = true
                                 :SetAmount(math.max(1, rollInfo.total))

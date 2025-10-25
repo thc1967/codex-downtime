@@ -352,19 +352,9 @@ function DTProject:_setStateFromProgressChange(item, direction)
     local milestoneStop = self:GetMilestoneThreshold()
 
     if newValue >= projectGoal then
-        self:SetStatus(DTConstants.STATUS.COMPLETE.key)
-            :SetStatusReason("Project complete.")
-
-        -- TODO: If we were crafting an item, put it into the owner's inventory
-        local itemId = self:GetItemID()
-        if #itemId > 0 then
-            print("THC:: ITEM::", itemId)
-            local ownerId = self:GetOwnerID()
-            print("THC:: OWNER::", ownerId)
-            if #ownerId > 0 then
-                DTBusinessRules.GiveItemToCharacter(itemId, ownerId)
-            end
-        end
+        DTBusinessRules.GiveItemToCharacter(self)
+        self:SetStatusReason("Project complete.")
+            :SetStatus(DTConstants.STATUS.COMPLETE.key)
     elseif currentStatus == DTConstants.STATUS.COMPLETE.key then
         if newValue < projectGoal then
             self:SetStatus(STATUS.ACTIVE.key)
@@ -377,8 +367,8 @@ function DTProject:_setStateFromProgressChange(item, direction)
         end
     else -- Active or Paused; same logic
         if milestoneStop > 0 and oldValue < milestoneStop and newValue >= milestoneStop then
-            self:SetStatus(STATUS.MILESTONE.key)
-                :SetStatusReason("Milestone achieved! Consult with your Director.")
+            self:SetStatusReason("Milestone achieved! Consult with your Director.")
+                :SetStatus(STATUS.MILESTONE.key)
         end
     end
 end
@@ -394,9 +384,9 @@ function DTProject:AddRoll(roll)
         self.projectRolls = {}
     end
 
-    self:_setStateFromProgressChange(roll, 1)
     roll:SetCommitInfo()
     self.projectRolls[#self.projectRolls + 1] = roll
+    self:_setStateFromProgressChange(roll, 1)
     self:_invalidateProgressCache()
 
     return self
@@ -526,6 +516,22 @@ function DTProject:GetProgress()
     self._progressDirty = false
 
     return progress
+end
+
+--- Return a list of the unique token ID's who rolled on this project
+--- @return table rollers The unique ID's who've rolled on this project
+function DTProject:GetUniqueRollers()
+    local rollers = {}
+
+    local rolls = self:GetRolls()
+    for _, roll in pairs(rolls) do
+        local roller = roll:GetRolledByID()
+        if roller and #roller > 0 then
+            rollers[roller] = true
+        end
+    end
+
+    return DTHelpers.FlagListToList(rollers)
 end
 
 --- Validates if the given status is valid for projects

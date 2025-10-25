@@ -68,6 +68,32 @@ function DTBusinessRules.CharacterHasRequisite(tokenId, requisite)
     return hasRequisite
 end
 
+--- Determines if the project meets the requisite.
+--- 
+--- **Rules:**
+---   - If any roller meets the requisite, then the project meets the requisite.
+---   - If there are no rollers and the project owner meets the requisite,
+---     then the project meets the requisite.
+--- @param project DTProject The project to check
+--- @param requisite string The string to check for
+--- @return boolean meetsRequisite Whether the project meets the requisite
+function DTBusinessRules.ProjectMeetsRequisite(project, requisite)
+    if not project or not requisite or #requisite == 0 then return false end
+    local meetsRequisite = false
+
+    local uniqueRollers = project:GetUniqueRollers()
+    if #uniqueRollers > 0 then
+        for _, tokenId in ipairs(uniqueRollers) do
+            meetsRequisite = DTBusinessRules.CharacterHasRequisite(tokenId, requisite)
+            if meetsRequisite then break end
+        end
+    else
+        meetsRequisite = DTBusinessRules.CharacterHasRequisite(project:GetOwnerID(), requisite)
+    end
+
+    return meetsRequisite
+end
+
 --- Gets all the tokens in the game that are heroes
 --- @param filter? function Filter callback to apply, called on token object, added if return is true
 --- @return table heroes The list of heroes in the game
@@ -79,11 +105,13 @@ function DTBusinessRules.GetAllHeroTokens(filter)
 end
 
 --- Adds the item, in the correct quantity, to the character's inventory
---- @param itemId string The unique item idenfier to grant to the token
---- @param tokenId string The unique identifier of the token to grant the item to
-function DTBusinessRules.GiveItemToCharacter(itemId, tokenId)
+--- @param project DTProject The project whose completion generated the item
+function DTBusinessRules.GiveItemToCharacter(project)
+    if not project then return end
+
+    local itemId = project:GetItemID()
+    local tokenId = project:GetOwnerID()
     if not itemId or #itemId == 0 or not tokenId or #tokenId == 0 then return end
-    print("THC:: GIVEITEM::", itemId, tokenId)
 
     local item = dmhub.GetTableVisible(equipment.tableName)[itemId]
     if item then
@@ -91,17 +119,14 @@ function DTBusinessRules.GiveItemToCharacter(itemId, tokenId)
         if token and token.properties then
             local qty = 1
             local projectGoal = item:try_get("projectGoal")
-            print(string.format("THC:: GOAL:: [%s]", projectGoal))
             local projectGoalParser = "(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?)[^,]*(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$" --"(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?).*?(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$"
             local parseResult = regex.MatchGroups(item.projectGoal, projectGoalParser)
             if parseResult then
-                print("THC:: PARSED::", json(parseResult))
                 if parseResult.dieRoll then
                     qty = dmhub.RollInstant(parseResult.dieRoll)
                 end
                 if parseResult.yield and parseResult.condition then
-                    print(string.format("THC:: YIELD:: [%s] CONDITION:: [%s]", parseResult.yield, parseResult.condition))
-                    if DTBusinessRules.CharacterHasRequisite(tokenId, parseResult.condition) then
+                    if DTBusinessRules.ProjectMeetsRequisite(project, parseResult.condition) then
                         local numbersTable = { ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10, }
                         if DTHelpers.IsNumeric(parseResult.yield) then
                             qty = tonumber(parseResult.yield)
