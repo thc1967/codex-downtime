@@ -33,13 +33,111 @@ function DTBusinessRules.CalcLangPenalty(required, known)
     return penalty
 end
 
+--- Determines whether the character represented has the requisite item
+--- Checks ancestry name, class name, subclass name, and career name
+--- @param tokenId string The unique identifier of the token to evaluate
+--- @param requisite string The string to check for
+--- @return boolean hasRequisite Whether the character meets the criteria
+function DTBusinessRules.CharacterHasRequisite(tokenId, requisite)
+    if not tokenId or #tokenId == 0 or not requisite or #requisite == 0 then return false end
+    local lowerRequisite = requisite:lower()
+    local hasRequisite = false
+
+    local token = dmhub.GetCharacterById(tokenId)
+    if token and token.properties then
+        local character = token.properties
+
+        local ancestry = character:AncestryOrInheritedAncestry()
+        if ancestry then
+            if ancestry.name:lower() == lowerRequisite then return true end
+        end
+
+        local classes = character:GetClassesAndSubClasses()
+        if classes then
+            for _, entry in ipairs(classes) do
+                if entry.class.name:lower() == lowerRequisite then return true end
+            end
+        end
+
+        local career = character:Background()
+        if career then
+            if career.name:lower() == lowerRequisite then return true end
+        end
+    end
+
+    return hasRequisite
+end
+
 --- Gets all the tokens in the game that are heroes
 --- @param filter? function Filter callback to apply, called on token object, added if return is true
 --- @return table heroes The list of heroes in the game
 function DTBusinessRules.GetAllHeroTokens(filter)
     if filter and type(filter) ~= "function" then error("arg1 must be nil or a function") end
+
+    -- Use iterator with no-op callback that never triggers early exit
+    return DTBusinessRules.IterateHeroTokens(function() return false end, filter)
+end
+
+--- Adds the item, in the correct quantity, to the character's inventory
+--- @param itemId string The unique item idenfier to grant to the token
+--- @param tokenId string The unique identifier of the token to grant the item to
+function DTBusinessRules.GiveItemToCharacter(itemId, tokenId)
+    if not itemId or #itemId == 0 or not tokenId or #tokenId == 0 then return end
+    print("THC:: GIVEITEM::", itemId, tokenId)
+
+    local item = dmhub.GetTableVisible(equipment.tableName)[itemId]
+    if item then
+        local token = dmhub.GetTokenById(tokenId)
+        if token and token.properties then
+            local qty = 1
+            local projectGoal = item:try_get("projectGoal")
+            print(string.format("THC:: GOAL:: [%s]", projectGoal))
+            local projectGoalParser = "(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?)[^,]*(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$" --"(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?).*?(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$"
+            local parseResult = regex.MatchGroups(item.projectGoal, projectGoalParser)
+            if parseResult then
+                print("THC:: PARSED::", json(parseResult))
+                if parseResult.dieRoll then
+                    qty = dmhub.RollInstant(parseResult.dieRoll)
+                end
+                if parseResult.yield and parseResult.condition then
+                    print(string.format("THC:: YIELD:: [%s] CONDITION:: [%s]", parseResult.yield, parseResult.condition))
+                    if DTBusinessRules.CharacterHasRequisite(tokenId, parseResult.condition) then
+                        local numbersTable = { ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10, }
+                        if DTHelpers.IsNumeric(parseResult.yield) then
+                            qty = tonumber(parseResult.yield)
+                        else
+                            local x = numbersTable[parseResult.yield]
+                            if x and DTHelpers.IsNumeric(x) then
+                                qty = x
+                            end
+                        end
+                    end
+                end
+            end
+
+            token:ModifyProperties {
+                description = "Grant Item from Crafting",
+                execute = function()
+                    token.properties:GiveItem(itemId, qty)
+                end
+            }
+        end
+    end
+end
+
+--- Iterates through all hero tokens in the game, calling a callback for each
+--- Searches party members, unaffiliated tokens, and despawned tokens
+--- Stops iteration immediately if callback returns true
+--- @param callback function Callback invoked for each hero: callback(hero) - return true to stop iteration
+--- @param filter? function Optional filter callback to pre-filter heroes before iteration
+--- @return table heroes The list of heroes accumulated before iteration stopped (or all if not stopped)
+function DTBusinessRules.IterateHeroTokens(callback, filter)
+    if filter and type(filter) ~= "function" then error("arg1 must be nil or a function") end
+    if not callback or type(callback) ~= "function" then error("arg2 must be a function") end
+
     local heroes = {}
 
+    -- Iterate through party members
     local partyTable = dmhub.GetTable(Party.tableName)
     for partyId, _ in pairs(partyTable) do
         local characterIds = dmhub.GetCharacterIdsInParty(partyId)
@@ -48,6 +146,9 @@ function DTBusinessRules.GetAllHeroTokens(filter)
             if character and character.properties and character.properties:IsHero() then
                 if filter == nil or filter(character) then
                     heroes[#heroes + 1] = character
+                    if callback(character) then
+                        return heroes
+                    end
                 end
             end
         end
@@ -60,6 +161,9 @@ function DTBusinessRules.GetAllHeroTokens(filter)
         if character and character.properties and character.properties:IsHero() then
             if filter == nil or filter(character) then
                 heroes[#heroes + 1] = character
+                if callback(character) then
+                    return heroes
+                end
             end
         end
     end
@@ -71,6 +175,9 @@ function DTBusinessRules.GetAllHeroTokens(filter)
         if character and character.properties and character.properties:IsHero() then
             if filter == nil or filter(character) then
                 heroes[#heroes + 1] = character
+                if callback(character) then
+                    return heroes
+                end
             end
         end
     end

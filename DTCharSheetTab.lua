@@ -193,7 +193,7 @@ function DTCharSheetTab._createHeaderPanel()
                 if token and token.properties and token.properties:IsHero() then
                     local downtimeInfo = token.properties:GetDowntimeInfo()
                     if downtimeInfo then
-                        downtimeInfo:AddProject()
+                        downtimeInfo:AddProject(token.charid)
                         DTSettings.Touch()
                         local scrollArea = CharacterSheet.instance:Get("projectScrollArea")
                         if scrollArea then

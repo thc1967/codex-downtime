@@ -2,6 +2,7 @@
 --- Represents a complete downtime project with status tracking, rolls, and adjustments
 --- @class DTProject
 --- @field id string GUID identifier for this project
+--- @field ownerId string GUID identifier of the owner of this project
 --- @field sortOrder number The sort order for this objective
 --- @field itemId string The GUID of the item we're crafting, if that's what we're doing
 --- @field title string The name of the project
@@ -26,11 +27,13 @@ local DEFAULT_STATUS = DTConstants.STATUS.PAUSED.key
 
 --- Creates a new downtime project instance
 --- @param sortOrder number The sort order for this project
+--- @param ownerId string The unique identifier of the token that owns this project
 --- @return DTProject instance The new project instance
-function DTProject:new(sortOrder)
+function DTProject:new(sortOrder, ownerId)
     local instance = setmetatable({}, self)
 
     instance.id = dmhub.GenerateGuid()
+    instance.ownerId = ownerId
     instance.sortOrder = sortOrder or 1
     instance.itemId = ""
     instance.title = ""
@@ -60,16 +63,27 @@ function DTProject:GetID()
     return self.id
 end
 
+--- Returns the owner of this project
+--- @return string ownerId The owner of this project
+function DTProject:GetOwnerID()
+    local ownerId = self:try_get("ownerId") or ""
+    if #ownerId == 0 then
+        ownerId = DTHelpers.FindProjectOwner(self:GetID())
+        self.ownerId = ownerId
+    end
+    return ownerId
+end
+
 --- Gets the identifier of the item we're crafting, if that's what we're doing
 --- @return string itemId the GUID of the item
-function DTProject:GetItemId()
+function DTProject:GetItemID()
     return self:try_get("itemId") or ""
 end
 
 --- Sets the id of the item we're crafting
 --- @param itemId string The GUID of the item we're crafting
 --- @return DTProject self For chaining
-function DTProject:SetItemId(itemId)
+function DTProject:SetItemID(itemId)
     self.itemId = itemId or ""
     return self
 end
@@ -340,8 +354,17 @@ function DTProject:_setStateFromProgressChange(item, direction)
     if newValue >= projectGoal then
         self:SetStatus(DTConstants.STATUS.COMPLETE.key)
             :SetStatusReason("Project complete.")
-        -- TODO: If we were crafting an item, put it into our inventory
 
+        -- TODO: If we were crafting an item, put it into the owner's inventory
+        local itemId = self:GetItemID()
+        if #itemId > 0 then
+            print("THC:: ITEM::", itemId)
+            local ownerId = self:GetOwnerID()
+            print("THC:: OWNER::", ownerId)
+            if #ownerId > 0 then
+                DTBusinessRules.GiveItemToCharacter(itemId, ownerId)
+            end
+        end
     elseif currentStatus == DTConstants.STATUS.COMPLETE.key then
         if newValue < projectGoal then
             self:SetStatus(STATUS.ACTIVE.key)

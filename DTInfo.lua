@@ -80,13 +80,11 @@ function DTInfo:GetProject(projectId)
 end
 
 --- Adds a new downtime project to this character
---- @param project? DTProject The project to add or nil if we're creating a new one
+--- @param ownerId string The unique identifier of the token that owns this project
 --- @return DTProject project The newly created project
-function DTInfo:AddProject(project)
-    if project == nil or type(project) ~= "table" then
-        local nextOrder = self:_maxProjectOrder() + 1
-        project = DTProject:new(nextOrder)
-    end
+function DTInfo:AddProject(ownerId)
+    local nextOrder = self:_maxProjectOrder() + 1
+    local project = DTProject:new(nextOrder, ownerId)
     self.downtimeProjects[project:GetID()] = project
     return project
 end

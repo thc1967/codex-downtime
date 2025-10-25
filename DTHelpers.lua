@@ -6,6 +6,63 @@ DTHelpers = RegisterGameType("DTHelpers")
 -- Turn on the background to see lines around the downtime tab panels
 local DEBUG_PANEL_BG = DTConstants.DEVUI and "panels/square.png" or nil
 
+--- Return the owning token's uniuqe ID given a project id
+--- @param projectId string The project to find the owner for
+--- @return string ownerId The unique identifier for the owner
+function DTHelpers.FindProjectOwner(projectId)
+    local ownerId = ""
+
+    local function tokenOwnsProject(token)
+        local dtInfo = token.properties:GetDowntimeInfo()
+        if dtInfo then
+            local project = dtInfo:GetProject(projectId)
+            if project then
+                ownerId = token.charid
+                return true
+            end
+        end
+        return false
+    end
+
+    DTBusinessRules.IterateHeroTokens(tokenOwnsProject)
+
+    return ownerId
+end
+
+--- Transform a flag list to the list of flags that are true
+--- @param flagList table The flag list to transform
+--- @return table list The list of keys
+function DTHelpers.FlagListToList(flagList)
+    local array = {}
+    for key, value in pairs(flagList) do
+        if value then
+            array[#array + 1] = key
+        end
+    end
+    return array
+end
+
+--- Formats any display name string with the specified user's color
+--- @param displayName string The name to format (character name, follower name, or user name)
+--- @param userId string The user ID to get color from
+--- @return string coloredDisplayName The name with HTML color tags, or plain name if color unavailable
+function DTHelpers.FormatNameWithUserColor(displayName, userId)
+    if not displayName or #displayName == 0 then
+        return "{unknown}"
+    end
+
+    if userId and #userId > 0 then
+        local sessionInfo = dmhub.GetSessionInfo(userId)
+        if sessionInfo and sessionInfo.displayColor and sessionInfo.displayColor.tostring then
+            local colorCode = sessionInfo.displayColor.tostring
+            return string.format("<color=%s>%s</color>", colorCode, displayName)
+        end
+    end
+
+    -- Return plain name if no color available
+    return displayName
+end
+
 --- Gets the standardized styling configuration for Quest Manager dialogs
 --- Provides consistent styling across all Quest Manager UI components
 --- @return table styles Array of GUI styles using DTBase inheritance pattern
@@ -108,7 +165,6 @@ function DTHelpers.GetDialogStyles()
         gui.Style{
             selectors = {"DTDisabled", "DTButton", "DTBase"},
             bgcolor = "#222222",
-            color = "#222222",
             borderColor = "#444444",
         },
         gui.Style{
@@ -221,27 +277,6 @@ function DTHelpers.GetDialogStyles()
     }
 end
 
---- Formats any display name string with the specified user's color
---- @param displayName string The name to format (character name, follower name, or user name)
---- @param userId string The user ID to get color from
---- @return string coloredDisplayName The name with HTML color tags, or plain name if color unavailable
-function DTHelpers.FormatNameWithUserColor(displayName, userId)
-    if not displayName or #displayName == 0 then
-        return "{unknown}"
-    end
-
-    if userId and #userId > 0 then
-        local sessionInfo = dmhub.GetSessionInfo(userId)
-        if sessionInfo and sessionInfo.displayColor and sessionInfo.displayColor.tostring then
-            local colorCode = sessionInfo.displayColor.tostring
-            return string.format("<color=%s>%s</color>", colorCode, displayName)
-        end
-    end
-
-    -- Return plain name if no color available
-    return displayName
-end
-
 --- Gets player display name with color formatting from user ID
 --- @param userId string The user ID to look up
 --- @return string coloredDisplayName The player's display name with HTML color tags, or "{unknown}" if not found
@@ -254,6 +289,13 @@ function DTHelpers.GetPlayerDisplayName(userId)
     end
 
     return "{unknown}"
+end
+
+--- Returns whether the value passed is numeric by type or can be converted to a number
+--- @param value any The value to check
+--- @return boolean isNumeric Whether the value is a number
+function DTHelpers.IsNumeric(value)
+    return type(value) == "number" or tonumber(value) ~= nil
 end
 
 --- Compares two arrays to determine if they contain the same values
@@ -349,17 +391,4 @@ function DTHelpers.SyncArrays(target, source)
     end
 
     return changed
-end
-
---- Transform a flag list to the list of flags that are true
---- @param flagList table The flag list to transform
---- @return table list The list of keys
-function DTHelpers.FlagListToList(flagList)
-    local array = {}
-    for key, value in pairs(flagList) do
-        if value then
-            array[#array + 1] = key
-        end
-    end
-    return array
 end

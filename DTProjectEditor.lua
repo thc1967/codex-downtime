@@ -89,6 +89,7 @@ function DTProjectEditor:_createProjectForm()
                             item = dmhub.GetTable(equipment.tableName)[itemId]
                             if item then
                                 project:SetTitle(item.name)
+                                    :SetItemID(itemId)
                                     :SetItemPrerequisite(item.itemPrerequisite)
                                     :SetProjectSource(item.projectSource)
                                     :SetProjectGoal(tonumber(item.projectGoal:match("^%d+")))
@@ -1416,7 +1417,7 @@ function DTProjectEditor:_createRollButton(options)
                 end
             end
             element:SetClass("DTDisabled", not isEnabled)
-            element.interactable = isEnabled
+            element.data.enabled = isEnabled
         end,
         linger = function(element)
             if element.data.tooltipText and #element.data.tooltipText then
@@ -1424,7 +1425,7 @@ function DTProjectEditor:_createRollButton(options)
             end
         end,
         click = function(element)
-            if not element.interactable then return end
+            if not element.data.enabled then return end
             local project = element.data.getProject(element)
             local controller = element:FindParentWithClass("projectController")
             if project and controller then
