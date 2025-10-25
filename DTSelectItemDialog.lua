@@ -50,7 +50,6 @@ function DTSelectItemDialog._createPanel(callbacks)
         end
     end
     table.sort(craftableItems, function(a, b) return a.text < b.text end)
-    -- print("CRAFTABLEITEMS::", json(craftableItems))
 
     local itemSelector = DTUIComponents.CreateLabeledDropdown(
         "Item to Craft",
@@ -159,7 +158,6 @@ function DTSelectItemDialog._createPanel(callbacks)
                             if controller then
                                 local dropdown = controller:Get("itemSelector")
                                 local selectedItemId = dropdown and dropdown.idChosen or nil
-                                print("ITEMSEL:: CALLLBACK::", selectedItemId)
                                 callbacks.confirmHandler(selectedItemId)
                                 controller:FireEvent("close")
                             end

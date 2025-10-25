@@ -127,14 +127,29 @@ end
 --- @param text string Text that may or may not have language names embedded
 --- @return table langIds List of language id's of language names found in the table
 function DTBusinessRules.ExtractLanguagesToIds(text)
-    local lowerText = string.lower(text or "")
     local langIds = {}
+    if not text or #text == 0 then
+        return langIds
+    end
 
-    if #lowerText > 0 then
-        local langs = dmhub.GetTableVisible(Language.tableName)
+    -- Normalize: lowercase and pad with spaces for consistent boundary checking
+    local lowerText = " " .. string.lower(text) .. " "
 
-        for id, item in pairs(langs) do
-            if item.name and string.find(lowerText, string.lower(item.name), 1, true) then
+    local langs = dmhub.GetTableVisible(Language.tableName)
+
+    for id, item in pairs(langs) do
+        if item.name and #item.name > 0 then
+            local lowerLangName = string.lower(item.name)
+
+            -- Escape special pattern characters in the language name
+            local escapedName = string.gsub(lowerLangName, "([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+
+            -- Build pattern: non-letter before, language name, non-letter after
+            -- %A matches any non-letter character (includes spaces, punctuation, etc.)
+            local pattern = "%A" .. escapedName .. "%A"
+
+            -- Search for the pattern in normalized text
+            if string.find(lowerText, pattern) then
                 langIds[#langIds + 1] = id
             end
         end

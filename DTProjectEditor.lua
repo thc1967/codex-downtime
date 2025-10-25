@@ -83,7 +83,6 @@ function DTProjectEditor:_createProjectForm()
             if not element.interactable then return end
             CharacterSheet.instance:AddChild(DTSelectItemDialog.CreateAsChild({
                 confirm = function(itemId)
-                    print("ITEMSEL:: CONFIRM::", itemId)
                     if itemId and #itemId > 0 then
                         local project, controller = element.data.getProject(element)
                         if project then
