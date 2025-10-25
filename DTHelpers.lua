@@ -108,6 +108,7 @@ function DTHelpers.GetDialogStyles()
         gui.Style{
             selectors = {"DTDisabled", "DTButton", "DTBase"},
             bgcolor = "#222222",
+            color = "#222222",
             borderColor = "#444444",
         },
         gui.Style{

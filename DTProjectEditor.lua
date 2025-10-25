@@ -68,7 +68,19 @@ function DTProjectEditor:_createProjectForm()
         linger = function(element)
             gui.Tooltip("Craft an item...")(element)
         end,
+        refreshToken = function(element)
+            local project = element.data.getProject(element)
+            local isEnabled = true
+            if project then
+                if project:GetProgress() > 0 then
+                    isEnabled = false
+                end
+            end
+            element:SetClass("DTDisabled", not isEnabled)
+            element.interactable = isEnabled
+        end,
         click = function(element)
+            if not element.interactable then return end
             CharacterSheet.instance:AddChild(DTSelectItemDialog.CreateAsChild({
                 confirm = function(itemId)
                     print("ITEMSEL:: CONFIRM::", itemId)
@@ -98,13 +110,13 @@ function DTProjectEditor:_createProjectForm()
     -- Title field (input only, no label)
     local titleField = gui.Panel{
         classes = {"DTPanel", "DTBase"},
-        width = progress > 0 and "98%" or "98%-46",
+        width = "98%",
         height = "auto",
         valign = "center",
         borderColor = "green",
         children = {
             gui.Input {
-                width = "98%",
+                width = progress > 0 and "98%" or "98%-36",
                 height = 32,
                 valign = "center",
                 classes = {"DTInput", "DTBase"},
