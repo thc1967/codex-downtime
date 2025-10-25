@@ -34,7 +34,7 @@ function DTSelectItemDialog._createPanel(callbacks)
     local resultPanel = nil
 
     local craftableItems = {}
-    local allItems = dmhub.GetTable("tbl_Gear")
+    local allItems = dmhub.GetTable(equipment.tableName)
     for key, item in pairs(allItems) do
         -- Filter items to only craftable items with required properties
         local projectGoal = item:try_get("projectGoal")

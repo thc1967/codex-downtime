@@ -122,3 +122,23 @@ function DTBusinessRules.GetSharedProjectsForRecipient(recipientId)
 
     return sharedProjects
 end
+
+--- Finds languages in the text and returns their id's
+--- @param text string Text that may or may not have language names embedded
+--- @return table langIds List of language id's of language names found in the table
+function DTBusinessRules.ExtractLanguagesToIds(text)
+    local lowerText = string.lower(text or "")
+    local langIds = {}
+
+    if #lowerText > 0 then
+        local langs = dmhub.GetTableVisible(Language.tableName)
+
+        for id, item in pairs(langs) do
+            if item.name and string.find(lowerText, string.lower(item.name), 1, true) then
+                langIds[#langIds + 1] = id
+            end
+        end
+    end
+
+    return langIds
+end

@@ -56,6 +56,15 @@ function DTProjectEditor:_createProjectForm()
         hoverColor = "#00cc00",
         pressColor = "#008000",
         bgimage = mod.images.downtimeProjects,
+        data = {
+            getProject = function(element)
+                local projectController = element:FindParentWithClass("projectController")
+                if projectController then
+                    return projectController.data.project, projectController
+                end
+                return nil
+            end
+        },
         linger = function(element)
             gui.Tooltip("Craft an item...")(element)
         end,
@@ -63,6 +72,21 @@ function DTProjectEditor:_createProjectForm()
             CharacterSheet.instance:AddChild(DTSelectItemDialog.CreateAsChild({
                 confirm = function(itemId)
                     print("ITEMSEL:: CONFIRM::", itemId)
+                    if itemId and #itemId > 0 then
+                        local project, controller = element.data.getProject(element)
+                        if project then
+                            item = dmhub.GetTable(equipment.tableName)[itemId]
+                            if item then
+                                project:SetTitle(item.name)
+                                    :SetItemPrerequisite(item.itemPrerequisite)
+                                    :SetProjectSource(item.projectSource)
+                                    :SetProjectGoal(tonumber(item.projectGoal:match("^%d+")))
+                                    :SetTestCharacteristics(DTHelpers.FlagListToList(item.projectRollCharacteristic))
+                                    :SetProjectSourceLanguages(DTBusinessRules.ExtractLanguagesToIds(item.projectSource))
+                                controller:FireEventTree("refreshToken")
+                            end
+                        end
+                    end
                 end,
                 cancel = function()
                     -- Placeholder for future cancel logic

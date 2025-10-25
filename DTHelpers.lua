@@ -349,3 +349,16 @@ function DTHelpers.SyncArrays(target, source)
 
     return changed
 end
+
+--- Transform a flag list to the list of flags that are true
+--- @param flagList table The flag list to transform
+--- @return table list The list of keys
+function DTHelpers.FlagListToList(flagList)
+    local array = {}
+    for key, value in pairs(flagList) do
+        if value then
+            array[#array + 1] = key
+        end
+    end
+    return array
+end
