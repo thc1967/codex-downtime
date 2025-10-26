@@ -1,50 +1,5 @@
 local mod = dmhub.GetModLoading()
 
---- DESTRUCTIVE Clears all downtime data from the token
---- @param t table DMHub token from which to remove downtime info
-local function _clearTokenData(t)
-    if t and t.properties and t.properties:IsHero() then
-        -- Wipe downtime data
-        if t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
-            chat.Send(string.format("Removing Downtime data from %s.", t.name))
-            t:ModifyProperties{
-                description = "Clear Downtime Info",
-                execute = function()
-                    if t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
-                        t.properties[DTConstants.CHARACTER_STORAGE_KEY] = nil
-                    end
-                end
-            }
-        end
-        -- Wipe shared projects
-        local shares = DTShares:new()
-        if shares then shares:RevokeAll(t.id) end
-    end
-end
-
---- DESTRUCTIVE Clears all downtime data from network storage
---- and characters!
-local function _clearAllData()
-    if not dmhub.isDM then return end
-
-    local function tokenHasDowntime(t)
-        if t.properties and t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
-            return true
-        end
-        return false
-    end
-
-    local heroes = DTBusinessRules.GetAllHeroTokens(tokenHasDowntime)
-    for _, t in ipairs(heroes) do
-        _clearTokenData(t)
-    end
-
-    chat.Send("Resetting Downtime settings.")
-    DTShares:new():InitializeDocument()
-    DTSettings:new():InitializeDocument()
-
-end
-
 -- Triangle icon styles for character expand/collapse (based on QuestTrackerPanel pattern)
 local characterTriangleStyles = {
     gui.Style{
@@ -472,7 +427,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         if character and character.properties and character.properties:IsHero() then
             local dti = character.properties:GetDowntimeInfo()
             if dti and type(dti.GetProjects) == "function" then
-                local projects =  dti:GetProjects()
+                local projects = dti:GetProjects()
                 if projects and next(projects) then return true end
             end
         end
@@ -804,12 +759,6 @@ function DTDirectorPanel:_buildTabContent(categorizedProjects, tabType)
     }
 end
 
---- Debug method to test the categorization functionality
-function DTDirectorPanel:_debugCategorization()
-    local c = self:_categorizeDowntimeProjects()
-    print("THC:: CAT::", json(c))
-end
-
 --- Builds the main content panel with tabs
 --- @return table panel The tabbed content panel
 function DTDirectorPanel:_buildContentPanel()
@@ -995,21 +944,4 @@ function DTDirectorPanel:_getTabContentStyles()
             brightness = 0.9
         }
     }
-end
-
---- Debug method to print the raw document contents from persistence
-function DTDirectorPanel:_debugDocument()
-    local doc = self.downtimeSettings.mod:GetDocumentSnapshot(self.downtimeSettings.documentName)
-    print("THC:: PERSISTED::", json(doc.data))
-end
-
-if dmhub.isDM then
-    Commands.wipealldowntimedata = function(args)
-        _clearAllData()
-    end
-    Commands.wipetokendowntimedata = function(args)
-        for _, t in ipairs(dmhub.selectedTokens) do
-            _clearTokenData(t)
-        end
-    end
 end

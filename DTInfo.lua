@@ -21,7 +21,7 @@ end
 --- Gets the number of available rolls
 --- @return number availableRolls The number of available rolls
 function DTInfo:GetAvailableRolls()
-    return self.availableRolls or 0
+    return self:try_get("availableRolls") or 0
 end
 
 --- Sets the number of available rolls
@@ -52,7 +52,7 @@ end
 --- Gets all downtime projects for this character
 --- @return table downtimeProjects Hash table of DTProject instances keyed by GUID
 function DTInfo:GetProjects()
-    return self.downtimeProjects or {}
+    return self:try_get("downtimeProjects") or {}
 end
 
 --- Gets all downtime projects sorted by sort order
@@ -60,7 +60,8 @@ end
 function DTInfo:GetSortedProjects()
     -- Convert hash table to array
     local projectsArray = {}
-    for _, project in pairs(self.downtimeProjects or {}) do
+    local projects = self:GetProjects()
+    for _, project in pairs(projects or {}) do
         projectsArray[#projectsArray + 1] = project
     end
 
@@ -76,7 +77,7 @@ end
 --- @param projectId string The GUID identifier of the project to return
 --- @return DTProject|nil project The project referenced by the key or nil if it doesn't exist
 function DTInfo:GetProject(projectId)
-    return self.downtimeProjects[projectId or ""]
+    return self:GetProjects()[projectId or ""]
 end
 
 --- Adds a new downtime project to this character
@@ -85,7 +86,7 @@ end
 function DTInfo:AddProject(ownerId)
     local nextOrder = self:_maxProjectOrder() + 1
     local project = DTProject:new(nextOrder, ownerId)
-    self.downtimeProjects[project:GetID()] = project
+    self:GetProjects()[project:GetID()] = project
     return project
 end
 
@@ -93,8 +94,9 @@ end
 --- @param projectId string The GUID of the project to remove
 --- @return DTInfo self For chaining
 function DTInfo:RemoveProject(projectId)
-    if self.downtimeProjects[projectId] then
-        self.downtimeProjects[projectId] = nil
+    local projects = self:GetProjects()
+    if projects[projectId] then
+        projects[projectId] = nil
     end
     return self
 end
@@ -105,7 +107,8 @@ end
 function DTInfo:_maxProjectOrder()
     local maxOrder = 0
 
-    for _, project in pairs(self.downtimeProjects or {}) do
+    local projects = self:GetProjects()
+    for _, project in pairs(projects or {}) do
         local order = project:GetSortOrder()
         if order > maxOrder then
             maxOrder = order

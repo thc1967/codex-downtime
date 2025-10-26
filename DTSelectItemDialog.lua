@@ -7,7 +7,7 @@ DTSelectItemDialog.__index = DTSelectItemDialog
 
 --- Creates a select item dialog for AddChild usage
 --- @param callbacks table Table with confirm and cancel callback functions
---- @return table|nil panel The GUI panel ready for AddChild
+--- @return table panel The GUI panel ready for AddChild
 function DTSelectItemDialog.CreateAsChild(callbacks)
     if not callbacks then callbacks = {} end
 

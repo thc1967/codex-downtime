@@ -336,21 +336,24 @@ function DTCharSheetTab._refreshProjectsList(element)
         return
     end
 
-    local projects = downtimeInfo:GetSortedProjects()
-    if (not projects or #projects == 0) and #sharedProjects == 0 then
-        -- Show "no projects" message only if no shared projects either
-        element.children = {
-            gui.Label {
-                text = "No projects yet.\nClick the Add button to create one.",
-                classes = {"DTLabel", "DTBase"},
-                width = "100%",
-                height = 40,
-                textAlignment = "center",
-                halign = "center",
-                valign = "top"
+    local projects
+    if downtimeInfo then
+        projects = downtimeInfo:GetSortedProjects()
+        if (not projects or #projects == 0) and #sharedProjects == 0 then
+            -- Show "no projects" message only if no shared projects either
+            element.children = {
+                gui.Label {
+                    text = "No projects yet.\nClick the Add button to create one.",
+                    classes = {"DTLabel", "DTBase"},
+                    width = "100%",
+                    height = 40,
+                    textAlignment = "center",
+                    halign = "center",
+                    valign = "top"
+                }
             }
-        }
-        return
+            return
+        end
     end
 
     -- Reconcile existing panels with current projects

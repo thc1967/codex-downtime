@@ -96,6 +96,10 @@ function DTProjectEditor:_createProjectForm()
                                     :SetTestCharacteristics(DTHelpers.FlagListToList(item.projectRollCharacteristic))
                                     :SetProjectSourceLanguages(DTBusinessRules.ExtractLanguagesToIds(item.projectSource))
                                 controller:FireEventTree("refreshToken")
+                                dmhub.Schedule(0.1, function()
+                                    DTSettings.Touch()
+                                    DTShares.Touch()
+                                end)
                             end
                         end
                     end
