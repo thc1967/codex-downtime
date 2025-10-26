@@ -144,7 +144,10 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project and element.text ~= project:GetTitle() then
                         project:SetTitle(element.text)
-                        DTSettings.Touch()
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
                     end
                 end
             }
@@ -229,6 +232,10 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project and element.text ~= project:GetItemPrerequisite() then
                         project:SetItemPrerequisite(element.text)
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
                     end
                 end
             }
@@ -273,6 +280,10 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project and element.text ~= project:GetProjectSource() then
                         project:SetProjectSource(element.text)
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
                     end
                 end
             }
@@ -383,6 +394,10 @@ function DTProjectEditor:_createProjectForm()
                             if projectController then
                                 projectController:FireEventTree("refreshToken")
                             end
+                            dmhub.Schedule(0.1, function()
+                                DTSettings.Touch()
+                                DTShares.Touch()
+                            end)
                         end
                     end
                 end
@@ -390,7 +405,7 @@ function DTProjectEditor:_createProjectForm()
         }
     }
 
-    -- Language field (label + dropdown)
+    -- Language field
     local langTable = dmhub.GetTableVisible(Language.tableName) or {}
     -- Languages we'll show in the list are all languages except selected one
     local candidateLangs = {}
@@ -463,6 +478,10 @@ function DTProjectEditor:_createProjectForm()
                             if projectController then
                                 projectController:FireEventTree("refreshToken")
                             end
+                            dmhub.Schedule(0.1, function()
+                                DTSettings.Touch()
+                                DTShares.Touch()
+                            end)
                         end
                     end
                 end
@@ -510,7 +529,10 @@ function DTProjectEditor:_createProjectForm()
                     if project and tonumber(element.text) ~= project:GetProjectGoal() then
                         local value = tonumber(element.text) or 1
                         project:SetProjectGoal(math.max(1, math.floor(value)))
-                        DTSettings.Touch()
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
                     end
                 end
             }
@@ -552,7 +574,10 @@ function DTProjectEditor:_createProjectForm()
                     local project =element.data.getProject(element)
                     if project and element.idChosen ~= project:GetStatus() then
                         project:SetStatus(element.idChosen)
-                        DTSettings.Touch()
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
                     end
                 end
             } or gui.Label {
@@ -633,7 +658,10 @@ function DTProjectEditor:_createProjectForm()
                     local project = element.data.getProject(element)
                     if project and element.text ~= project:GetStatusReason() then
                         project:SetStatusReason(element.text)
-                        DTSettings.Touch()
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
                     end
                 end
             }or gui.Label {
@@ -704,9 +732,17 @@ function DTProjectEditor:_createProjectForm()
                     if project and element.text ~= tostring(project:GetMilestoneThreshold()) then
                         if element.text == "" then
                             project:SetMilestoneThreshold(nil)
+                            dmhub.Schedule(0.1, function()
+                                DTSettings.Touch()
+                                DTShares.Touch()
+                            end)
                         else
                             local value = tonumber(element.text) or 0
                             project:SetMilestoneThreshold(math.max(0, math.floor(value)))
+                            dmhub.Schedule(0.1, function()
+                                DTSettings.Touch()
+                                DTShares.Touch()
+                            end)
                         end
                     end
                 end
@@ -1072,7 +1108,7 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
         }
     }
 
-    -- Return panel with 2 rows
+    -- Shared project panel
     return gui.Panel {
         classes = {"DTPanel", "DTBase"},
         width = "100%",
@@ -1080,8 +1116,16 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
         flow = "vertical",
         styles = projectFormStyles,
         borderColor = "cyan",
+        create = function(element)
+            dmhub.Schedule(0.2, function()
+                element.monitorGame = DTShares:new():GetDocumentPath()
+            end)
+        end,
+        refreshGame = function(element)
+            element:FireEventTree("refreshToken")
+        end,
         children = {
-            -- Row 1: Title (50%), Status (25%), Progress (25%)
+            -- Row 1: Title, Status, Progress
             gui.Panel {
                 classes = {"PEFormRow", "DTPanelRow", "DTPanel", "DTBase"},
                 children = {
@@ -1103,7 +1147,7 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
                 }
             },
 
-            -- Row 2: Source (33%), Language Penalty (34%), Characteristic (33%)
+            -- Row 2: Source, Language Penalty, Characteristic
             gui.Panel {
                 classes = {"PEFormRow", "DTPanelRow", "DTPanel", "DTBase"},
                 children = {
@@ -1731,14 +1775,20 @@ function DTProjectEditor:CreateEditorPanel()
     local eventHandlers = {
         addAdjustment = function(element, newAdjustment)
             element.data.project:AddAdjustment(newAdjustment)
-            DTSettings.Touch()
             element:FireEvent("refreshProject")
+            dmhub.Schedule(0.1, function()
+                DTSettings.Touch()
+                DTShares.Touch()
+            end)
         end,
 
         deleteAdjustment = function(element, adjustmentId)
             element.data.project:RemoveAdjustment(adjustmentId)
-            DTSettings.Touch()
             element:FireEvent("refreshProject")
+            dmhub.Schedule(0.1, function()
+                DTSettings.Touch()
+                DTShares.Touch()
+            end)
         end,
 
         addRolls = function(element, rolls)
@@ -1746,6 +1796,10 @@ function DTProjectEditor:CreateEditorPanel()
             if downtimeController then
                 element.data.project:AddRolls(rolls)
                 downtimeController:FireEvent("adjustRolls", -1)
+                dmhub.Schedule(0.1, function()
+                    DTSettings.Touch()
+                    DTShares.Touch()
+                end)
             end
         end,
 
@@ -1754,6 +1808,10 @@ function DTProjectEditor:CreateEditorPanel()
             if downtimeController then
                 element.data.project:RemoveRoll(rollId)
                 downtimeController:FireEvent("adjustRolls", 1)
+                dmhub.Schedule(0.1, function()
+                    DTSettings.Touch()
+                    DTShares.Touch()
+                end)
             end
         end,
 
