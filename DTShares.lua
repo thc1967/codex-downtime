@@ -124,6 +124,22 @@ function DTShares:Revoke(sharedBy, sharedWith, projectId)
     end
 end
 
+--- Revokes all shares by and to a specific character
+--- @param tokenId string VTT Token ID of the character to revoke shares from
+function DTShares:RevokeAll(tokenId)
+    local doc = self:_safeDoc()
+    if doc then
+        local data = doc.data
+        local hasChange = data.senders[tokenId] ~= nil or data.recipients[tokenId] ~= nil
+        if hasChange then
+            doc:BeginChange()
+            data.senders[tokenId] = nil
+            data.recipients[tokenId] = nil
+            doc:CompleteChange("Revoked all shares for a character", {undoable = false})
+        end
+    end
+end
+
 --- Shares a project with recipients or revokes all if empty array
 --- @param sharedBy string VTT Token ID of the character sharing the project
 --- @param projectId string Unique identifier of the project being shared
