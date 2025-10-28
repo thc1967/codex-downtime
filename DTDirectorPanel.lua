@@ -386,37 +386,6 @@ function DTDirectorPanel:_showSettingsDialog()
     gui.ShowModal(settingsDialog)
 end
 
---- Gets the first available token for a character ID
---- @param characterId string The character ID to find a token for
---- @return table|nil token The first token found for this character, or nil if none found
-function DTDirectorPanel:_getTokenFromCharacterId(characterId)
-    -- Check spawned tokens first
-    local allTokens = dmhub.GetTokens{}
-    for _, token in ipairs(allTokens) do
-        if token.charid == characterId then
-            return token
-        end
-    end
-
-    -- Check unaffiliated tokens
-    local unaffiliatedTokens = dmhub.GetTokens{ unaffiliated = true }
-    for _, token in ipairs(unaffiliatedTokens) do
-        if token.charid == characterId then
-            return token
-        end
-    end
-
-    -- Check despawned tokens
-    local despawnedTokens = dmhub.despawnedTokens or {}
-    for _, token in ipairs(despawnedTokens) do
-        if token.charid == characterId then
-            return token
-        end
-    end
-
-    return nil
-end
-
 --- Gets all hero characters in the game that have downtime projects
 --- @return table tokenInfo Array of {id, name} objects for characters with downtime projects
 function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
@@ -513,7 +482,7 @@ function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabT
     local isExpanded = dmhub.GetPref(prefKey) or false
 
     -- Get token for display
-    local token = self:_getTokenFromCharacterId(characterId)
+    local token = dmhub.GetCharacterById(characterId)
 
     -- Build player name with color if available
     local playerDisplay = ""
@@ -555,7 +524,11 @@ function DTDirectorPanel:_buildCharacterHeader(characterInfo, contentPanel, tabT
                         width = 24,
                         height = 24,
                         halign = "center",
-                        valign = "center"
+                        valign = "center",
+                        refresh = function(element)
+                            if token == nil or not token.valid then return end
+                            element:FireEventTree("token", token)
+                        end,
                     })
                 } or {}
             },
