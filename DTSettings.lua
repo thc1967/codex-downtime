@@ -26,8 +26,8 @@ function DTSettings:InitializeDocument()
     local doc = self.mod:GetDocumentSnapshot(self.documentName)
     doc:BeginChange()
     doc.data = {
-        pauseRolls = false,
-        pauseRollsReason = "",
+        pauseRolls = true,
+        pauseRollsReason = "Rolling starts paused.",
         modifiedAt = dmhub.serverTime,
     }
     doc:CompleteChange("Initialize downtime settings", {undoable = false})

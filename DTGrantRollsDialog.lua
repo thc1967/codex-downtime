@@ -56,7 +56,8 @@ function DTGrantRollsDialog:ShowDialog()
                             token:ModifyProperties{
                                 description = "Grant Downtime Rolls",
                                 execute = function ()
-                                    token.properties:GetDowntimeInfo():GrantRolls(numRolls)
+                                    local downtimeInfo = token.properties:GetDowntimeInfo()
+                                    if downtimeInfo then downtimeInfo:GrantRolls(numRolls) end
                                 end,
                             }
                         end

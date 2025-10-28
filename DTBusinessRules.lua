@@ -3,8 +3,6 @@
 --- @class DTBusinessRules
 DTBusinessRules = RegisterGameType("DTBusinessRules")
 
-local mod = dmhub.GetModLoading()
-
 --- Calculates the language penalty based on whether any known language
 --- is in the list of required or related to any in the list of required
 --- @param required string[] List of candidate required language ids
@@ -105,32 +103,34 @@ function DTBusinessRules.GetAllHeroTokens(filter)
 end
 
 --- Adds the item, in the correct quantity, to the character's inventory
+--- Parses the item's project goal to determine quantity, which can be as complex as
+--- `45 (yields 1d3 darts, or three darts if crafted by a shadow)`.
 --- @param project DTProject The project whose completion generated the item
 function DTBusinessRules.GiveItemToCharacter(project)
     if not project then return end
 
     local itemId = project:GetItemID()
     local tokenId = project:GetOwnerID()
-    if not itemId or #itemId == 0 or not tokenId or #tokenId == 0 then return end
+    if itemId == nil or #itemId == 0 or tokenId == nil or #tokenId == 0 then return end
 
     local item = dmhub.GetTableVisible(equipment.tableName)[itemId]
     if item then
         local token = dmhub.GetTokenById(tokenId)
         if token and token.properties then
             local qty = 1
-            local projectGoal = item:try_get("projectGoal")
+            local projectGoal = item:try_get("projectGoal") or ""
             local projectGoalParser = "(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?)[^,]*(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$" --"(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?).*?(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$"
-            local parseResult = regex.MatchGroups(item.projectGoal, projectGoalParser)
+            local parseResult = regex.MatchGroups(projectGoal, projectGoalParser)
             if parseResult then
                 if parseResult.dieRoll then
                     qty = dmhub.RollInstant(parseResult.dieRoll)
                 end
                 if parseResult.yield and parseResult.condition then
                     if DTBusinessRules.ProjectMeetsRequisite(project, parseResult.condition) then
-                        local numbersTable = { ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10, }
                         if DTHelpers.IsNumeric(parseResult.yield) then
                             qty = tonumber(parseResult.yield)
                         else
+                            local numbersTable = { ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5, ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9, ["ten"] = 10, }
                             local x = numbersTable[parseResult.yield]
                             if x and DTHelpers.IsNumeric(x) then
                                 qty = x
@@ -142,6 +142,7 @@ function DTBusinessRules.GiveItemToCharacter(project)
 
             token:ModifyProperties {
                 description = "Grant Item from Crafting",
+                undoable = false,
                 execute = function()
                     token.properties:GiveItem(itemId, qty)
                 end
@@ -157,8 +158,8 @@ end
 --- @param filter? function Optional filter callback to pre-filter heroes before iteration
 --- @return table heroes The list of heroes accumulated before iteration stopped (or all if not stopped)
 function DTBusinessRules.IterateHeroTokens(callback, filter)
-    if filter and type(filter) ~= "function" then error("arg1 must be nil or a function") end
-    if not callback or type(callback) ~= "function" then error("arg2 must be a function") end
+    if not callback or type(callback) ~= "function" then error("arg1 must be a function") end
+    if filter and type(filter) ~= "function" then error("arg2 must be nil or a function") end
 
     local heroes = {}
 

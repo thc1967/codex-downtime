@@ -28,7 +28,8 @@ function DTCharSheetTab.CreateDowntimePanel()
         styles = DTHelpers.GetDialogStyles(),
         data = {
             getDowntimeInfo = function()
-                return CharacterSheet.instance.data.info.token.properties:GetDowntimeInfo()
+                local token = CharacterSheet.instance.data.info.token
+                return token.properties:GetDowntimeInfo()
             end,
         },
 
@@ -45,9 +46,11 @@ function DTCharSheetTab.CreateDowntimePanel()
 
         adjustRolls = function(element, amount)
             local downtimeInfo = element.data.getDowntimeInfo()
-            downtimeInfo:SetAvailableRolls(downtimeInfo:GetAvailableRolls() + amount)
-            DTSettings.Touch()
-            element:FireEventTree("refreshToken")
+            if downtimeInfo then
+                downtimeInfo:SetAvailableRolls(downtimeInfo:GetAvailableRolls() + amount)
+                DTSettings.Touch()
+                element:FireEventTree("refreshToken")
+            end
         end,
 
         children = {

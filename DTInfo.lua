@@ -36,7 +36,7 @@ end
 --- @param rolls number The number of rolls to add
 --- @return DTInfo self For chaining
 function DTInfo:GrantRolls(rolls)
-    self.availableRolls = math.max(0, (self.availableRolls or 0) + (rolls or 0))
+    self.availableRolls = math.max(0, self:GetAvailableRolls() + (rolls or 0))
     return self
 end
 
@@ -45,7 +45,7 @@ end
 --- @return DTInfo self For chaining
 function DTInfo:UseAvailableRolls(rolls)
     local useCount = math.max(0, math.floor(rolls or 0))
-    self.availableRolls = math.max(0, (self.availableRolls or 0) - useCount)
+    self.availableRolls = math.max(0, self:GetAvailableRolls() - useCount)
     return self
 end
 

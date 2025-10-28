@@ -418,15 +418,15 @@ function DTDirectorPanel:_getTokenFromCharacterId(characterId)
 end
 
 --- Gets all hero characters in the game that have downtime projects
---- @return table characterInfo Array of {id, name} objects for characters with downtime projects
+--- @return table tokenInfo Array of {id, name} objects for characters with downtime projects
 function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
-    local characterInfo = {}
+    local tokenInfo = {}
 
     -- Local validation function to check if character meets criteria
-    local function isHeroWithDowntimeProjects(character)
-        if character and character.properties and character.properties:IsHero() then
-            local dti = character.properties:GetDowntimeInfo()
-            if dti and type(dti.GetProjects) == "function" then
+    local function isHeroWithDowntimeProjects(token)
+        if token and token.properties and token.properties:IsHero() then
+            local dti = token.properties:GetDowntimeInfo()
+            if dti then
                 local projects = dti:GetProjects()
                 if projects and next(projects) then return true end
             end
@@ -435,15 +435,17 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
     end
 
     local allHeroes = DTBusinessRules.GetAllHeroTokens(isHeroWithDowntimeProjects)
-    for _, character in ipairs(allHeroes) do
-        characterInfo[#characterInfo + 1] = {
-            id = character.id,
-            name = character.name or "Unknown Character",
-            rolls = character.properties:GetDowntimeInfo():GetAvailableRolls(),
+    for _, token in ipairs(allHeroes) do
+        local downtimeInfo = token.properties:GetDowntimeInfo()
+        local rolls = downtimeInfo ~= nil and downtimeInfo:GetAvailableRolls() or 0
+        tokenInfo[#tokenInfo + 1] = {
+            id = token.id,
+            name = token.name or "Unknown Character",
+            rolls = rolls,
         }
     end
 
-    return characterInfo
+    return tokenInfo
 end
 
 --- Categorizes downtime projects into 4 status-based buckets for tab display
@@ -459,12 +461,12 @@ function DTDirectorPanel:_categorizeDowntimeProjects()
     }
 
     for _, characterInfo in ipairs(characterInfoList) do
-        local character = dmhub.GetCharacterById(characterInfo.id)
-        if character and character.properties then
+        local token = dmhub.GetCharacterById(characterInfo.id)
+        if token and token.properties then
             local characterId = characterInfo.id
             local characterName = characterInfo.name
 
-            local downtimeInfo = character.properties:GetDowntimeInfo()
+            local downtimeInfo = token.properties:GetDowntimeInfo()
             if downtimeInfo then
                 local projects = downtimeInfo:GetProjects()
 
