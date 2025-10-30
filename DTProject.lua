@@ -40,7 +40,7 @@ function DTProject:new(sortOrder, ownerId)
     instance.itemPrerequisite = ""
     instance.projectSource = ""
     instance.projectSourceLanguages = {}
-    instance.projectSourceLanguagePenalty = DEFAULT_LANG_PENALTY
+    instance.projectSourceLanguagePenalty = DEFAULT_LANG_PENALTY -- Unneeded now?
     instance.testCharacteristics = {}
     instance.projectGoal = 1
     instance.status = DEFAULT_STATUS
