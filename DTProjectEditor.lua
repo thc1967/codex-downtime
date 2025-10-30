@@ -600,8 +600,10 @@ function DTProjectEditor:_createProjectForm()
                 refreshToken = function(element)
                     local project =element.data.getProject(element)
                     if project then
-                        element.text = DTConstants.GetDisplayText(DTConstants.STATUS, project:GetStatus())
-                    end
+                        local status = project:GetStatus()
+                        element.text = DTConstants.GetDisplayText(DTConstants.STATUS, status)
+                        element:SetClass("DTStatusAvailable", status == "ACTIVE")
+                        element:SetClass("DTStatusPaused", status ~= "ACTIVE")                    end
                 end
             }
         }
@@ -902,6 +904,9 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
                         return nil
                     end
                 },
+                create = function(element)
+                    element:FireEvent("refreshToken")
+                end,
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
@@ -943,6 +948,9 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
                         return nil
                     end
                 },
+                create = function(element)
+                    element:FireEvent("refreshToken")
+                end,
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
@@ -982,6 +990,9 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
                         return nil
                     end
                 },
+                create = function(element)
+                    element:FireEvent("refreshToken")
+                end,
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
@@ -1063,6 +1074,9 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
                         return nil
                     end
                 },
+                create = function(element)
+                    element:FireEvent("refreshToken")
+                end,
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
@@ -1092,7 +1106,6 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
             gui.Label {
                 classes = {"DTLabel", "DTBase"},
                 width = "auto",
-                bold = false,
                 data = {
                     getProject = function(element)
                         local projectController = element:FindParentWithClass("projectController")
@@ -1102,10 +1115,16 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
                         return nil
                     end
                 },
+                create = function(element)
+                    element:FireEvent("refreshToken")
+                end,
                 refreshToken = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        element.text = DTConstants.GetDisplayText(DTConstants.STATUS, project:GetStatus())
+                        local status = project:GetStatus()
+                        element.text = DTConstants.GetDisplayText(DTConstants.STATUS, status)
+                        element:SetClass("DTStatusAvailable", status == "ACTIVE")
+                        element:SetClass("DTStatusPaused", status ~= "ACTIVE")
                     end
                 end
             }
@@ -1428,6 +1447,7 @@ function DTProjectEditor:_createRollButton(options)
             end,
         },
         create = function(element)
+            element:FireEvent("refreshToken")
             dmhub.Schedule(0.2, function()
                 element.monitorGame = DTSettings:new():GetDocumentPath()
             end)
