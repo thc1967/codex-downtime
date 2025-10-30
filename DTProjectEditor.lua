@@ -1484,7 +1484,6 @@ function DTProjectEditor:_createRollButton(options)
                     element.data.tooltipText = table.concat(issueList, " ")
                 end
             end
-            element:SetClass("DTDisabled", not isEnabled)
             element.data.enabled = isEnabled
         end,
         linger = function(element)

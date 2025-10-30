@@ -44,7 +44,7 @@ function DTProject:new(sortOrder, ownerId)
     instance.testCharacteristics = {}
     instance.projectGoal = 1
     instance.status = DEFAULT_STATUS
-    instance.statusReason = "New Project"
+    instance.statusReason = "New Project - Ask your Director to review"
     instance.milestoneThreshold = 0
     instance.projectRolls = {}
     instance.progressAdjustments = {}

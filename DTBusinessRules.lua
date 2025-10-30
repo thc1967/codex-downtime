@@ -9,20 +9,23 @@ DTBusinessRules = RegisterGameType("DTBusinessRules")
 --- @param known string[] list of known language ids
 --- @return string penalty The penalty level
 function DTBusinessRules.CalcLangPenalty(required, known)
-    local penalty = DTConstants.LANGUAGE_PENALTY.UNKNOWN.key
+    local penalty = DTConstants.LANGUAGE_PENALTY.NONE.key
     local langRels = dmhub.GetTableVisible(LanguageRelation.tableName)
 
-    for _, reqId in ipairs(required) do
-        -- Do we know the language?
-        if known[reqId]  then
-            penalty = DTConstants.LANGUAGE_PENALTY.NONE.key
-            break
-        -- Or do we have a related language?
-        elseif langRels[reqId] then
-            for relId, _ in pairs(langRels[reqId].related) do
-                if known[relId] then
-                    penalty = DTConstants.LANGUAGE_PENALTY.RELATED.key
-                    break
+    if #required > 0 then
+        penalty = DTConstants.LANGUAGE_PENALTY.UNKNOWN.key
+        for _, reqId in ipairs(required) do
+            -- Do we know the language?
+            if known[reqId]  then
+                penalty = DTConstants.LANGUAGE_PENALTY.NONE.key
+                break
+            -- Or do we have a related language?
+            elseif langRels[reqId] then
+                for relId, _ in pairs(langRels[reqId].related) do
+                    if known[relId] then
+                        penalty = DTConstants.LANGUAGE_PENALTY.RELATED.key
+                        break
+                    end
                 end
             end
         end

@@ -73,6 +73,10 @@ DTDirectorPanel.TabsStyles = {
         transitionTime = 0.2,
     },
     gui.Style{
+        selectors = {"dtTab", "important"},
+        color = "orange"
+    },
+    gui.Style{
         selectors = {"dtTab", "selected"},
         color = "#ffffff",
         border = { y1 = 1, y2 = 0, x1 = 0, x2 = 0 },
@@ -822,13 +826,20 @@ function DTDirectorPanel:_buildContentPanel()
         styles = {DTDirectorPanel.TabsStyles},
         children = {
             gui.Label{
-                classes = {"dtTab", selectedTab == "Attention" and "selected" or nil},
+                classes = {
+                    "dtTab",
+                    selectedTab == "Attention" and "selected" or nil,
+                    #categorized.attention > 0 and "important" or nil,
+                },
                 text = string.format("Attention (%d)", #categorized.attention),
                 data = {tabName = "Attention"},
                 press = function() selectTab("Attention") end,
             },
             gui.Label{
-                classes = {"dtTab", selectedTab == "Milestones" and "selected" or nil},
+                classes = {
+                    "dtTab",
+                    selectedTab == "Milestones" and "selected" or nil,
+                    #categorized.milestones > 0 and "important" or nil},
                 text = string.format("Milestones (%d)", #categorized.milestones),
                 data = {tabName = "Milestones"},
                 press = function() selectTab("Milestones") end,
