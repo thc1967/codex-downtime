@@ -124,7 +124,7 @@ function DTDirectorPanel:_buildMainPanel()
         width = "100%",
         height = "auto",
         flow = "vertical",
-        monitorGame = directorPanel.downtimeSettings:GetDocumentPath(),
+        monitorGame = directorPanel.downtimeSettings.GetDocumentPath(),
         refreshGame = function(element)
             directorPanel:_refreshPanelContent(element)
         end,

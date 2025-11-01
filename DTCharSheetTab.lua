@@ -17,7 +17,7 @@ end
 function DTCharSheetTab.CreateDowntimePanel()
     local downtimePanel = gui.Panel {
         id = "downtimeController",
-        classes = {"downtimeController"},
+        classes = {"downtimeController", "DTPanel"},
         bgimage = true,
         bgcolor = "clear",
         width = "100%",
@@ -25,6 +25,7 @@ function DTCharSheetTab.CreateDowntimePanel()
         flow = "vertical",
         valign = "top",
         halign = "center",
+        borderColor = "purple",
         styles = DTHelpers.GetDialogStyles(),
         data = {
             getDowntimeInfo = function()
@@ -95,7 +96,7 @@ function DTCharSheetTab._createHeaderPanel()
                 valign = "center",
                 create = function(element)
                     dmhub.Schedule(0.2, function()
-                        element.monitorGame = DTSettings:new():GetDocumentPath()
+                        element.monitorGame = DTSettings.GetDocumentPath()
                     end)
                 end,
                 refreshGame = function(element)
@@ -123,7 +124,7 @@ function DTCharSheetTab._createHeaderPanel()
                 bold = false,
                 create = function(element)
                     dmhub.Schedule(0.2, function()
-                        element.monitorGame = DTSettings:new():GetDocumentPath()
+                        element.monitorGame = DTSettings.GetDocumentPath()
                     end)
                 end,
                 refreshGame = function(element)
@@ -172,7 +173,7 @@ function DTCharSheetTab._createHeaderPanel()
                 fontSize = 20,
                 create = function(element)
                     dmhub.Schedule(0.2, function()
-                        element.monitorGame = DTSettings:new():GetDocumentPath()
+                        element.monitorGame = DTSettings.GetDocumentPath()
                     end)
                 end,
                 refreshGame = function(element)
@@ -312,7 +313,7 @@ function DTCharSheetTab._createBodyPanel()
                         valign = "top",
                         create = function(element)
                             dmhub.Schedule(0.2, function()
-                                element.monitorGame = DTShares:new():GetDocumentPath()
+                                element.monitorGame = DTShares.GetDocumentPath()
                             end)
                         end,
                         refreshGame = function(element)

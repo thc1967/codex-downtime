@@ -603,7 +603,8 @@ function DTProjectEditor:_createProjectForm()
                         local status = project:GetStatus()
                         element.text = DTConstants.GetDisplayText(DTConstants.STATUS, status)
                         element:SetClass("DTStatusAvailable", status == "ACTIVE")
-                        element:SetClass("DTStatusPaused", status ~= "ACTIVE")                    end
+                        element:SetClass("DTStatusPaused", status ~= "ACTIVE")
+                    end
                 end
             }
         }
@@ -1141,7 +1142,7 @@ function DTProjectEditor:_createSharedProjectForm(ownerName, ownerColor)
         borderColor = "cyan",
         create = function(element)
             dmhub.Schedule(0.2, function()
-                element.monitorGame = DTShares:new():GetDocumentPath()
+                element.monitorGame = DTShares.GetDocumentPath()
             end)
         end,
         refreshGame = function(element)
@@ -1449,7 +1450,7 @@ function DTProjectEditor:_createRollButton(options)
         create = function(element)
             element:FireEvent("refreshToken")
             dmhub.Schedule(0.2, function()
-                element.monitorGame = DTSettings:new():GetDocumentPath()
+                element.monitorGame = DTSettings.GetDocumentPath()
             end)
         end,
         refreshGame = function(element)

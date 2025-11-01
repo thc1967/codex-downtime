@@ -140,6 +140,6 @@ end
 
 --- Gets the path for document monitoring in UI
 --- @return string path The document path for monitoring
-function DTSettings:GetDocumentPath()
-    return self.mod:GetDocumentSnapshot(self.documentName).path
+function DTSettings.GetDocumentPath()
+    return mod:GetDocumentSnapshot(documentName).path
 end

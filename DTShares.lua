@@ -21,8 +21,8 @@ end
 
 --- Gets the path for document monitoring in UI
 --- @return string path The document path for monitoring
-function DTShares:GetDocumentPath()
-    return self.mod:GetDocumentSnapshot(documentName).path
+function DTShares.GetDocumentPath()
+    return mod:GetDocumentSnapshot(documentName).path
 end
 
 --- Initializes the project shares document with default structure
