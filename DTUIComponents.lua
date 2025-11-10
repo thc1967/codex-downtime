@@ -128,8 +128,8 @@ function DTUIComponents.CreateNumericEditor(labelText, initialValue, controllerC
                 classes = {"DTPanel", "DTBase"},
                 height = "100%-6",
                 width = "100%-12",
-                pad = 3,
-                halign = "center",
+                -- pad = 3,
+                halign = "left",
                 flow = "vertical",
                 -- borderColor = "red",
                 children = {
@@ -181,7 +181,7 @@ function DTUIComponents.CreateNumericEditor(labelText, initialValue, controllerC
                                                 text = "-1",
                                                 width = 30,
                                                 height = 30,
-                                                hmargin = 2,
+                                                -- hmargin = 2,
                                                 classes = {"DTButton", "DTBase"},
                                                 click = function(element)
                                                     local controller = element:FindParentWithClass("dtNumericEditorController")

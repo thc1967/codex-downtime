@@ -17,7 +17,7 @@ function DTGrantRollsDialog:ShowDialog()
 
     local grantRollsDialog = gui.Panel{
         classes = {"dtGrantRollsController", "DTDialog"},
-        width = 450,
+        width = 350,
         height = 450,
         styles = DTHelpers.GetDialogStyles(),
         data = {
@@ -187,7 +187,7 @@ end
 --- @return table panel The number of rolls input panel
 function DTGrantRollsDialog:_buildNumberOfRollsField()
     return DTUIComponents.CreateNumericEditor("Number of Rolls:", 1, "dtGrantRollsController", "rollCountChanged", {
-        width = "50%",
+        width = "100%",
         halign = "left"
     })
 end
@@ -213,7 +213,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
         vmargin = 10,
         children = {
             gui.Label{
-                text = "Select Characters:",
+                text = "Select Recipients:",
                 classes = {"DTLabel", "DTBase"},
                 width = "100%",
             },
@@ -221,6 +221,8 @@ function DTGrantRollsDialog:_createCharacterSelector()
                 id = "characterSelector",
                 allTokens = allTokens,
                 initialSelection = initialSelectionIds,
+                halign = "left",
+                width = "100%",
                 change = function(element, selectedTokenIds)
                     -- Fire validateForm when selection changes
                     local controller = element:FindParentWithClass("dtGrantRollsController")
