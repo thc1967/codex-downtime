@@ -374,26 +374,43 @@ function DTProjectEditor:_createProjectForm()
                 create = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        element.value = project:GetTestCharacteristics()
+                        local characteristics = project:GetTestCharacteristics() or {}
+                        local valueDict = {}
+                        for _, id in ipairs(characteristics) do
+                            valueDict[id] = true
+                        end
+                        element.value = valueDict
                     end
                 end,
                 refreshToken = function(element)
-                    local uiValues = element.value
+                    local uiDict = element.value
                     local project = element.data.getProject(element)
                     if project then
-                        local storageValues = project:GetTestCharacteristics()
-                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
-                            element.value = storageValues
+                        local storageArray = project:GetTestCharacteristics() or {}
+                        -- Convert storage array to dict for comparison
+                        local storageDict = {}
+                        for _, id in ipairs(storageArray) do
+                            storageDict[id] = true
+                        end
+                        if not DTHelpers.DictsAreEqual(uiDict, storageDict) then
+                            element.value = storageDict
                         end
                     end
                 end,
                 change = function(element)
-                    local uiValues = element.value
+                    local uiDict = element.value
                     local project = element.data.getProject(element)
                     if project then
-                        local storageValues = project:GetTestCharacteristics()
-                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
-                            project:SetTestCharacteristics(uiValues)
+                        -- Convert dictionary to array for storage
+                        local uiArray = {}
+                        for id, flag in pairs(uiDict) do
+                            if flag then
+                                uiArray[#uiArray + 1] = id
+                            end
+                        end
+                        local storageArray = project:GetTestCharacteristics()
+                        if not DTHelpers.ListsHaveSameValues(uiArray, storageArray) then
+                            project:SetTestCharacteristics(uiArray)
                             local projectController = element:FindParentWithClass("projectController")
                             if projectController then
                                 projectController:FireEventTree("refreshToken")
@@ -458,26 +475,42 @@ function DTProjectEditor:_createProjectForm()
                 create = function(element)
                     local project = element.data.getProject(element)
                     if project then
-                        element.value = project:GetProjectSourceLanguages()
+                        local languages = project:GetProjectSourceLanguages() or {}
+                        local valueDict = {}
+                        for _, id in ipairs(languages) do
+                            valueDict[id] = true
+                        end
+                        element.value = valueDict
                     end
                 end,
                 refreshToken = function(element)
-                    local uiValues = element.value
+                    local uiDict = element.value
                     local project = element.data.getProject(element)
                     if project then
-                        local storageValues = project:GetProjectSourceLanguages()
-                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
-                            element.value = storageValues
+                        local storageArray = project:GetProjectSourceLanguages() or {}
+                        local storageDict = {}
+                        for _, id in ipairs(storageArray) do
+                            storageDict[id] = true
+                        end
+                        if not DTHelpers.DictsAreEqual(uiDict, storageDict) then
+                            element.value = storageDict
                         end
                     end
                 end,
                 change = function(element)
-                    local uiValues = element.value
+                    local uiDict = element.value
                     local project = element.data.getProject(element)
                     if project then
-                        local storageValues = project:GetProjectSourceLanguages()
-                        if not DTHelpers.ListsHaveSameValues(uiValues, storageValues) then
-                            project:SetProjectSourceLanguages(uiValues)
+                        -- Convert dictionary to array for storage
+                        local uiArray = {}
+                        for id, flag in pairs(uiDict) do
+                            if flag then
+                                uiArray[#uiArray + 1] = id
+                            end
+                        end
+                        local storageArray = project:GetProjectSourceLanguages()
+                        if not DTHelpers.ListsHaveSameValues(uiArray, storageArray) then
+                            project:SetProjectSourceLanguages(uiArray)
                             local projectController = element:FindParentWithClass("projectController")
                             if projectController then
                                 projectController:FireEventTree("refreshToken")

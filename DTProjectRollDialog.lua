@@ -438,10 +438,17 @@ function DTProjectRollDialog._createPanel(options)
                                                     skillsSelected = {},
                                                 },
                                                 change = function(element)
-                                                    local newSelected = element.value
+                                                    local newSelectedDict = element.value
                                                     local curSelected = element.data.skillsSelected or {}
                                                     local skillLookup = element.data.skillLookup
-                                                    local changed = DTHelpers.SyncArrays(curSelected, newSelected)
+                                                    -- Convert dictionary to array
+                                                    local newSelectedArray = {}
+                                                    for id, flag in pairs(newSelectedDict) do
+                                                        if flag then
+                                                            newSelectedArray[#newSelectedArray + 1] = id
+                                                        end
+                                                    end
+                                                    local changed = DTHelpers.SyncArrays(curSelected, newSelectedArray)
                                                     if changed then
                                                         element.data.skillsSelected = curSelected
                                                         local rollController = element:FindParentWithClass("rollController")
@@ -450,14 +457,14 @@ function DTProjectRollDialog._createPanel(options)
                                                             if #curSelected > 0 then
                                                                 local description = skillLookup[curSelected[1]]
                                                                 for i = 2, #curSelected do
-                                                                    description = description .. ", " .. skillLookup[curSelected[i]] --curSelected[i].text
+                                                                    description = description .. ", " .. skillLookup[curSelected[i]]
                                                                 end
                                                                 local value = 2 * #curSelected
 
                                                                 local item = {
                                                                     id = element.id,
                                                                     value = value,
-                                                                    description = string.format("Skill%s: %s (%+d)", #curSelected > 0 and "s" or "", description, value)
+                                                                    description = string.format("Skill%s: %s (%+d)", #curSelected > 1 and "s" or "", description, value)
                                                                 }
                                                                 rollController:FireEvent("addItem", "bonuses", item)
                                                             end

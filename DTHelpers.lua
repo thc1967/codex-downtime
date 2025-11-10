@@ -334,6 +334,37 @@ function DTHelpers.ListsHaveSameValues(a1, a2)
     return true
 end
 
+--- Compares two dictionaries to check if they have the same keys with truthy values
+--- @param d1 table The first dictionary
+--- @param d2 table The second dictionary
+--- @return boolean equal Whether the dictionaries have the same truthy keys
+function DTHelpers.DictsAreEqual(d1, d2)
+    -- Handle nil cases
+    if not d1 and not d2 then return true end
+    if not d1 or not d2 then return false end
+
+    -- Count truthy keys in d1 and verify they exist in d2
+    local count1 = 0
+    for k, v in pairs(d1) do
+        if v then
+            count1 = count1 + 1
+            if not d2[k] then
+                return false
+            end
+        end
+    end
+
+    -- Count truthy keys in d2
+    local count2 = 0
+    for k, v in pairs(d2) do
+        if v then
+            count2 = count2 + 1
+        end
+    end
+
+    return count1 == count2
+end
+
 --- Transforms a list of DTConstant instances into a list of id, text pairs for dropdown lists
 --- @param sourceList table The table containing DTConstant instances
 --- @return table destList The transformed table, sorted by sortOrder
