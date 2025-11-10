@@ -50,16 +50,18 @@ function DTGrantRollsDialog:ShowDialog()
             if numRolls ~= 0 then
                 local selector = element:Get("characterSelector")
                 if selector and selector.value and #selector.value > 0 then
-                    for _, tokenId in ipairs(selector.value) do
-                        local token = dmhub.GetCharacterById(tokenId)
-                        if token and token.properties then
-                            token:ModifyProperties{
-                                description = "Grant Downtime Rolls",
-                                execute = function ()
-                                    local downtimeInfo = token.properties:GetDowntimeInfo()
-                                    if downtimeInfo then downtimeInfo:GrantRolls(numRolls) end
-                                end,
-                            }
+                    for _, item in ipairs(selector.value) do
+                        if item.selected then
+                            local token = dmhub.GetCharacterById(item.id)
+                            if token and token.properties then
+                                token:ModifyProperties{
+                                    description = "Grant Downtime Rolls",
+                                    execute = function ()
+                                        local downtimeInfo = token.properties:GetDowntimeInfo()
+                                        if downtimeInfo then downtimeInfo:GrantRolls(numRolls) end
+                                    end,
+                                }
+                            end
                         end
                     end
                     DTSettings.Touch()
