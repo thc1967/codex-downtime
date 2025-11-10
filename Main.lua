@@ -1,7 +1,9 @@
 --- DESTRUCTIVE Clears all downtime data from the token
 --- @param t table DMHub token from which to remove downtime info
 local function _clearTokenData(t)
-    if t and t.properties and t.properties:IsHero() then
+    if not dmhub.isDM then return end
+
+    if t and t.properties then
         -- Wipe downtime data
         if t.properties:try_get(DTConstants.CHARACTER_STORAGE_KEY) then
             chat.Send(string.format("Removing Downtime data from %s.", t.name))

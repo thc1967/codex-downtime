@@ -201,7 +201,7 @@ function DTDirectorPanel:_buildHeaderPanel()
                     },
                 }
             },
-            -- Buttons panel - roll by default, maybe edit & init if debug
+            -- Buttons panel - Grant rolls
             gui.Panel{
                 width = "50%",
                 height = "100%",
@@ -281,7 +281,8 @@ function DTDirectorPanel:_showSettingsDialog()
                 fontSize = "24",
                 classes = {"DTLabel", "DTBase"},
                 textAlignment = "center",
-                halign = "center"
+                halign = "center",
+                valign = "top",
             },
             gui.Divider { width = "50%" },
 
@@ -413,7 +414,7 @@ function DTDirectorPanel:_getAllCharactersWithDowntimeProjects()
         local rolls = downtimeInfo ~= nil and downtimeInfo:GetAvailableRolls() or 0
         tokenInfo[#tokenInfo + 1] = {
             id = token.id,
-            name = token.name or "Unknown Character",
+            name = token.name or "Unknown Hero",
             rolls = rolls,
         }
     end

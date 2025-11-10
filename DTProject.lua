@@ -487,31 +487,25 @@ end
 --- Cache is invalidated automatically when rolls or adjustments are added/removed
 --- @return number progress The total progress points earned on this project
 function DTProject:GetProgress()
-    -- Check if cache is valid using VTT property system
     local cachedProgress = self:try_get("_cachedProgress")
     local progressDirty = self:try_get("_progressDirty")
 
-    -- Return cached value if it exists and cache is not dirty
     if cachedProgress ~= nil and not progressDirty then
         return cachedProgress
     end
 
-    -- Recalculate progress from scratch
     local progress = 0
 
-    -- Add all roll results
     local rolls = self:GetRolls()
     for _, roll in ipairs(rolls) do
         progress = progress + roll:GetAmount()
     end
 
-    -- Add all progress adjustments
     local adjustments = self:GetAdjustments()
     for _, adjustment in ipairs(adjustments) do
         progress = progress + adjustment:GetAmount()
     end
 
-    -- Update cache and mark as clean
     self._cachedProgress = progress
     self._progressDirty = false
 

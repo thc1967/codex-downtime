@@ -10,10 +10,10 @@ DTBusinessRules = RegisterGameType("DTBusinessRules")
 --- @return string penalty The penalty level
 function DTBusinessRules.CalcLangPenalty(required, known)
     local penalty = DTConstants.LANGUAGE_PENALTY.NONE.key
-    local langRels = dmhub.GetTableVisible(LanguageRelation.tableName)
 
     if #required > 0 then
         penalty = DTConstants.LANGUAGE_PENALTY.UNKNOWN.key
+        local langRels = dmhub.GetTableVisible(LanguageRelation.tableName)
         for _, reqId in ipairs(required) do
             -- Do we know the language?
             if known[reqId]  then
@@ -121,6 +121,8 @@ function DTBusinessRules.GiveItemToCharacter(project)
         local token = dmhub.GetTokenById(tokenId)
         if token and token.properties then
             local qty = 1
+
+            -- Qty, roll for qty, and other reqs can be buried in the item's project goal
             local projectGoal = item:try_get("projectGoal") or ""
             local projectGoalParser = "(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?)[^,]*(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$" --"(?i)^\\d+\\s*\\(yields\\s+(?<dieRoll>\\d+d\\d+(?:\\s*[+-]\\s*\\d+)?).*?(?:,\\s*or\\s+(?<yield>\\S+))?.*?(?:if\\s+crafted\\s+by\\s+a\\s+(?<condition>[^)]+))?\\)$"
             local parseResult = regex.MatchGroups(projectGoal, projectGoalParser)
@@ -239,10 +241,8 @@ function DTBusinessRules.GetSharedProjectsForRecipient(recipientId)
             local ownerName = ownerToken.name
             local ownerColor = ownerToken.playerColor and ownerToken.playerColor.tostring or nil
 
-            -- Get owner's downtime info
             local ownerDTInfo = ownerToken.properties:GetDowntimeInfo()
             if ownerDTInfo then
-                -- Get the specific project
                 local project = ownerDTInfo:GetProject(projectId)
                 if project then
                     sharedProjects[#sharedProjects + 1] = {

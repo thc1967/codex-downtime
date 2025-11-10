@@ -94,7 +94,8 @@ function DTGrantRollsDialog:ShowDialog()
                                 fontSize = "24",
                                 classes = {"DTLabel", "DTBase"},
                                 textAlignment = "center",
-                                halign = "center"
+                                halign = "center",
+                                valign = "top",
                             },
                             gui.Divider { width = "50%", },
                         }

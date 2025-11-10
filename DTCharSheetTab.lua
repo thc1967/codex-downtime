@@ -76,7 +76,7 @@ function DTCharSheetTab._createHeaderPanel()
         hmargin = 20,
         children = {
             gui.Label {
-                text = "Rolling status: ",
+                text = "Rolling Status: ",
                 classes = {"DTLabel", "DTBase"},
                 width = "auto",
                 height = "100%",
@@ -150,7 +150,6 @@ function DTCharSheetTab._createHeaderPanel()
         flow = "horizontal",
         halign = "left",
         valign = "center",
-        hmargin = 20,
         children = {
             gui.Label {
                 text = "Available Rolls: ",
@@ -198,8 +197,6 @@ function DTCharSheetTab._createHeaderPanel()
                         element.text = string.format(fmt, availableRolls, msg)
                         element:SetClass("DTStatusAvailable", availableRolls > 0)
                         element:SetClass("DTStatusPaused", availableRolls <= 0)
-                    else
-                        print("THC:: BOOM:: DTCharSheetTab._createHeaderPanel refreshToken Avail Rolls Label")
                     end
                 end
             }
@@ -211,7 +208,7 @@ function DTCharSheetTab._createHeaderPanel()
         vmargin = 5,
         hmargin = 20,
         linger = function(element)
-            gui.Tooltip("Add a new downtime project")(element)
+            gui.Tooltip("Add a new project")(element)
         end,
         click = function(element)
             if CharacterSheet.instance.data.info then
@@ -288,7 +285,7 @@ end
 function DTCharSheetTab._createBodyPanel()
     return gui.Panel {
         width = "100%",
-        height = "100%-40",
+        height = "100%-50",
         flow = "vertical",
         halign = "center",
         valign = "top",
@@ -347,7 +344,6 @@ function DTCharSheetTab._refreshProjectsList(element)
 
     local downtimeInfo = token.properties:GetDowntimeInfo()
     if not downtimeInfo and #sharedProjects == 0 then
-        -- Show "no projects" message only if no shared projects either
         element.children = {
             gui.Label {
                 text = "(ERROR: unable to create downtime info)",
@@ -366,7 +362,6 @@ function DTCharSheetTab._refreshProjectsList(element)
     if downtimeInfo then
         projects = downtimeInfo:GetSortedProjects()
         if (not projects or #projects == 0) and #sharedProjects == 0 then
-            -- Show "no projects" message only if no shared projects either
             element.children = {
                 gui.Label {
                     text = "No projects yet.\nClick the Add button to create one.",
@@ -424,7 +419,6 @@ function DTCharSheetTab._refreshProjectsList(element)
     for _, project in ipairs(projects) do
         local foundPanel = false
         for _, panel in ipairs(panels) do
-            -- Must match ID AND be an owned panel (not shared)
             if panel.id == project:GetID() and not panel:HasClass("sharedProject") then
                 foundPanel = true
                 break
@@ -439,7 +433,6 @@ function DTCharSheetTab._refreshProjectsList(element)
     for _, entry in ipairs(sharedProjects) do
         local foundPanel = false
         for _, panel in ipairs(panels) do
-            -- Must match ID AND be a shared panel
             if panel.id == entry.project:GetID() and panel:HasClass("sharedProject") then
                 foundPanel = true
                 break
