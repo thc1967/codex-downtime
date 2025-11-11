@@ -247,7 +247,7 @@ function DTGrantRollsDialog:_createCharacterSelector()
     local selectedTokens = dmhub.selectedTokens
     local initialSelectionIds = {}
     for _, token in ipairs(selectedTokens) do
-        initialSelectionIds[#initialSelectionIds + 1] = token.id
+        initialSelectionIds[#initialSelectionIds + 1] = {id = token.id, selected = true}
     end
 
     local function displayName(token)

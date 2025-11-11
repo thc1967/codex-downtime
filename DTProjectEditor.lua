@@ -1615,10 +1615,14 @@ function DTProjectEditor:_createOwnedProjectButtons()
 
                 -- Build the list of characters already shared with
                 local sharedWith = shareData:GetProjectSharedWith(me.id, project:GetID())
+                local initialSelectionIds = {}
+                for _, tokenId in ipairs(sharedWith) do
+                    initialSelectionIds[#initialSelectionIds + 1] = {id = tokenId, selected = true}
+                end
 
                 local options = {
                     showList = showList,
-                    initialSelection = sharedWith,
+                    initialSelection = initialSelectionIds,
                     callbacks = {
                         confirm = function(selectedTokens)
                             shareData:Share(me.id, project:GetID(), selectedTokens)
