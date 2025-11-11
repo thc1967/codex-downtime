@@ -185,13 +185,56 @@ function DTGrantRollsDialog:ShowDialog()
     gui.ShowModal(grantRollsDialog)
 end
 
---- Builds the number of rolls input field with +/- buttons
+--- Builds the number of rolls input field
 --- @return table panel The number of rolls input panel
 function DTGrantRollsDialog:_buildNumberOfRollsField()
-    return DTUIComponents.CreateNumericEditor("Number of Rolls:", 1, "dtGrantRollsController", "rollCountChanged", {
+    return gui.Panel{
+        classes = {"DTPanel", "DTBase"},
         width = "100%",
-        halign = "left"
-    })
+        height = "auto",
+        flow = "vertical",
+        vmargin = 5,
+        halign = "left",
+
+        children = {
+            -- Label
+            gui.Label{
+                text = "Number of Rolls:",
+                classes = {"DTLabel", "DTBase"},
+                width = "100%",
+                height = 20
+            },
+            -- Input field
+            gui.Label {
+                id = "numberOfRollsInput",
+                editable = true,
+                numeric = true,
+                characterLimit = 2,
+                swallowPress = true,
+                text = "1",
+                width = 90,
+                height = 24,
+                cornerRadius = 4,
+                fontSize = 20,
+                bgimage = "panels/square.png",
+                border = 1,
+                textAlignment = "center",
+                valign = "center",
+                halign = "left",
+                classes = {"DTInput", "DTBase"},
+
+                change = function(element)
+                    local numericValue = tonumber(element.text) or tonumber(element.text:match("%-?%d+")) or 0
+                    element.text = tostring(numericValue)
+
+                    local controller = element:FindParentWithClass("dtGrantRollsController")
+                    if controller then
+                        controller:FireEvent("rollCountChanged", numericValue)
+                    end
+                end
+            }
+        }
+    }
 end
 
 --- Creates the character selector using gui.CharacterSelect
@@ -205,6 +248,15 @@ function DTGrantRollsDialog:_createCharacterSelector()
     local initialSelectionIds = {}
     for _, token in ipairs(selectedTokens) do
         initialSelectionIds[#initialSelectionIds + 1] = token.id
+    end
+
+    local function displayName(token)
+        local rolls = 0
+        if token and token.properties and token.properties:IsHero() then
+            local dt = token.properties:GetDowntimeInfo()
+            if dt then rolls = dt:GetAvailableRolls() end
+        end
+        return string.format("<b>%s</b> (<i>%d Rolls</i>)", token.name, rolls)
     end
 
     -- Return wrapper panel with CharacterSelector
@@ -225,8 +277,10 @@ function DTGrantRollsDialog:_createCharacterSelector()
                 initialSelection = initialSelectionIds,
                 halign = "left",
                 width = "100%",
+                height = "50%",
+                layout = "list",
+                displayText = displayName,
                 change = function(element, selectedTokenIds)
-                    -- Fire validateForm when selection changes
                     local controller = element:FindParentWithClass("dtGrantRollsController")
                     if controller then
                         controller:FireEvent("validateForm")

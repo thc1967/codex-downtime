@@ -433,6 +433,7 @@ function DTProjectRollDialog._createPanel(options)
                                                 vmargin = 4,
                                                 textDefault = "Select a skill...",
                                                 sort = true,
+                                                chipPos = "bottom",
                                                 data = {
                                                     skillLookup = skillLookup,
                                                     skillsSelected = {},

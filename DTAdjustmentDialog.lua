@@ -114,7 +114,52 @@ function DTAdjustmentDialog._createPanel(adjustment, confirmHandler, cancelHandl
                 vmargin = 10,
                 children = {
                     -- Amount field with numeric editor
-                    DTUIComponents.CreateNumericEditor("Adjustment Amount:", adjustment:GetAmount(), "adjustmentDialogController", "adjustAmount"),
+                    gui.Panel{
+                        classes = {"DTPanel", "DTBase"},
+                        width = "90%",
+                        height = "auto",
+                        flow = "vertical",
+                        vmargin = 10,
+
+                        children = {
+                            -- Label
+                            gui.Label{
+                                text = "Adjustment Amount:",
+                                classes = {"DTLabel", "DTBase"},
+                                width = "100%",
+                                height = 20
+                            },
+                            -- Input field
+                            gui.Label {
+                                id = "adjustmentAmountInput",
+                                editable = true,
+                                numeric = true,
+                                characterLimit = 4,
+                                swallowPress = true,
+                                text = tostring(adjustment:GetAmount()),
+                                width = 90,
+                                height = 24,
+                                cornerRadius = 4,
+                                fontSize = 20,
+                                bgimage = "panels/square.png",
+                                border = 1,
+                                textAlignment = "center",
+                                valign = "center",
+                                halign = "left",
+                                classes = {"DTInput", "DTBase"},
+
+                                change = function(element)
+                                    local numericValue = tonumber(element.text) or tonumber(element.text:match("%-?%d+")) or 0
+                                    element.text = tostring(numericValue)
+
+                                    local controller = element:FindParentWithClass("adjustmentDialogController")
+                                    if controller then
+                                        controller:FireEvent("adjustAmount", numericValue)
+                                    end
+                                end
+                            }
+                        }
+                    },
 
                     -- Reason field
                     gui.Panel{

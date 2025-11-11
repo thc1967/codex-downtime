@@ -83,6 +83,7 @@ function DTShareDialog._createPanel(options)
                         initialSelection = options.initialSelection,
                         width = "96%",
                         height = 130,
+                        layout = "grid",
                         showShortcuts = true,
                     })
                 }
