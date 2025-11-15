@@ -117,3 +117,26 @@ function DTInfo:_maxProjectOrder()
 
     return maxOrder
 end
+
+--- Extend creature to get Downtime Information
+--- @return DTinfo|nil downtimeInfo the Downtme Info for the character or nil if we can't find or create
+creature.GetDowntimeInfo = function(self)
+    local downtimeInfo = self:try_get(DTConstants.CHARACTER_STORAGE_KEY)
+    if downtimeInfo == nil then
+        local token = dmhub.LookupToken(self)
+        if token then
+            downtimeInfo = DTInfo:new()
+            token:ModifyProperties{
+                description = "Adding Downtime Info",
+                undoable = false,
+                execute = function()
+                    token.properties[DTConstants.CHARACTER_STORAGE_KEY] = downtimeInfo
+                end
+            }
+        end
+    end
+    if downtimeInfo and type(downtimeInfo.GetAvailableRolls) ~= "function" then
+        setmetatable(downtimeInfo, DTInfo)
+    end
+    return downtimeInfo
+end

@@ -1,0 +1,41 @@
+--- Downtime followers information - abstraction of character.followers
+--- @class DTFollowers
+--- @field followers table List of followers as class objects
+DTFollowers = RegisterGameType("DTFollowers")
+DTFollowers.__index = DTFollowers
+
+--- Creates a new downtime followers instance
+--- @param followers table The followers on the creature
+--- @param token CharacterToken|nil The DMHub token that is the parent of the creature
+--- @return DTFollowers instance The new downtime followers instance
+function DTFollowers:new(followers, token)
+    local instance = setmetatable({}, self)
+    instance.followers = {}
+
+    if followers and type(followers) == "table" and #followers then
+        for _, follower in ipairs(followers) do
+            local type = string.lower(follower.type or "")
+            local dtFollower
+            if type == "artisan" then
+                dtFollower = DTFollowerArtisan:new(follower, token)
+            elseif type == "sage" then
+                dtFollower = DTFollowerSage:new(follower, token)
+            end
+            if dtFollower then
+                instance.followers[#instance.followers + 1] = dtFollower
+            end
+        end
+    end
+
+    return instance
+end
+
+--- Extend creature to get downtime followers
+--- @return DTFollowers|nil followers The downtime followers for the character
+creature.GetDowntimeFollowers = function(self)
+    if self:IsHero() then
+        local token = dmhub.LookupToken(self)
+        return DTFollowers:new(self:try_get(DTConstants.FOLLOWERS_STORAGE_KEY), token)
+    end
+    return nil
+end

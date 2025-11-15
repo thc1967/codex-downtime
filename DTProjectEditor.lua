@@ -1526,6 +1526,7 @@ function DTProjectEditor:_createRollButton(options)
             end
         end,
         click = function(element)
+            local roller = DTRoller:new(CharacterSheet.instance.data.info.token.properties)
             if not element.data.enabled then return end
             local project = element.data.getProject(element)
             local controller = element:FindParentWithClass("projectController")

@@ -8,6 +8,7 @@ DTConstants.DEVUI = false
 
 --- The location on the character we're storing the downtime
 DTConstants.CHARACTER_STORAGE_KEY = "downtimeInfo"
+DTConstants.FOLLOWERS_STORAGE_KEY = "followers"
 
 --- The natural roll at and above which is considered a crit or breakthrough
 DTConstants.BREAKTHROUGH_MIN = 19
