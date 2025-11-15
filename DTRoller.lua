@@ -1,7 +1,7 @@
 --- Downtime Roller information - abstraction of an entity that can roll on a project
 --- @class DTRoller
 --- @field name string The name of the roller
---- @field attributes table The list of attributes for the roller as attrId = value
+--- @field characteristics table The list of characteristics for the roller as attrId = value
 --- @field languages table Flag list of language id's known
 --- @field skills table List of skills the roller knows in id,text pairs 
 DTRoller = RegisterGameType("DTRoller")
@@ -13,17 +13,16 @@ DTRoller.__index = DTRoller
 function DTRoller:new(object)
     local instance = setmetatable({}, self)
     local objType = string.lower(object.typeName or "")
-    print("THC:: DTROLLER:: LANGS::", json(object:LanguagesKnown()))
 
     if objType == "character" then
         local token = dmhub.LookupToken(object)
         instance.name = (token.name and #token.name > 0 and token.name) or "(unnamed character)"
-        instance.attributes = DTRoller._charAttrsToList(c)
-        instance.languages = object:LangagesKnown()
+        instance.characteristics = DTRoller._charAttrsToList(object)
+        instance.languages = object:LanguagesKnown()
         instance.skills = DTRoller._charSkillsToList(object)
     elseif objType == "dtfollower" or objType == "dtfollowerartisan" or objType == "dtfollowersage" then
         instance.name = object:GetName()
-        instance.attributes = object:GetCharacteristics()
+        instance.characteristics = object:GetCharacteristics()
         instance.languages = object:GetLanguages()
         instance.skills = DTRoller._followerSkillsToList(object)
     else
@@ -37,6 +36,19 @@ end
 --- @return string name The roller's name
 function DTRoller:GetName()
     return self.name
+end
+
+--- Return the roller's characteristics
+--- @return table characteristics The roller's characteristics in id = value format
+function DTRoller:GetCharacteristics()
+    return self.characteristics
+end
+
+--- Return a specific characteristic
+--- @param attrId string The characteristic id
+--- @return number value The roller's characteristic value
+function DTRoller:GetCharacteristic(attrId)
+    return self.characteristics[attrId] or 0
 end
 
 --- Return the roller's languages known
@@ -57,7 +69,7 @@ end
 function DTRoller._charAttrsToList(c)
     local attrList = {}
     for _, char in ipairs(DTConstants.CHARACTERISTICS) do
-        attrList[char.id] = c:GetAttribute(char):Modifier()
+        attrList[char.key] = tonumber(c:GetAttribute(char.key):Modifier())
     end
     return attrList
 end
