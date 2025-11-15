@@ -1532,6 +1532,7 @@ function DTProjectEditor:_createRollButton(options)
             if project and controller then
                 local options = {
                     roller = DTRoller:new(CharacterSheet.instance.data.info.token.properties),
+                    projectTitle = project:GetTitle(),
                     data = {
                         project = project
                     },

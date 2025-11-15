@@ -32,15 +32,6 @@ function DTProjectRollDialog._createPanel(options)
     local resultPanel = nil
     local roller = options.roller
 
-    -- local character = CharacterSheet.instance.data.info.token.properties
-    -- local skillList = {}
-    -- local skillLookup = {}
-    -- for _, skill in ipairs(Skill.SkillsInfo) do
-    --     if character:ProficientInSkill(skill) then
-    --         skillList[#skillList + 1] = { id = skill.name, text = skill.name}
-    --         skillLookup[skill.name] = skill.name
-    --     end
-    -- end
     local skillList = roller:GetSkillsKnown()
     local skillLookup = {}
     for _, item in ipairs(skillList) do
@@ -64,7 +55,7 @@ function DTProjectRollDialog._createPanel(options)
                 banes = {},
                 bonuses = {},
             },
-            rolls = {},  -- Array to collect all rolls in breakthrough chain
+            rolls = {},
             project = options.data.project,
 
             isRolling = false,
@@ -163,13 +154,12 @@ function DTProjectRollDialog._createPanel(options)
                     dmhub.Roll {
                         guid = dmhub.GenerateGuid(),
                         roll = rollString,
-                        description = isFirstRoll and "Project Roll" or "Breakthrough roll",
+                        description = (isFirstRoll and "Project Roll" or "Breakthrough Roll") .. " - " .. options.projectTitle,
                         tokenid = token.id,
                         complete = function(rollInfo)
                             newRoll:SetAudit(audit)
                                 :SetRollGuid(rollInfo.key)
                                 :SetRollString(rollString)
-                                -- :SetRolledBy(token.name or "(unnamed character)")
                                 :SetRolledBy(roller:GetName())
                                 :SetRolledByID(token.id or "")
                                 :SetNaturalRoll(rollInfo.naturalRoll)
@@ -315,7 +305,6 @@ function DTProjectRollDialog._createPanel(options)
                                                         local project = rollController.data.getProject(rollController)
                                                         local creature = CharacterSheet.instance.data.info.token.properties
                                                         if project then
-                                                            -- local langPenalty = DTBusinessRules.CalcLangPenalty(project:GetProjectSourceLanguages(), creature:LanguagesKnown())
                                                             local langPenalty = DTBusinessRules.CalcLangPenalty(project:GetProjectSourceLanguages(), roller:GetLanguagesKnown())
                                                             if langPenalty then
                                                                 if langPenalty == DTConstants.LANGUAGE_PENALTY.RELATED.key then
@@ -406,7 +395,6 @@ function DTProjectRollDialog._createPanel(options)
                                                         local attrId = nil
                                                         local attrVal = -100
                                                         for _, charId in ipairs(characteristics) do
-                                                            -- local a = character:GetAttribute(charId):Modifier()
                                                             local a = roller:GetCharacteristic(charId)
                                                             if a and a > attrVal then
                                                                 attrId = charId
