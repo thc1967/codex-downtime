@@ -37,6 +37,28 @@ function DTFollowers:GetFollower(followerId)
     return self.followers[followerId or ""]
 end
 
+--- Retrieve the total number of rolls the followers have
+--- @return number numRolls The number of rolls
+function DTFollowers:AggregateAvailableRolls()
+    local numRolls = 0
+    for _, follower in pairs(self.followers or {}) do
+        numRolls = numRolls + (follower:GetAvailableRolls() or 0)
+    end
+    return numRolls
+end
+
+--- Find all the followers that have available rolls
+--- @return table followers The followers with rolls
+function DTFollower:GetFollowersWithAvailbleRolls()
+    local followers = {}
+    for id, follower in pairs(self.followers or {}) do
+        if follower:GetAvailableRolls() then
+            followers[id] = follower
+        end
+    end
+    return followers
+end
+
 --- Extend creature to get downtime followers
 --- @return DTFollowers|nil followers The downtime followers for the character
 creature.GetDowntimeFollowers = function(self)
