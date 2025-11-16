@@ -52,7 +52,7 @@ end
 function DTFollowers:GetFollowersWithAvailbleRolls()
     local followers = {}
     for id, follower in pairs(self.followers or {}) do
-        if follower:GetAvailableRolls() then
+        if follower:GetAvailableRolls() > 0 then
             followers[id] = follower
         end
     end
