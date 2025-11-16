@@ -122,10 +122,10 @@ function DTShareDialog._createPanel(options)
                                 local selector = controller:Get("characterSelector")
                                 local selectedTokenIds = {}
                                 if selector and selector.value then
-                                    -- Extract just the IDs from the new format
-                                    for _, item in ipairs(selector.value) do
-                                        if item.selected then
-                                            selectedTokenIds[#selectedTokenIds + 1] = item.id
+                                    -- Extract just the IDs from the keyed format
+                                    for tokenId, value in pairs(selector.value) do
+                                        if value.selected then
+                                            selectedTokenIds[#selectedTokenIds + 1] = tokenId
                                         end
                                     end
                                 end

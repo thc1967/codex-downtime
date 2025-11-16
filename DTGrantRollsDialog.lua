@@ -35,7 +35,7 @@ function DTGrantRollsDialog:ShowDialog()
             local selector = element:Get("characterSelector")
             local numRolls = element.data.currentRollCount or 0
             if selector and selector.value then
-                isValid = #selector.value > 0 and numRolls ~= 0
+                isValid = next(selector.value) ~= nil and numRolls ~= 0
             end
             element:FireEventTree("enableConfirm", isValid, numRolls >= 0 and "Grant" or "Revoke")
         end,
@@ -49,10 +49,11 @@ function DTGrantRollsDialog:ShowDialog()
             local numRolls = element.data.currentRollCount or 0
             if numRolls ~= 0 then
                 local selector = element:Get("characterSelector")
-                if selector and selector.value and #selector.value > 0 then
-                    for _, item in ipairs(selector.value) do
-                        if item.selected then
-                            local token = dmhub.GetCharacterById(item.id)
+                if selector and selector.value and next(selector.value) then
+                    print("THC:: GRANTTO::", json(selector.value))
+                    for tokenId, value in pairs(selector.value) do
+                        if value.selected then
+                            local token = dmhub.GetCharacterById(tokenId)
                             if token and token.properties then
                                 token:ModifyProperties{
                                     description = "Grant Downtime Rolls",
@@ -243,11 +244,11 @@ function DTGrantRollsDialog:_createCharacterSelector()
     -- Get all hero tokens to display
     local allTokens = DTBusinessRules.GetAllHeroTokens()
 
-    -- Get tokens selected on map and extract their IDs for initial selection
+    -- Get tokens selected on map and build keyed table for initial selection
     local selectedTokens = dmhub.selectedTokens
     local initialSelectionIds = {}
     for _, token in ipairs(selectedTokens) do
-        initialSelectionIds[#initialSelectionIds + 1] = {id = token.id, selected = true}
+        initialSelectionIds[token.id] = {selected = true}
     end
 
     local function displayName(token)
@@ -257,6 +258,20 @@ function DTGrantRollsDialog:_createCharacterSelector()
             if dt then rolls = dt:GetAvailableRolls() end
         end
         return string.format("<b>%s</b> (<i>%d Rolls</i>)", token.name, rolls)
+    end
+
+    local function displayFollowerText(follower)
+        local rolls = 0
+        if follower and follower.availableRolls then rolls = tonumber(follower.availableRolls) end
+        return string.format("<b>%s</b> (<i>%d Rolls</i>)", follower.name or "(unnamed follower)", rolls)
+    end
+
+    local function followerFilter(follower)
+        if follower and follower.type and type(follower.type) == "string" then
+            local type = follower.type:lower()
+            return type == "artisan" or type == "sage"
+        end
+        return false
     end
 
     -- Return wrapper panel with CharacterSelector
@@ -280,6 +295,9 @@ function DTGrantRollsDialog:_createCharacterSelector()
                 height = "50%",
                 layout = "list",
                 displayText = displayName,
+                includeFollowers = true,
+                followerFilter = followerFilter,
+                followerText = displayFollowerText,
                 change = function(element, selectedTokenIds)
                     local controller = element:FindParentWithClass("dtGrantRollsController")
                     if controller then
