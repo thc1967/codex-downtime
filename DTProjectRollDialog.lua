@@ -145,9 +145,10 @@ function DTProjectRollDialog._createPanel(options)
             local rollString = element.data.calculateRoll(element)
             local token = CharacterSheet.instance.data.info.token
             element.data.isRolling = true
-            element.data.rolls = {}  -- Initialize rolls array
+            element.data.rolls = {}
 
             local function keepRollingBreakthroughs(previousRoll, isFirstRoll)
+                -- Roll recursively for as long as we keep rolling breakthroughs.
                 if isFirstRoll or previousRoll:GetNaturalRoll() >= DTConstants.BREAKTHROUGH_MIN then
                     if not isFirstRoll then
                         element:FireEventTree("updateTitle", "Rolling a Breakthrough!")
@@ -164,11 +165,12 @@ function DTProjectRollDialog._createPanel(options)
                                 :SetRollString(rollString)
                                 :SetRolledBy(roller:GetName())
                                 :SetRolledByID(token.id or "")
+                                :SetRolledByFollowerID(roller:GetFollowerID())
                                 :SetNaturalRoll(rollInfo.naturalRoll)
-                                :SetBreakthrough(not isFirstRoll)  -- First roll = false, others = true
-                                :SetAmount(math.max(1, rollInfo.total))
+                                :SetBreakthrough(not isFirstRoll)
+                                :SetAmount(rollInfo.total)
                             element.data.rolls[#element.data.rolls + 1] = newRoll
-                            keepRollingBreakthroughs(newRoll, false)  -- Recursive call
+                            keepRollingBreakthroughs(newRoll, false)
                         end,
                     }
                 else
@@ -179,7 +181,7 @@ function DTProjectRollDialog._createPanel(options)
                 end
             end
 
-            keepRollingBreakthroughs(nil, true)  -- Start with first roll
+            keepRollingBreakthroughs(nil, true)
         end,
 
         close = function(element, force)

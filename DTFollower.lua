@@ -95,3 +95,10 @@ end
 function DTFollower:SetAvailableRolls(numRolls)
     self.follower[DTConstants.FOLLOWER_AVAILROLL_KEY] = math.max(0, numRolls)
 end
+
+--- Return the follower's parent token / character id
+--- @return string|nil tokenId The token ID or nil if we don't have a token
+function DTFollower:GetTokenID()
+    if self.token then return self.token.id end
+    return nil
+end

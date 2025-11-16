@@ -1925,17 +1925,23 @@ function DTProjectEditor:CreateEditorPanel()
             end
         end,
 
-        -- deleteRoll = function(element, rollId)
-        --     local downtimeController = element:FindParentWithClass("downtimeController")
-        --     if downtimeController then
-        --         element.data.project:RemoveRoll(rollId)
-        --         downtimeController:FireEvent("adjustRolls", 1)
-        --         dmhub.Schedule(0.1, function()
-        --             DTSettings.Touch()
-        --             DTShares.Touch()
-        --         end)
-        --     end
-        -- end,
+        deleteRoll = function(element, rollId)
+            local downtimeController = element:FindParentWithClass("downtimeController")
+            if downtimeController then
+                local roll = element.data.project:GetRoll(rollId)
+                if roll then
+                    local roller = DTRoller:new(roll)
+                    if roller then
+                        downtimeController:FireEvent("adjustRolls", 1, roller)
+                        element.data.project:RemoveRoll(rollId)
+                        dmhub.Schedule(0.1, function()
+                            DTSettings.Touch()
+                            DTShares.Touch()
+                        end)
+                    end
+                end
+            end
+        end,
 
         refreshProject = function(element)
             element:FireEventTree("refreshToken")
@@ -2126,25 +2132,25 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
                             },
                         },
                     },
-                    -- dmhub.isDM and gui.DeleteItemButton {
-                    --     width = 16,
-                    --     height = 16,
-                    --     halign = "right",
-                    --     valign = "center",
-                    --     click = function(element)
-                    --         local projectController = element:FindParentWithClass("projectController")
-                    --         if projectController then
-                    --             CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("this item", {
-                    --                 confirm = function()
-                    --                     projectController:FireEvent(deleteEvent, item:GetID())
-                    --                 end,
-                    --                 cancel = function()
-                    --                     -- Optional cancel logic
-                    --                 end
-                    --             }))
-                    --         end
-                    --     end,
-                    -- } or nil
+                    dmhub.isDM and gui.DeleteItemButton {
+                        width = 16,
+                        height = 16,
+                        halign = "right",
+                        valign = "center",
+                        click = function(element)
+                            local projectController = element:FindParentWithClass("projectController")
+                            if projectController then
+                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("this item", {
+                                    confirm = function()
+                                        projectController:FireEvent(deleteEvent, item:GetID())
+                                    end,
+                                    cancel = function()
+                                        -- Optional cancel logic
+                                    end
+                                }))
+                            end
+                        end,
+                    } or nil
                 }
             },
             -- Bottom

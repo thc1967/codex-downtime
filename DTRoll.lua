@@ -4,6 +4,7 @@
 --- @field rollString string The text representation of the roll
 --- @field rolledBy string The name of the character or follower responsible for the roll
 --- @field rolledById string The unique identifier of the token responsible for the roll
+--- @field rolledByFollowerId string|nil The unique identifier of the follower who rolled, if applicable
 --- @field naturalRoll number The unmodified die roll result
 --- @field breakthrough boolean Whether this roll was triggered by a Breakthrough
 --- @field rollGuid string The VTT's GUID for the roll instance
@@ -21,12 +22,21 @@ function DTRoll:new(naturalRoll, modifiedRoll)
     instance.rollString = ""
     instance.rolledBy = ""
     instance.rolledById = ""
+    instance.rolledByFollowerId = nil
     instance.naturalRoll = math.floor(naturalRoll or 0)
     instance.breakthrough = false
     instance.rollGuid = ""
     instance.audit = ""
 
     return instance
+end
+
+--- Sets the progress amount for this item
+--- @param amount number The progress amount
+--- @return DTRoll self For chaining
+function DTRoll:SetAmount(amount)
+    self.amount = math.max(1, math.floor(amount or 0))
+    return self
 end
 
 --- Sets the rollString used for this roll
@@ -69,6 +79,20 @@ end
 --- @return string rolledById The id of the entity responsible for this roll
 function DTRoll:GetRolledByID()
     return self:try_get("rolledById") or ""
+end
+
+--- Sets the identifier of the follower responsible for this roll
+--- @param followerId string|nil The id of the follower responsible for this roll
+--- @return DTRoll self For chaining
+function DTRoll:SetRolledByFollowerID(followerId)
+    self.rolledByFollowerId = followerId
+    return self
+end
+
+--- Gets the unique id of the follower responsible for this roll
+--- @return string|nil followerId The unique ID of the follower responsible for the roll or nil if none
+function DTRoll:GetRolledByFollowerID()
+    return self:try_get("rolledByFollowerId")
 end
 
 --- Custom format for our committed by - add roller if we have it
