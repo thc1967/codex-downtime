@@ -105,6 +105,27 @@ function DTBusinessRules.GetAllHeroTokens(filter)
     return DTBusinessRules.IterateHeroTokens(function() return false end, filter)
 end
 
+--- Return the list of languages applied to all characters via global rules
+--- @return table languages Flag table of language ID's
+function DTBusinessRules.GetGlobalLanguages()
+    local languages = {}
+    local globalRules = dmhub.GetTable(GlobalRuleMod.TableName)
+    for _, rule in pairs(globalRules) do
+        if rule:try_get("modifierInfo") and rule.modifierInfo:try_get("features") then
+            for _, feature in pairs(rule.modifierInfo.features) do
+                if feature.typeName == "CharacterFeature" and feature:try_get("modifiers") then
+                    for _, modifier in ipairs(feature.modifiers) do
+                        if modifier:try_get("subtype") and modifier.typeName == "CharacterModifier" and modifier.subtype == "language" and modifier:try_get("skills") then
+                            DTHelpers.MergeFlagLists(languages, modifier.skills, true)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return languages
+end
+
 --- Adds the item, in the correct quantity, to the character's inventory
 --- Parses the item's project goal to determine quantity, which can be as complex as
 --- `45 (yields 1d3 darts, or three darts if crafted by a shadow)`.

@@ -423,3 +423,17 @@ function DTHelpers.SyncArrays(target, source)
 
     return changed
 end
+
+--- Merge the source flag list into the target
+--- @param target table The flag list to move source items into
+--- @param source table The flag list to move into target
+--- @param onlyTrue boolean|nil Whether to move only true values
+--- @return table target The resulting merged list
+function DTHelpers.MergeFlagLists(target, source, onlyTrue)
+    for k,v in pairs(source) do
+        if onlyTrue == nil or (onlyTrue and v == true) then
+            target[k] = v
+        end
+    end
+    return target
+end

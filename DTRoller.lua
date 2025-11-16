@@ -16,11 +16,13 @@ function DTRoller:new(object)
     local instance = setmetatable({}, self)
     local objType = string.lower(object.typeName or "")
 
+    local languages = DTBusinessRules.GetGlobalLanguages()
+
     if objType == "character" then
         local token = dmhub.LookupToken(object)
         instance.name = (token.name and #token.name > 0 and token.name) or "(unnamed character)"
         instance.characteristics = DTRoller._charAttrsToList(object)
-        instance.languages = object:LanguagesKnown()
+        instance.languages = DTHelpers.MergeFlagLists(languages, object:LanguagesKnown(), true)
         instance.skills = DTRoller._charSkillsToList(object)
         instance.object = object
         instance._adjustRolls = function(self, amount)
@@ -32,7 +34,7 @@ function DTRoller:new(object)
     elseif objType == "dtfollower" or objType == "dtfollowerartisan" or objType == "dtfollowersage" then
         instance.name = object:GetName()
         instance.characteristics = object:GetCharacteristics()
-        instance.languages = object:GetLanguages()
+        instance.languages = DTHelpers.MergeFlagLists(languages, object:GetLanguages(), true)
         instance.skills = DTRoller._followerSkillsToList(object)
         instance.object = object
         instance._adjustRolls = function(self, amount)
