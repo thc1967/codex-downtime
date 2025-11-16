@@ -22,12 +22,19 @@ function DTFollowers:new(followers, token)
                 dtFollower = DTFollowerSage:new(follower, token)
             end
             if dtFollower then
-                instance.followers[#instance.followers + 1] = dtFollower
+                instance.followers[dtFollower:GetID()] = dtFollower
             end
         end
     end
 
     return instance
+end
+
+--- Retrieve a specific follower using its key
+--- @param followerId string GUID identifier for the follower
+--- @return DTFollower|nil follower The follower or nil if the key wasn't provided or found
+function DTFollowers:GetFollower(followerId)
+    return self.followers[followerId or ""]
 end
 
 --- Extend creature to get downtime followers

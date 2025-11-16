@@ -1,11 +1,8 @@
 --- Downtime follower information - A single follower
 --- @class DTFollower
---- @field id string The GUID uniquely identifying the follower
---- @field name string The follower's name
---- @field languages table The list of flags languages
---- @field skills table The list of flags skills
 --- @field characteristics table The list of characteristic values for the follower
---- @field portrait string The unique identifier for the follower's portrait
+--- @field follower table The Codex follower object
+--- @field token CharacterToken|nil The codex token that is the parent of the follower
 DTFollower = RegisterGameType("DTFollower")
 DTFollower.__index = DTFollower
 
@@ -19,27 +16,23 @@ function DTFollower:new(follower, token)
     local instance = setmetatable({}, self)
 
     -- guid might not be there - ensure it is
-    instance.id = follower.guid or ""
-    if #instance.id == 0 then
+    if not follower.guid or #follower.guid == 0 then
         if token == nil or token.properties == nil then return nil end
         token:ModifyProperties{
             description = "Add ID to follower",
             execute = function ()
                 follower.guid = dmhub.GenerateGuid()
-                instance.id = follower.guid
             end,
         }
     end
 
-    instance.languages = follower.languages or {}
-    instance.skills = follower.skills or {}
-    instance.name = follower.name or "(unnamed follower)"
-    instance.portrait = follower.portrait or ""
-
     instance.characteristics = {}
     for _, char in ipairs(DTConstants.CHARACTERISTICS) do
-        instance.characteristics[char.id] = 0
+        instance.characteristics[char.key] = 0
     end
+
+    instance.follower = follower
+    instance.token = token
 
     return instance
 end
@@ -47,35 +40,49 @@ end
 --- Returns the follower's unique identifier
 --- @return string id The GUID uniquely identifying the follower
 function DTFollower:GetID()
-    return self.id
+    return self.follower.guid or ""
 end
 
 --- Returns the follower's name
 --- @return string name The follower's name
 function DTFollower:GetName()
-    return self.name
+    return self.follower.name or "unnamed follower"
 end
 
 --- Returns the follower's languages
 --- @return table languages The list of flags languages
 function DTFollower:GetLanguages()
-    return self.languages
+    return self.follower.languages or {}
 end
 
 --- Returns the follower's skills
 --- @return table skills The list of flags skills
 function DTFollower:GetSkills()
-    return self.skills
+    return self.follower.skills or {}
 end
 
 --- Returns the follower's portrait identifier
 --- @return string portrait The unique identifier for the follower's portrait
 function DTFollower:GetPortrait()
-    return self.portrait
+    return self.follower.portrait or ""
 end
 
 --- Returns the follower's characteristics
 --- @return table characteristics The list of characteristic values for the follower
 function DTFollower:GetCharacteristics()
     return self.characteristics
+end
+
+--- Grant or revoke rolls for the follower
+--- @param numRolls number The number of rolls to grant, negative to revoke
+--- @return DTFollower self For chaining
+function DTFollower:GrantRolls(numRolls)
+    self.follower[DTConstants.FOLLOWER_AVAILROLL_KEY] = math.max(0, self:GetAvailableRolls() + (numRolls or 0))
+    return self
+end
+
+--- Return the nubmer of rolls the follower has
+--- @return number numRolls The number of rolls
+function DTFollower:GetAvailableRolls()
+    return self.follower[DTConstants.FOLLOWER_AVAILROLL_KEY] or 0
 end

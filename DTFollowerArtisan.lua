@@ -18,7 +18,7 @@ function DTFollowerArtisan:new(follower, token)
     if follower.characteristic and type(follower.characteristic) == "string" then
         local isValid = false
         for _, char in ipairs(DTConstants.CHARACTERISTICS) do
-            if char.id == follower.characteristic then
+            if char.key == follower.characteristic then
                 isValid = true
                 break
             end
