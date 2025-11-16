@@ -3,7 +3,9 @@
 --- @field name string The name of the roller
 --- @field characteristics table The list of characteristics for the roller as attrId = value
 --- @field languages table Flag list of language id's known
---- @field skills table List of skills the roller knows in id,text pairs 
+--- @field skills table List of skills the roller knows in id,text pairs
+--- @field object character|DTFollower The source object
+--- @field _adjustRolls fun(self: DTRoller, amount: number) Adjusts available rolls (private)
 DTRoller = RegisterGameType("DTRoller")
 DTRoller.__index = DTRoller
 
@@ -20,11 +22,22 @@ function DTRoller:new(object)
         instance.characteristics = DTRoller._charAttrsToList(object)
         instance.languages = object:LanguagesKnown()
         instance.skills = DTRoller._charSkillsToList(object)
+        instance.object = object
+        instance._adjustRolls = function(self, amount)
+            local downtimeInfo = self.object:GetDowntimeInfo()
+            if downtimeInfo then
+                downtimeInfo:SetAvailableRolls(downtimeInfo:GetAvailableRolls() + amount)
+            end
+        end
     elseif objType == "dtfollower" or objType == "dtfollowerartisan" or objType == "dtfollowersage" then
         instance.name = object:GetName()
         instance.characteristics = object:GetCharacteristics()
         instance.languages = object:GetLanguages()
         instance.skills = DTRoller._followerSkillsToList(object)
+        instance.object = object
+        instance._adjustRolls = function(self, amount)
+            self.object:SetAvailableRolls(self.object:GetAvailableRolls() + amount)
+        end
     else
         return nil
     end
@@ -63,6 +76,14 @@ function DTRoller:GetSkillsKnown()
     return self.skills
 end
 
+--- Adjust the follower's number of available rolls
+--- @param amount number The amount to adjust the rolls by
+--- @return DTRoller self For chaining
+function DTRoller:AdjustRolls(amount)
+    self:_adjustRolls(amount)
+    return self
+end
+
 --- Calcualte the list of attributes given a character
 --- @param c character The character
 --- @return table attributes List of attributes as attrId = value pairs
@@ -92,7 +113,7 @@ end
 --- @return table skills List of skills the follower knows in id,text pairs
 function DTRoller._followerSkillsToList(f)
     local skillList = {}
-    local skillTable = Skill.SkillsInfo
+    local skillTable = dmhub.GetTable(Skill.tableName)
     for id,_ in pairs(f:GetSkills()) do
         skillList[#skillList + 1] = { id = id, text = skillTable[id].name}
     end

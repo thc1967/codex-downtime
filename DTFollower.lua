@@ -74,6 +74,7 @@ function DTFollower:GetCharacteristics()
 end
 
 --- Grant or revoke rolls for the follower
+--- IMPORTANT: Always call within context of token:ModifyProperties()
 --- @param numRolls number The number of rolls to grant, negative to revoke
 --- @return DTFollower self For chaining
 function DTFollower:GrantRolls(numRolls)
@@ -85,4 +86,12 @@ end
 --- @return number numRolls The number of rolls
 function DTFollower:GetAvailableRolls()
     return self.follower[DTConstants.FOLLOWER_AVAILROLL_KEY] or 0
+end
+
+--- Sets the number of avialable rolls.
+--- IMPORTANT: Always call within context of token:ModifyProperties()
+--- @param numRolls number The new number of rolls
+--- @return DTFollower self For chaining
+function DTFollower:SetAvailableRolls(numRolls)
+    self.follower[DTConstants.FOLLOWER_AVAILROLL_KEY] = math.max(0, numRolls)
 end

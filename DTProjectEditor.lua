@@ -1381,8 +1381,8 @@ function DTProjectEditor:_createRollsPanel()
                         halign = "right",
                         children = {
                             self:_createRollButton({
-                                confirm = function(rolls, controller)
-                                    controller:FireEvent("addRolls", rolls)
+                                confirm = function(rolls, controller, roller)
+                                    controller:FireEvent("addRolls", rolls, roller)
                                 end
                             }),
                         }
@@ -1433,7 +1433,7 @@ end
 
 --- Creates a roll button for making downtime project rolls
 --- @param options table|nil Options table with styling and callback properties
----   - confirm: function(rolls, controller) - Callback when rolls are confirmed, receives array of DTRoll objects
+---   - confirm: function(rolls, controller, roller) - Callback when rolls are confirmed, receives array of DTRoll objects and the roller
 ---   - width: number - Button width (default: 24)
 ---   - height: number - Button height (default: 24)
 ---   - margin: number - Button margin (default: 0)
@@ -1530,24 +1530,83 @@ function DTProjectEditor:_createRollButton(options)
             local project = element.data.getProject(element)
             local controller = element:FindParentWithClass("projectController")
             if project and controller then
-                local options = {
-                    roller = DTRoller:new(CharacterSheet.instance.data.info.token.properties),
-                    projectTitle = project:GetTitle(),
-                    data = {
-                        project = project
-                    },
-                    callbacks = {
-                        confirm = function(rolls)
-                            if confirmCallback then
-                                confirmCallback(rolls, controller)
+                -- Get token reference
+                local token = CharacterSheet.instance.data.info.token
+
+                -- Get followers with available rolls (keyed table: {[followerId] = followerObject})
+                local followersWithRolls = {}
+                if token.properties and token.properties.GetDowntimeFollowers then
+                    local dtFollowers = token.properties:GetDowntimeFollowers()
+                    if dtFollowers then
+                        followersWithRolls = dtFollowers:GetFollowersWithAvailbleRolls() or {}
+                    end
+                end
+
+                -- Helper function to create and show roll dialog
+                local function showRollDialog(roller)
+                    local options = {
+                        roller = roller,
+                        projectTitle = project:GetTitle(),
+                        data = {
+                            project = project
+                        },
+                        callbacks = {
+                            confirm = function(rolls)
+                                if confirmCallback then
+                                    confirmCallback(rolls, controller, roller)
+                                end
+                            end,
+                            cancel = function()
+                                -- cancel handler
+                            end
+                        }
+                    }
+                    CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(options))
+                end
+
+                -- Check if any followers have rolls (keyed table, so use next())
+                local hasFollowersWithRolls = next(followersWithRolls) ~= nil
+
+                -- If no followers with rolls, go straight to roll dialog with character
+                if not hasFollowersWithRolls then
+                    local roller = DTRoller:new(token.properties)
+                    showRollDialog(roller)
+                else
+                    -- Build context menu with character + followers
+                    local menuItems = {}
+                    local parentElement = element
+
+                    -- Add character as first menu item
+                    local characterRoller = DTRoller:new(token.properties)
+                    menuItems[#menuItems + 1] = {
+                        text = characterRoller:GetName(),
+                        click = function(menuElement)
+                            showRollDialog(characterRoller)
+                            if parentElement.popup then
+                                parentElement.popup = nil
                             end
                         end,
-                        cancel = function()
-                            -- cancel handler
-                        end
                     }
-                }
-                CharacterSheet.instance:AddChild(DTProjectRollDialog.CreateAsChild(options))
+
+                    -- Add each follower with rolls (iterate keyed table with pairs)
+                    for followerId, follower in pairs(followersWithRolls) do
+                        local followerRoller = DTRoller:new(follower)
+                        menuItems[#menuItems + 1] = {
+                            text = followerRoller:GetName(),
+                            click = function(menuElement)
+                                showRollDialog(followerRoller)
+                                if parentElement.popup then
+                                    parentElement.popup = nil
+                                end
+                            end,
+                        }
+                    end
+
+                    -- Show context menu
+                    element.popup = gui.ContextMenu {
+                        entries = menuItems,
+                    }
+                end
             end
         end,
     }
@@ -1700,7 +1759,7 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
         hmargin = 5,
         vmargin = 5,
         border = 0,
-        confirm = function(rolls, controller)
+        confirm = function(rolls, controller, roller)
             local token = dmhub.GetCharacterById(ownerId)
             if token then
                 local project = controller.data.project
@@ -1715,7 +1774,7 @@ function DTProjectEditor:_createSharedProjectButtons(ownerName, ownerId)
                     }
                     local downtimeController = controller:FindParentWithClass("downtimeController")
                     if downtimeController then
-                        downtimeController:FireEvent("adjustRolls", -1)
+                        downtimeController:FireEvent("adjustRolls", -1, roller)
                     end
                     dmhub.Schedule(0.1, function()
                         controller:FireEventTree("refreshToken")
@@ -1854,11 +1913,11 @@ function DTProjectEditor:CreateEditorPanel()
             end)
         end,
 
-        addRolls = function(element, rolls)
+        addRolls = function(element, rolls, roller)
             local downtimeController = element:FindParentWithClass("downtimeController")
             if downtimeController then
                 element.data.project:AddRolls(rolls)
-                downtimeController:FireEvent("adjustRolls", -1)
+                downtimeController:FireEvent("adjustRolls", -1, roller)
                 dmhub.Schedule(0.1, function()
                     DTSettings.Touch()
                     DTShares.Touch()
@@ -1866,17 +1925,17 @@ function DTProjectEditor:CreateEditorPanel()
             end
         end,
 
-        deleteRoll = function(element, rollId)
-            local downtimeController = element:FindParentWithClass("downtimeController")
-            if downtimeController then
-                element.data.project:RemoveRoll(rollId)
-                downtimeController:FireEvent("adjustRolls", 1)
-                dmhub.Schedule(0.1, function()
-                    DTSettings.Touch()
-                    DTShares.Touch()
-                end)
-            end
-        end,
+        -- deleteRoll = function(element, rollId)
+        --     local downtimeController = element:FindParentWithClass("downtimeController")
+        --     if downtimeController then
+        --         element.data.project:RemoveRoll(rollId)
+        --         downtimeController:FireEvent("adjustRolls", 1)
+        --         dmhub.Schedule(0.1, function()
+        --             DTSettings.Touch()
+        --             DTShares.Touch()
+        --         end)
+        --     end
+        -- end,
 
         refreshProject = function(element)
             element:FireEventTree("refreshToken")
@@ -2067,25 +2126,25 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
                             },
                         },
                     },
-                    dmhub.isDM and gui.DeleteItemButton {
-                        width = 16,
-                        height = 16,
-                        halign = "right",
-                        valign = "center",
-                        click = function(element)
-                            local projectController = element:FindParentWithClass("projectController")
-                            if projectController then
-                                CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("this item", {
-                                    confirm = function()
-                                        projectController:FireEvent(deleteEvent, item:GetID())
-                                    end,
-                                    cancel = function()
-                                        -- Optional cancel logic
-                                    end
-                                }))
-                            end
-                        end,
-                    } or nil
+                    -- dmhub.isDM and gui.DeleteItemButton {
+                    --     width = 16,
+                    --     height = 16,
+                    --     halign = "right",
+                    --     valign = "center",
+                    --     click = function(element)
+                    --         local projectController = element:FindParentWithClass("projectController")
+                    --         if projectController then
+                    --             CharacterSheet.instance:AddChild(DTConfirmationDialog.ShowDeleteAsChild("this item", {
+                    --                 confirm = function()
+                    --                     projectController:FireEvent(deleteEvent, item:GetID())
+                    --                 end,
+                    --                 cancel = function()
+                    --                     -- Optional cancel logic
+                    --                 end
+                    --             }))
+                    --         end
+                    --     end,
+                    -- } or nil
                 }
             },
             -- Bottom

@@ -32,6 +32,8 @@ function DTProjectRollDialog._createPanel(options)
     local resultPanel = nil
     local roller = options.roller
 
+    local rollerName = roller:GetName() or "(unknown)"
+
     local skillList = roller:GetSkillsKnown()
     local skillLookup = {}
     for _, item in ipairs(skillList) do
@@ -194,7 +196,7 @@ function DTProjectRollDialog._createPanel(options)
             -- Header
             gui.Label{
                 classes = {"DTLabel", "DTBase"},
-                text = "Make A Project Roll",
+                text = "Make A Project Roll as " .. rollerName,
                 fontSize = 24,
                 width = "100%",
                 height = 30,

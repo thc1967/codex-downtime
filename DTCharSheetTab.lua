@@ -45,13 +45,10 @@ function DTCharSheetTab.CreateDowntimePanel()
             end
         end,
 
-        adjustRolls = function(element, amount)
-            local downtimeInfo = element.data.getDowntimeInfo()
-            if downtimeInfo then
-                downtimeInfo:SetAvailableRolls(downtimeInfo:GetAvailableRolls() + amount)
-                DTSettings.Touch()
-                element:FireEventTree("refreshToken")
-            end
+        adjustRolls = function(element, amount, roller)
+            roller:AdjustRolls(amount)
+            DTSettings.Touch()
+            element:FireEventTree("refreshToken")
         end,
 
         children = {

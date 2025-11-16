@@ -49,7 +49,7 @@ end
 
 --- Find all the followers that have available rolls
 --- @return table followers The followers with rolls
-function DTFollower:GetFollowersWithAvailbleRolls()
+function DTFollowers:GetFollowersWithAvailbleRolls()
     local followers = {}
     for id, follower in pairs(self.followers or {}) do
         if follower:GetAvailableRolls() then
