@@ -2124,7 +2124,7 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
                 flow = "horizontal",
                 valign = "top",
                 height = "auto",
-                width = "100%",
+                width = "95%",
                 children = {
                     -- Top row
                     gui.Panel{
@@ -2173,7 +2173,7 @@ function DTProjectEditor._createProgressListItem(item, deleteEvent)
                 flow = "horizontal",
                 valign = "top",
                 height = "auto",
-                width = "100%",
+                width = "90%",
                 borderColor = "cyan",
                 children = {
                     gui.Label{
