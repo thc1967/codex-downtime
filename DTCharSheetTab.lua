@@ -28,6 +28,10 @@ function DTCharSheetTab.CreateDowntimePanel()
         borderColor = "purple",
         styles = DTHelpers.GetDialogStyles(),
         data = {
+            getDowntimeFollowers = function()
+                local token = CharacterSheet.instance.data.info.token
+                return token.properties:GetDowntimeFollowers()
+            end,
             getDowntimeInfo = function()
                 local token = CharacterSheet.instance.data.info.token
                 return token.properties:GetDowntimeInfo()

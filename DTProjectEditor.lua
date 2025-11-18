@@ -1465,6 +1465,13 @@ function DTProjectEditor:_createRollButton(options)
         data = {
             enabled = false,
             tooltipText = "",
+            getDowntimeFollowers = function(element)
+                local downtimeController = element:FindParentWithClass("downtimeController")
+                if downtimeController then
+                    return downtimeController.data.getDowntimeFollowers()
+                end
+                return nil
+            end,
             getDowntimeInfo = function(element)
                 local downtimeController = element:FindParentWithClass("downtimeController")
                 if downtimeController then
@@ -1478,6 +1485,16 @@ function DTProjectEditor:_createRollButton(options)
                     return projectController.data.project
                 end
                 return nil
+            end,
+            characterRolls = function(element)
+                local downtimeInfo = element.data.getDowntimeInfo(element)
+                if downtimeInfo then return downtimeInfo:GetAvailableRolls() end
+                return 0
+            end,
+            followerRolls = function(element)
+                local followers = element.data.getDowntimeFollowers(element)
+                if followers then return followers:AggregateAvailableRolls() end
+                return 0
             end,
         },
         create = function(element)
@@ -1496,23 +1513,20 @@ function DTProjectEditor:_createRollButton(options)
             if project then
                 local validState, issueList = project:IsValidStateToRoll()
                 if validState then
-                    local downtimeInfo = element.data.getDowntimeInfo(element)
-                    if downtimeInfo then
-                        if downtimeInfo:GetAvailableRolls() > 0 then
-                            local settings = DTSettings:new()
-                            if settings then
-                                if settings:GetPauseRolls() then
-                                    element.data.tooltipText = "Rolling is currently paused"
-                                else
-                                    element.data.tooltipText = "Make a roll"
-                                    isEnabled = true
-                                end
+                    local followerRolls = element.data.followerRolls(element)
+                    local characterRolls = element.data.characterRolls(element)
+                    if followerRolls + characterRolls > 0 then
+                        local settings = DTSettings:new()
+                        if settings then
+                            if settings:GetPauseRolls() then
+                                element.data.tooltipText = "Rolling is currently paused"
+                            else
+                                element.data.tooltipText = "Make a roll"
+                                isEnabled = true
                             end
-                        else
-                            element.data.tooltipText = "You have no available rolls"
                         end
                     else
-                        element.data.tooltipText = "No available rolls"
+                        element.data.tooltipText = "You have no available rolls"
                     end
                 else
                     element.data.tooltipText = table.concat(issueList, " ")
@@ -1530,10 +1544,8 @@ function DTProjectEditor:_createRollButton(options)
             local project = element.data.getProject(element)
             local controller = element:FindParentWithClass("projectController")
             if project and controller then
-                -- Get token reference
                 local token = CharacterSheet.instance.data.info.token
 
-                -- Get followers with available rolls (keyed table: {[followerId] = followerObject})
                 local followersWithRolls = {}
                 if token.properties and token.properties.GetDowntimeFollowers then
                     local dtFollowers = token.properties:GetDowntimeFollowers()
@@ -1577,16 +1589,18 @@ function DTProjectEditor:_createRollButton(options)
                     local parentElement = element
 
                     -- Add character as first menu item
-                    local characterRoller = DTRoller:new(token.properties)
-                    menuItems[#menuItems + 1] = {
-                        text = characterRoller:GetName(),
-                        click = function(menuElement)
-                            showRollDialog(characterRoller)
-                            if parentElement.popup then
-                                parentElement.popup = nil
-                            end
-                        end,
-                    }
+                    if element.data.characterRolls(element) > 0 then
+                        local characterRoller = DTRoller:new(token.properties)
+                        menuItems[#menuItems + 1] = {
+                            text = characterRoller:GetName(),
+                            click = function(menuElement)
+                                showRollDialog(characterRoller)
+                                if parentElement.popup then
+                                    parentElement.popup = nil
+                                end
+                            end,
+                        }
+                    end
 
                     -- Add each follower with rolls (iterate keyed table with pairs)
                     for followerId, follower in pairs(followersWithRolls) do
